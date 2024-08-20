@@ -1,0 +1,28 @@
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  rich_formatter:
+    format: "%(message)s"
+  file_formatter:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+handlers:
+  console:
+    class: rich.logging.RichHandler
+    level: DEBUG
+    formatter: rich_formatter
+    rich_tracebacks: true
+    markup: true
+
+  file:
+    class: logging.FileHandler
+    level: INFO
+    formatter: file_formatter
+    filename: "run_dsview.log"
+    encoding: "utf-8"
+
+loggers:
+  root:
+    level: INFO
+    handlers: [console]

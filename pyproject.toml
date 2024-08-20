@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "dsview"
+version = "0.1.0"
+description = "DS news monitoring manager using LLMs"
+authors = ["thibaultdu <39222414+thibaultdu@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+langchain = "^0.2.14"
+langchain-community = "^0.2.12"
+langchain-openai = "^0.1.21"
+langchain-experimental = "^0.0.64"
+python-dotenv = "^1.0.1"
+pandas = "^2.2.2"
+python-frontmatter = "^1.1.0"
+beautifulsoup4 = "^4.12.3"
+typer = "^0.12.4"
+omegaconf = "^2.3.0"
+rich = "^13.7.1"
+pyyaml = "^6.0.2"
+
+
+[tool.poetry.group.dev.dependencies]
+jupyter = "^1.0.0"
+wat-inspector = "^0.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
