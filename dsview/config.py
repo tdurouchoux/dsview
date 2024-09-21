@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
-import logging.config
 import os
+from typing import Callable, List
+
+import logging.config
 from pathlib import Path
-from typing import List, Callable
 
 from dotenv import load_dotenv
 from omegaconf import OmegaConf, MISSING
@@ -11,17 +12,6 @@ import yaml
 
 load_dotenv()
 os.getenv("CONF_DIR")
-
-
-@dataclass
-class ObsidianConfig:
-    vault_path: Path = MISSING
-
-
-@dataclass
-class TopicExtractionConfig:
-    tags: List[str]
-    subjects: List[str]
 
 
 def load_config(config_class, conf_file: Path):
@@ -32,13 +22,47 @@ def load_config(config_class, conf_file: Path):
     return OmegaConf.to_object(merged_config)
 
 
-load_obsidian_config: Callable[[], ObsidianConfig] = partial(
-    load_config, ObsidianConfig, "obsidian.yaml"
+@dataclass
+class ModelConfig:
+    name: str = MISSING
+    token_limit: int = MISSING
+
+
+load_model_config: Callable[[], ModelConfig] = partial(
+    load_config, ModelConfig, "model.yaml"
 )
 
 
-load_topic_extraction_config: Callable[[], TopicExtractionConfig] = partial(
-    load_config, TopicExtractionConfig, "topic_extraction.yaml"
+@dataclass
+class ExtractionConfig:
+    tags: List[str]
+    content_types: List[str]
+    topic_categories: List[str]
+
+
+load_extraction_config: Callable[[], ExtractionConfig] = partial(
+    load_config, ExtractionConfig, "extraction.yaml"
+)
+
+
+@dataclass
+class GithubVault:
+    repository: str = MISSING
+    username: str = MISSING
+    token: str = "${oc.env:GITHUB_TOKEN}"
+
+
+@dataclass
+class ObsidianConfig:
+    vault_path: Path = MISSING
+    content_directory: str = "contents"
+    topic_directory: str = "topics"
+    artefact_directory: str = "artefacts"
+    github_vault: GithubVault = field(default_factory=GithubVault)
+
+
+load_obsidian_config: Callable[[], ObsidianConfig] = partial(
+    load_config, ObsidianConfig, "obsidian.yaml"
 )
 
 

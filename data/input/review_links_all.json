@@ -1,0 +1,738 @@
+[
+    {
+        "link": "https://github.com/microsoft/graphrag",
+        "upload_date": "2024-08-08"
+    },
+    {
+        "link": "https://www.rungalileo.io/hallucinationindex",
+        "upload_date": "2024-08-08"
+    },
+    {
+        "link": "https://github.blog/news-insights/product-news/introducing-github-models/",
+        "upload_date": "2024-08-08"
+    },
+    {
+        "link": "https://github.com/igrek51/wat",
+        "upload_date": "2024-08-08"
+    },
+    {
+        "link": "https://readmedium.com/principal-components-analysis-pca-through-a-latent-variable-lens-2c2e5392a3a0",
+        "upload_date": "2024-07-10"
+    },
+    {
+        "link": "https://marc.ai/probabilistic-chess.html",
+        "upload_date": "2024-07-10"
+    },
+    {
+        "link": "https://towardsdatascience.com/automl-with-autogluon-transform-your-ml-workflow-with-just-four-lines-of-code-1d4b593be129",
+        "upload_date": "2024-07-10"
+    },
+    {
+        "link": "https://towardsdatascience.com/automl-with-autogluon-transform-your-ml-workflow-with-just-four-lines-of-code-1d4b593be129",
+        "upload_date": "2024-07-10"
+    },
+    {
+        "link": "https://carl-mcbride-ellis.github.io/TOBoML/TOBoML.pdf",
+        "upload_date": "2024-07-10"
+    },
+    {
+        "link": "https://www.anthropic.com/news/claude-3-5-sonnet",
+        "upload_date": "2024-07-03"
+    },
+    {
+        "link": "https://readmedium.com/enhancing-language-model-performance-insights-into-rag-and-chunking-augmentation-techniques-897ba15a04d6",
+        "upload_date": "2024-07-03"
+    },
+    {
+        "link": "https://www.dwarkeshpatel.com/p/francois-chollet",
+        "upload_date": "2024-07-03"
+    },
+    {
+        "link": "https://readmedium.com/en/why-you-currently-do-not-need-deep-learning-for-time-series-forecasting-0de57f2bc0ed",
+        "upload_date": "2024-07-03"
+    },
+    {
+        "link": "https://github.com/pretzelai/pretzelai",
+        "upload_date": "2024-07-03"
+    },
+    {
+        "link": "https://github.com/Nixtla/nixtla/tree/main/experiments/foundation-time-series-arena",
+        "upload_date": "2024-06-12"
+    },
+    {
+        "link": "https://pola.rs/",
+        "upload_date": "2024-06-12"
+    },
+    {
+        "link": "https://medium.com/@ignacio.de.gregorio.noblejas/the-kan-revolution-arriving-at-ai-a13ff540d4e0",
+        "upload_date": "2024-06-12"
+    },
+    {
+        "link": "https://github.com/KindXiaoming/pykan",
+        "upload_date": "2024-06-12"
+    },
+    {
+        "link": "https://www.youtube.com/playlist?list=PLw-i55H2Io6i7oaSoQSfMNGibiXtfr1Mn",
+        "upload_date": "2024-06-12"
+    },
+    {
+        "link": "https://www.oreilly.com/radar/what-we-learned-from-a-year-of-building-with-llms-part-i/?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-06-05"
+    },
+    {
+        "link": "https://pola.rs/",
+        "upload_date": "2024-06-05"
+    },
+    {
+        "link": "https://realpython.com/polars-python/#dataframes-expressions-and-contexts",
+        "upload_date": "2024-06-05"
+    },
+    {
+        "link": "https://medium.com/cuenex/pandas-2-0-vs-polars-the-ultimate-battle-a378eb75d6d1",
+        "upload_date": "2024-06-05"
+    },
+    {
+        "link": "https://www.sspcloud.fr/formation",
+        "upload_date": "2024-06-05"
+    },
+    {
+        "link": "https://metaflow.org/?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-05-29"
+    },
+    {
+        "link": "https://transformer-circuits.pub/2024/scaling-monosemanticity/index.html",
+        "upload_date": "2024-05-29"
+    },
+    {
+        "link": "https://cprimozic.net/blog/building-embedding-visualizations-from-user-profiles/#building-a-sparse-entity-relationship-graph",
+        "upload_date": "2024-05-29"
+    },
+    {
+        "link": "https://github.com/weaviate/Verba",
+        "upload_date": "2024-05-29"
+    },
+    {
+        "link": "https://github.com/google-research/timesfm#readme",
+        "upload_date": "2024-05-29"
+    },
+    {
+        "link": "https://openai.com/index/hello-gpt-4o/",
+        "upload_date": "2024-05-23"
+    },
+    {
+        "link": "https://www.deeplearning.ai/the-batch/noir-a-system-to-control-robots-via-electroencephalogram-for-everyday-tasks/",
+        "upload_date": "2024-05-23"
+    },
+    {
+        "link": "https://developer.chrome.com/blog/speculation-rules-improvements?hl=fr#demo",
+        "upload_date": "2024-05-23"
+    },
+    {
+        "link": "https://www.peren.gouv.fr/actualites/2024-04-03_eclairage_sur_os-iag",
+        "upload_date": "2024-05-23"
+    },
+    {
+        "link": "https://nlpcloud.com/how-to-install-and-deploy-llama-3-into-production.html?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://docs.vllm.ai/en/latest/",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://www.aidancooper.co.uk/how-to-beat-proprietary-llms/?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://towardsdatascience.com/environmental-implications-of-the-ai-boom-279300a24184",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://www.green-algorithms.org/",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://towardsdatascience.com/a-new-coefficient-of-correlation-64ae4f260310",
+        "upload_date": "2024-05-05"
+    },
+    {
+        "link": "https://tembo.io/blog/operationalizing-vectordbs-on-postgres",
+        "upload_date": "2024-04-29"
+    },
+    {
+        "link": "https://huggingface.co/datasets/HuggingFaceFW/fineweb/blob/main/README.md",
+        "upload_date": "2024-04-29"
+    },
+    {
+        "link": "https://github.com/pytorch/torchtune",
+        "upload_date": "2024-04-29"
+    },
+    {
+        "link": "https://mini-gemini.github.io/",
+        "upload_date": "2024-04-29"
+    },
+    {
+        "link": "https://github.com/bytedance/coconut_cvpr2024",
+        "upload_date": "2024-04-29"
+    },
+    {
+        "link": "https://news.dataelixir.com/t/t-l-etkkhhl-judiiyltjr-f/",
+        "upload_date": "2024-04-24"
+    },
+    {
+        "link": "https://llama.meta.com/llama3/",
+        "upload_date": "2024-04-24"
+    },
+    {
+        "link": "https://outline.incubateur.net/s/alliance/doc/allance-vqXmAVhCQh",
+        "upload_date": "2024-04-24"
+    },
+    {
+        "link": "https://snap-stanford.github.io/cs224w-notes/?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-04-24"
+    },
+    {
+        "link": "https://distill.pub/2021/gnn-intro/",
+        "upload_date": "2024-04-24"
+    },
+    {
+        "link": "https://kieranholland.com/best-python-cheat-sheet/#",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://realpython.com/podcasts/rpp/",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://github.com/eugeneyan/open-llms",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://erikbern.com/2024/04/07/predicting-solar-eclipses-with-python.html",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://python.plainenglish.io/top-5-python-frontend-libraries-for-data-science-part-2-4d07a48d2fde",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://data.opendatasoft.com/explore/?disjunctive.language&disjunctive.source_domain_title&disjunctive.theme&disjunctive.semantic.classes&disjunctive.semantic.properties&sort=explore.popularity_score",
+        "upload_date": "2024-04-10"
+    },
+    {
+        "link": "https://www.lemonde.fr/en/european-union/article/2024/03/13/european-parliament-adopts-historic-ai-act_6615022_156.html#",
+        "upload_date": "2024-03-14"
+    },
+    {
+        "link": "https://microsoft.github.io/code-with-engineering-playbook/machine-learning/ml-testing/",
+        "upload_date": "2024-03-14"
+    },
+    {
+        "link": "https://feaz-book.com/categorical-quantile",
+        "upload_date": "2024-03-14"
+    },
+    {
+        "link": "https://blog.google/technology/developers/gemma-open-models/?utm_campaign=The%20Batch&utm_medium=email&_hsmi=297154493&utm_content=297155946&utm_source=hs_email",
+        "upload_date": "2024-03-14"
+    },
+    {
+        "link": "https://ieeexplore.ieee.org/document/10191331",
+        "upload_date": "2024-02-29"
+    },
+    {
+        "link": "https://nightingaledvs.com/livable-cities-urban-networks/",
+        "upload_date": "2024-02-22"
+    },
+    {
+        "link": "https://github.com/OS-Copilot/FRIDAY?tab=readme-ov-file",
+        "upload_date": "2024-02-22"
+    },
+    {
+        "link": "https://github.com/enjalot/latent-scope?tab=readme-ov-file",
+        "upload_date": "2024-02-22"
+    },
+    {
+        "link": "https://newsletter.ruder.io/p/thoughts-on-the-2024-ai-job-market",
+        "upload_date": "2024-02-22"
+    },
+    {
+        "link": "https://serpapi.com/search-api",
+        "upload_date": "2024-02-15"
+    },
+    {
+        "link": "https://www.freecodecamp.org/news/python-debugging-handbook/#advanced-debugging-techniques-/",
+        "upload_date": "2024-02-15"
+    },
+    {
+        "link": "https://dev.to/taipy/specialized-python-libraries-for-unique-tasks-5dgm",
+        "upload_date": "2024-02-15"
+    },
+    {
+        "link": "https://app.lewagon.school/collections?page=1",
+        "upload_date": "2024-02-15"
+    },
+    {
+        "link": "https://redocly.com/",
+        "upload_date": "2024-02-15"
+    },
+    {
+        "link": "https://github.com/huggingface/datatrove",
+        "upload_date": "2024-02-08"
+    },
+    {
+        "link": "https://zed.dev/",
+        "upload_date": "2024-02-08"
+    },
+    {
+        "link": "https://huggingface.co/chat/assistants",
+        "upload_date": "2024-02-08"
+    },
+    {
+        "link": "https://calmcode.io/",
+        "upload_date": "2024-02-08"
+    },
+    {
+        "link": "https://github.com/cxli233/FriendsDontLetFriends?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-01-25"
+    },
+    {
+        "link": "https://neptune.ai/blog/arima-vs-prophet-vs-lstm?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-01-25"
+    },
+    {
+        "link": "https://machinelearningmastery.com/use-pytorch-deep-learning-models-with-scikit-learn/",
+        "upload_date": "2024-01-25"
+    },
+    {
+        "link": "https://blog.dagworks.io/p/how-well-structured-should-your-data?utm_source=substack&utm_medium=email",
+        "upload_date": "2024-01-25"
+    },
+    {
+        "link": "https://docs.pola.rs/user-guide/getting-started/#concat",
+        "upload_date": "2024-01-18"
+    },
+    {
+        "link": "https://www.kdnuggets.com/pandas-vs-polars-a-comparative-analysis-of-python-dataframe-libraries",
+        "upload_date": "2024-01-18"
+    },
+    {
+        "link": "https://docs.astral.sh/ruff/",
+        "upload_date": "2024-01-18"
+    },
+    {
+        "link": "https://python.plainenglish.io/top-5-python-frontend-libraries-for-data-science-91261a65e366?gi=49ecd3189c42",
+        "upload_date": "2024-01-18"
+    },
+    {
+        "link": "https://pythonspeed.com/articles/numpy-2/",
+        "upload_date": "2024-01-18"
+    },
+    {
+        "link": "https://arxiv.org/pdf/2312.10997v1.pdf",
+        "upload_date": "2024-01-11"
+    },
+    {
+        "link": "https://blog.duy-huynh.com/build-your-own-rag-and-run-them-locally/",
+        "upload_date": "2024-01-11"
+    },
+    {
+        "link": "https://only-bots.ai/?tab=home",
+        "upload_date": "2024-01-11"
+    },
+    {
+        "link": "https://browser.timeviz.net/?search=single/",
+        "upload_date": "2024-01-11"
+    },
+    {
+        "link": "https://github.com/mlabonne/llm-course",
+        "upload_date": "2024-01-04"
+    },
+    {
+        "link": "https://arxiv.org/pdf/2312.11805.pdf",
+        "upload_date": "2024-01-04"
+    },
+    {
+        "link": "https://tryolabs.com/blog/top-python-libraries-2023",
+        "upload_date": "2024-01-04"
+    },
+    {
+        "link": "https://www.suno.ai/",
+        "upload_date": "2024-01-04"
+    },
+    {
+        "link": "https://pub.aimind.so/statistical-concepts-that-every-data-scientist-should-know-478b90a997ad",
+        "upload_date": "2023-11-30"
+    },
+    {
+        "link": "https://medium.com/@bl3e967/the-two-best-tools-for-plotting-interactive-network-graphs-8d352aa894d4",
+        "upload_date": "2023-11-30"
+    },
+    {
+        "link": "https://www.builder.io/blog/build-ai/",
+        "upload_date": "2023-11-23"
+    },
+    {
+        "link": "https://github.com/labmlai/annotated_deep_learning_paper_implementations",
+        "upload_date": "2023-11-23"
+    },
+    {
+        "link": "https://infonewt.com/percentages/",
+        "upload_date": "2023-11-23"
+    },
+    {
+        "link": "https://mazzzystar.github.io/2023/11/16/ai-girlfriend-product/?ref=upstract.com",
+        "upload_date": "2023-11-23"
+    },
+    {
+        "link": "https://www.stateof.ai/",
+        "upload_date": "2023-10-19"
+    },
+    {
+        "link": "https://tabby.tabbyml.com/",
+        "upload_date": "2023-10-19"
+    },
+    {
+        "link": "https://arxiv.org/abs/2305.11377",
+        "upload_date": "2023-10-19"
+    },
+    {
+        "link": "https://github.com/StanGirard/quivr",
+        "upload_date": "2023-10-12"
+    },
+    {
+        "link": "https://www.jpmorgan.com/technology/technology-blog/evolution-of-data-mesh-architecture",
+        "upload_date": "2023-10-12"
+    },
+    {
+        "link": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html",
+        "upload_date": "2023-10-12"
+    },
+    {
+        "link": "https://www.konbini.com/popculture/dans-son-episode-joan-is-awful-black-mirror-alerte-sur-les-derives-de-lia-et-met-un-bon-tacle-a-netflix/",
+        "upload_date": "2023-10-05"
+    },
+    {
+        "link": "https://inseefrlab.github.io/formation-mlops/slides/fr/index.html#/title-slide",
+        "upload_date": "2023-10-05"
+    },
+    {
+        "link": "https://towardsdatascience.com/entity-resolution-identifying-real-world-entities-in-noisy-data-3e8c59f4f41c",
+        "upload_date": "2023-10-05"
+    },
+    {
+        "link": "https://towardsdatascience.com/the-olympics-of-ai-benchmarking-machine-learning-systems-c4b2051fbd2b",
+        "upload_date": "2023-10-05"
+    },
+    {
+        "link": "https://towardsdatascience.com/ai-music-source-separation-how-it-works-and-why-it-is-so-hard-187852e54752",
+        "upload_date": "2023-10-05"
+    },
+    {
+        "link": "https://www.scientificamerican.com/article/what-this-graph-of-a-dinosaur-can-teach-us-about-doing-better-science/",
+        "upload_date": "2023-09-28"
+    },
+    {
+        "link": "https://perspective.finos.org/docs/python/",
+        "upload_date": "2023-09-28"
+    },
+    {
+        "link": "https://techxplore.com/news/2023-09-ai-high-resolution-vision.html?utm_campaign=Artificial%2BIntelligence%2BWeekly&utm_medium=web&utm_source=Artificial_Intelligence_Weekly_351/",
+        "upload_date": "2023-09-28"
+    },
+    {
+        "link": "https://cognitiveclass.ai/",
+        "upload_date": "2023-09-28"
+    },
+    {
+        "link": "https://hanlab.mit.edu/courses/2023-fall-65940",
+        "upload_date": "2023-09-28"
+    },
+    {
+        "link": "https://inventwithpython.com/blog/2018/08/17/the-zen-of-python-explained/",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://huggingface.co/blog/rlhf",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://v0.dev/",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://www.10pourcent.etalab.gouv.fr/projets/",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://github.com/ascorbic/unpic-placeholder",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://techcommunity.microsoft.com/t5/microsoft-365-blog/introducing-python-in-excel-the-best-of-both-worlds-for-data/ba-p/3905482",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://codelabs.developers.google.com/tensorflowjs-transfer-learning-teachable-machine?hl=fr#1",
+        "upload_date": "2023-09-21"
+    },
+    {
+        "link": "https://blog.jupyter.org/generative-ai-in-jupyter-3f7174824862",
+        "upload_date": "2023-09-14"
+    },
+    {
+        "link": "https://github.com/spcl/graph-of-thoughts",
+        "upload_date": "2023-09-14"
+    },
+    {
+        "link": "https://arxiv.org/pdf/2308.09687.pdf",
+        "upload_date": "2023-09-14"
+    },
+    {
+        "link": "https://kedro.org/#features",
+        "upload_date": "2023-09-14"
+    },
+    {
+        "link": "https://www.youtube.com/watch?v=6P3FmJr1B4A",
+        "upload_date": "2023-05-25"
+    },
+    {
+        "link": "https://towardsdatascience.com/top-data-science-and-machine-learning-books-to-read-in-2023-5a0a82876f0",
+        "upload_date": "2023-05-25"
+    },
+    {
+        "link": "https://huggingface.co/blog/starcoder?utm_source=alphasignalai.beehiiv.com&utm_medium=newsletter&utm_campaign=is-this-the-end-of-regulation-free-ai",
+        "upload_date": "2023-05-25"
+    },
+    {
+        "link": "https://blog.google/technology/ai/musiclm-google-ai-test-kitchen/?utm_source=alphasignalai.beehiiv.com&utm_medium=newsletter&utm_campaign=is-this-the-end-of-regulation-free-ai",
+        "upload_date": "2023-05-25"
+    },
+    {
+        "link": "https://hal.science/hal-03723551?utm_source=substack&utm_medium=email",
+        "upload_date": "2023-05-04"
+    },
+    {
+        "link": "https://towardsdatascience.com/measuring-the-speed-of-new-pandas-2-0-against-polars-and-datatable-still-not-good-enough-e44dc78f6585",
+        "upload_date": "2023-04-20"
+    },
+    {
+        "link": "https://github.com/Stability-AI/StableLM",
+        "upload_date": "2023-04-20"
+    },
+    {
+        "link": "https://towardsdatascience.com/how-few-shot-learning-is-automating-document-labeling-43f9868c0f74",
+        "upload_date": "2023-04-20"
+    },
+    {
+        "link": "https://endjin.com/blog/2023/03/a-look-into-pandera-and-great-expectations-for-data-validation?utm_campaign=Data_Elixir&utm_source=Data_Elixir_430",
+        "upload_date": "2023-04-20"
+    },
+    {
+        "link": "https://tanthiamhuat.files.wordpress.com/2018/03/deeplearningwithpython.pdf",
+        "upload_date": "2023-04-13"
+    },
+    {
+        "link": "https://aeturrell.github.io/markov-wanderer/posts/data-science-maturity/data-science-maturity.html",
+        "upload_date": "2023-04-06"
+    },
+    {
+        "link": "https://towardsdatascience.com/graph-machine-learning-an-overview-c996e53fab90",
+        "upload_date": "2023-04-06"
+    },
+    {
+        "link": "https://mindfulmodeler.substack.com/p/feature-selection-or-feature-importance",
+        "upload_date": "2023-04-06"
+    },
+    {
+        "link": "https://web.stanford.edu/class/cs25/index.html#course",
+        "upload_date": "2023-03-02"
+    },
+    {
+        "link": "https://mattturck.com/mad2023/?utm_source=substack&utm_medium=email",
+        "upload_date": "2023-03-02"
+    },
+    {
+        "link": "https://github.com/Kanaries/pygwalker?utm_source=substack&utm_medium=email",
+        "upload_date": "2023-03-02"
+    },
+    {
+        "link": "https://www.youtube.com/watch?v=kCc8FmEb1nY",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://arxiv.org/pdf/1706.03762.pdf",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://www.technologyreview.com/2023/01/10/1066538/the-eu-wants-to-regulate-your-favorite-ai-tools/",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://import-balance.org/blog/2023/01/09/bringing-balance-to-your-data/",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://huyenchip.com/2023/01/08/self-serve-feature-platforms.html",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://stanford-cs324.github.io/winter2022/",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://abseil.io/resources/swe-book",
+        "upload_date": "2023-01-19"
+    },
+    {
+        "link": "https://towardsdatascience.com/what-does-entropy-measure-an-intuitive-explanation-a7f7e5d16421",
+        "upload_date": "2023-01-12"
+    },
+    {
+        "link": "https://amatriain.net/blog/PromptEngineering",
+        "upload_date": "2023-01-12"
+    },
+    {
+        "link": "https://www.aidancooper.co.uk/how-shapley-values-work/",
+        "upload_date": "2023-01-12"
+    },
+    {
+        "link": "https://illustrated-machine-learning.github.io/pages/computer-vision/lecture-01.html",
+        "upload_date": "2023-01-12"
+    },
+    {
+        "link": "https://www.startdataengineering.com/post/design-patterns/",
+        "upload_date": "2023-01-12"
+    },
+    {
+        "link": "https://ai.facebook.com/blog/cicero-ai-negotiates-persuades-and-cooperates-with-people/?utm_source=twitter&utm_medium=organic_social&utm_campaign=cicero&utm_content=video",
+        "upload_date": "2022-12-15"
+    },
+    {
+        "link": "https://www.science.org/doi/10.1126/science.abq1158",
+        "upload_date": "2022-12-15"
+    },
+    {
+        "link": "https://stability.ai/blog/stable-diffusion-v2-release",
+        "upload_date": "2022-12-15"
+    },
+    {
+        "link": "https://arxiv.org/abs/2210.00105",
+        "upload_date": "2022-12-15"
+    },
+    {
+        "link": "https://arxiv.org/ftp/arxiv/papers/2205/2205.02302.pdf",
+        "upload_date": "2022-12-07"
+    },
+    {
+        "link": "https://www.rf100.org/",
+        "upload_date": "2022-12-07"
+    },
+    {
+        "link": "https://eugeneyan.com/writing/text-to-image/",
+        "upload_date": "2022-12-07"
+    },
+    {
+        "link": "https://fennel.ai/blog/challenges-of-building-realtime-ml-pipelines/",
+        "upload_date": "2022-12-07"
+    },
+    {
+        "link": "https://www.fda.gov/medical-devices/software-medical-device-samd/good-machine-learning-practice-medical-device-development-guiding-principles",
+        "upload_date": "2022-12-07"
+    },
+    {
+        "link": "https://pair.withgoogle.com/explorables/federated-learning/",
+        "upload_date": "2022-11-17"
+    },
+    {
+        "link": "https://jameskle.com/writes/tarush-aggarwal",
+        "upload_date": "2022-11-17"
+    },
+    {
+        "link": "https://dashboarddesignpatterns.github.io/",
+        "upload_date": "2022-11-17"
+    },
+    {
+        "link": "https://anchor.fm/datascicareer/episodes/Oops--Were-Both-Unemployed-e1omfgf",
+        "upload_date": "2022-11-03"
+    },
+    {
+        "link": "https://aeturrell.github.io/coding-for-economists/vis-common-plots.html#marginal-histograms",
+        "upload_date": "2022-11-03"
+    },
+    {
+        "link": "https://medium.com/riskified-technology/how-we-enabled-dev-and-data-science-independence-with-clear-api-boundaries-3a6a28597746",
+        "upload_date": "2022-11-03"
+    },
+    {
+        "link": "https://anchor.fm/datascicareer/episodes/Oops--Were-Both-Unemployed-e1omfgf",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://www.stateof.ai/",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://jalammar.github.io/illustrated-stable-diffusion/",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://www.deepmind.com/blog/discovering-novel-algorithms-with-alphatensor",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://www.lemonde.fr/international/article/2022/10/12/en-chine-les-geants-de-la-tech-au-service-de-la-surveillance_6145391_3210.html",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://www.whitehouse.gov/ostp/ai-bill-of-rights/",
+        "upload_date": "2022-10-13"
+    },
+    {
+        "link": "https://blog.datawrapper.de/fonts-for-data-visualization/",
+        "upload_date": "2022-09-29"
+    },
+    {
+        "link": "https://github.com/rougier/scientific-visualization-book",
+        "upload_date": "2022-09-29"
+    },
+    {
+        "link": "https://dipranjan.github.io/dsinterviewqns/contents/MLFramework/PyCaret.html",
+        "upload_date": "2022-09-29"
+    },
+    {
+        "link": "https://www.mlstack.cafe/interview-questions/k-nearest-neighbors",
+        "upload_date": "2022-09-29"
+    },
+    {
+        "link": "https://www.youtube.com/playlist?list=PLn2-dEmQeTfSLXW8yXP4q_Ii58wFdxb3C",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://bcourses.berkeley.edu/courses/1413454/",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://stanford-cs329s.github.io/",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://efficientml.ai/",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://distill.pub/2017/momentum/",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://arxiv.org/abs/2208.11970",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://medium.com/@liamwr17/stop-pickling-your-ml-models-use-onnx-instead-983cd4561e3a",
+        "upload_date": "2022-09-15"
+    },
+    {
+        "link": "https://martin.zinkevich.org/rules_of_ml/rules_of_ml.pdf",
+        "upload_date": "2022-09-15"
+    }
+]

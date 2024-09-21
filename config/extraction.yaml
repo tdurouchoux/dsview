@@ -1,13 +1,11 @@
-tags: 
-  - "Machine Learning"
+tags:
   - "Deep Learning"
-  - "AutoML"
   - "Cloud Computing"
   - "Statistics"
   - "Mathematics"
-  - "Model Deployment"
   - "MlOps"
   - "Data Engineering"
+  - "Feature Engineering"
   - "Data Visualization"
   - "DevOps"
   - "Python"
@@ -15,17 +13,26 @@ tags:
   - "Natural Language Processing"
   - "Generative AI"
   - "Time Series"
-  - "Graph (networks)"
+  - "Graph"
   - "Computer Vision"
   - "Supervised Learning"
   - "Unsupervised Learning"
   - "Semi-supervised Learning"
+  - "Dimensionality reduction"
   - "Active Learning"
   - "AI regulation"
   - "Data Quality"
   - "Model evaluation"
-subjects:
-  - "Organization"
-  - "AI Company"
-  - "Model"
-  - "Python library"
+  - "Development tool"
+content_types:
+  - Course
+  - Repository
+  - Documentation
+  - "Blog post"
+  - "Product main page"
+  - "Scientific article" 
+topic_categories:
+  - Library
+  - Model
+  - Platform
+  - Concept
