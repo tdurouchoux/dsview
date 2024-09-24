@@ -1,13 +1,12 @@
 from abc import ABC, abstractmethod
 import logging
 from pathlib import Path
-from urllib.parse import urlparse
 import requests
 from typing import Union
 
 from bs4 import BeautifulSoup
 from pydantic import HttpUrl
-import pymupdf
+from pypdf import PdfReader
 
 from dsview.obsidian.obsidian_utils import get_pdf_filepath
 
@@ -110,25 +109,25 @@ class PdfUrlLoader(WebContentLoader):
         with open(self.pdf_filepath, "wb") as pdf_file:
             pdf_file.write(response.content)
 
-        pdf_doc = pymupdf.open(self.pdf_filepath)
+        reader = PdfReader(self.pdf_filepath)
 
         self.content = ""
         word_count = 0
         word_limit = self.token_limit / 2
 
-        for i, page in enumerate(pdf_doc):
-            page_content = page.get_text()
+        for i, page in enumerate(reader.pages):
+            page_content = page.extract_text()
             word_count += len(page_content.split(" "))
 
             if word_count > word_limit:
-                logger.warn(
+                logger.warning(
                     (
                         "Pdf document is too large, word limit is set at %s. "
                         "Stopped at page %s out of %s."
                     ),
                     word_limit,
                     i + 1,
-                    len(pdf_doc),
+                    len(reader.pages),
                 )
                 break
 
