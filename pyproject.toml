@@ -10,29 +10,95 @@ dsview = "dsview.ingest_source:main"
 
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.12"
-langchain = "^0.2.14"
-langchain-community = "^0.2.12"
-langchain-openai = "^0.1.21"
-langchain-experimental = "^0.0.64"
-python-dotenv = "^1.0.1"
-pandas = "^2.2.2"
-python-frontmatter = "^1.1.0"
-beautifulsoup4 = "^4.12.3"
-typer = "^0.12.4"
-omegaconf = "^2.3.0"
-rich = "^13.7.1"
-pyyaml = "^6.0.2"
-levenshtein = "^0.25.1"
-obsidiantools = "^0.10.0"
-pydantic = "^2.8.2"
-fastapi = {extras = ["standard"], version = "^0.112.2"}
+python = ">=3.9,<3.12"
+langchain = [
+	{version = "^0.2.14", source="piwheels", platform="linux"},
+	{version = "^0.2.14", source="PyPI", platform="darwin"},
+]
+langchain-community = [
+	{version = "^0.2.12", source="piwheels", platform="linux"},
+	{version = "^0.2.12", source="PyPI", platform="darwin"},
+]
+langchain-openai = [
+	{version = "^0.1.21", source="piwheels", platform="linux"},
+	{version = "^0.1.21", source="PyPI", platform="darwin"},
+]
+langchain-experimental =[
+	{version = "^0.0.64", source="piwheels", platform="linux"},
+	{version = "^0.0.64", source="PyPI", platform="darwin"},
+]
+python-dotenv = [
+	{version = "^1.0.1", source="piwheels", platform="linux"},
+	{version = "^1.0.1", source="PyPI", platform="darwin"},
+]
+pandas = [
+	{version = "^2.2.2", source="piwheels", platform="linux"},
+	{version = "^2.2.2", source="PyPI", platform="darwin"},
+]
+python-frontmatter = [
+	{version = "^1.1.0", source="piwheels", platform="linux"},
+	{version = "^1.1.0", source="PyPI", platform="darwin"},
+]
+beautifulsoup4 = [
+	{version = "^4.12.3", source="piwheels", platform="linux"},
+	{version = "^4.12.3", source="PyPI", platform="darwin"},
+]
+typer = [
+	{version = "^0.12.4", source="piwheels", platform="linux"},
+	{version = "^0.12.4", source="PyPI", platform="darwin"},
+]
+omegaconf = [
+	{version = "^2.3.0", source="piwheels", platform="linux"},
+	{version = "^2.3.0", source="PyPI", platform="darwin"},
+]
+rich = [
+	{version = "^13.7.1", source="piwheels", platform="linux"},
+	{version = "^13.7.1", source="PyPI", platform="darwin"},
+]
+pyyaml = [
+	{version = "^6.0.2", source="piwheels", platform="linux"},
+	{version = "^6.0.2", source="PyPI", platform="darwin"},
+]
+levenshtein = [
+	{version = "^0.25.1", source="piwheels", platform="linux"},
+	{version = "^0.25.1", source="PyPI", platform="darwin"},
+]
+obsidiantools = [
+	{version = "^0.10.0", source="piwheels", platform="linux"},
+	{version = "^0.10.0", source="PyPI", platform="darwin"},
+]
+pydantic = [
+	{version = "^2.8.2", source="piwheels", platform="linux"},
+	{version = "^2.8.2", source="PyPI", platform="darwin"},
+]
+fastapi = [
+	{extras = ["all"], version = "^0.112.2", source="piwheels", platform="linux"},
+	{version = "^0.112.2", source="PyPI", platform="darwin"},
+]
 pypdf = "^5.0.0"
+pydantic-core = {version = "^2.20.1", source="PyPI", platform="linux"}
+annotated-types = {version = "^0.7.0", source="piwheels", platform="linux"}
+anyio = {version = "^4.6.0", source="piwheels", platform="linux"}
+httpcore = {version = "^1.0.5", source="piwheels", platform="linux"}
+h11 = {version = "^0.14.0", source="piwheels", platform="linux"}
+distro = {version = "^1.9.0", source="piwheels", platform="linux"}
+jiter = {version = "^0.5.0", source="piwheels", platform="linux"}
 
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
 wat-inspector = "^0.4.0"
+
+[[tool.poetry.source]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple"
+priority = 'primary'
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = 'default'
 
 [build-system]
 requires = ["poetry-core"]
