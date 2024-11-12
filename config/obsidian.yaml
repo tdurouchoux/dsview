@@ -1,6 +1,7 @@
-vault_path: ../dsview_vault
+vault_path: ../dsview_vault_test
 content_directory: "contents"
 topic_directory: "topics"
+index_file: "index.md"
 github_vault:
   repository: https://github.com/tdurouchoux/dsview_vault.git
   username: tdurouchoux
