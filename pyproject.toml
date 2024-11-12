@@ -83,6 +83,14 @@ streamlit = [
 	{version = "^1.39.0", source="piwheels", platform="linux"},
 	{version = "^1.39.0", source="PyPI", platform="darwin"},
 ]
+numpy = [
+	{version = "^1.26.4", source="piwheels", platform="linux"},
+	{version = "^1.26.4", source="PyPI", platform="darwin"},
+]
+tiktoken = [
+	{version = "^0.8.0", source="piwheels", platform="linux"},
+	{version = "^0.8.0", source="PyPI", platform="darwin"},
+]
 pypdf = "^5.0.0"
 pydantic-core = {version = "^2.20.1", source="PyPI", platform="linux"}
 annotated-types = {version = "^0.7.0", source="piwheels", platform="linux"}
