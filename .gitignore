@@ -1,3 +1,5 @@
+*.db
+
 data/input/
 data/output/
 data/test/
