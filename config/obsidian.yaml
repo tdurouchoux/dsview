@@ -1,4 +1,4 @@
-vault_path: ../dsview_vault_test
+vault_path: ../dsview_vault
 content_directory: "contents"
 topic_directory: "topics"
 index_file: "index.md"
