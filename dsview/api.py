@@ -4,7 +4,7 @@ import logging
 from fastapi import FastAPI
 from sqlmodel import SQLModel, Session, create_engine
 
-from dsview.config import load_model_config, load_db_config, setup_logger
+from dsview.config import load_model_config, get_sqlite_url, setup_logger
 from dsview.content.content_db_schema import InputContent
 from dsview.obsidian.sync_vault import api_sync_vault
 from dsview.ingest_source import IngestPipeline
@@ -12,15 +12,17 @@ from dsview.ingest_source import IngestPipeline
 load_dotenv()
 setup_logger()
 
-db_config = load_db_config()
 model_config = load_model_config()
 
 logger = logging.getLogger(__name__)
-engine = create_engine(db_config.sqlite_url)
+engine = create_engine(get_sqlite_url())
 SQLModel.metadata.create_all(engine)
+
+ingest_pipeline = IngestPipeline()
 
 
 app = FastAPI()
+
 
 # TODO Remove support for path content
 # TODO Maybe use prompt caching to avoid feeding content multiples times https://platform.openai.com/docs/guides/prompt-caching
@@ -36,8 +38,6 @@ async def ingest(content: InputContent):
 
     if content.source == "None":
         content.source = None
-
-    ingest_pipeline = IngestPipeline()
 
     # ? Maybe it is slower than session dependency
     with Session(engine) as session:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from functools import partial
 import os
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import logging.config
 from pathlib import Path
@@ -20,14 +20,6 @@ def load_config(config_class, conf_file: Path):
     merged_config = OmegaConf.merge(default_config, file_config)
 
     return OmegaConf.to_object(merged_config)
-
-
-@dataclass
-class DBConfig:
-    sqlite_url: str = "sqlite:///dsview.db"
-
-
-load_db_config: Callable[[], DBConfig] = partial(load_config, DBConfig, "db.yaml")
 
 
 @dataclass
@@ -56,14 +48,16 @@ load_extraction_config: Callable[[], ExtractionConfig] = partial(
 
 @dataclass
 class GithubVault:
-    repository: str = MISSING
-    username: str = MISSING
-    token: str = "${oc.env:GITHUB_TOKEN}"
+    enabled: bool = False
+    repository: Optional[str] = None
+    username: Optional[str] = None
+    token: str | None = "${oc.env:GITHUB_TOKEN,null}"
 
 
 @dataclass
 class ObsidianConfig:
     vault_path: Path = MISSING
+    db_file: str = "vault.db"
     content_directory: str = "contents"
     topic_directory: str = "topics"
     artefact_directory: str = "artefacts"
@@ -74,6 +68,11 @@ class ObsidianConfig:
 load_obsidian_config: Callable[[], ObsidianConfig] = partial(
     load_config, ObsidianConfig, "obsidian.yaml"
 )
+
+def get_sqlite_url() -> str:
+
+    obsidian_config = load_obsidian_config()
+    return f"sqlite:///{obsidian_config.vault_path}/{obsidian_config.db_file}"
 
 
 def setup_logger():
