@@ -1,0 +1,7 @@
+*.db
+*.env
+notebooks/
+data/
+.venv/
+.vscode/
+.ruff_cache/

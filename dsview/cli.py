@@ -14,7 +14,7 @@ from dsview.extraction.extraction_db_schema import (
     InvalidTag,
     InvalidTopic,
 )
-from dsview.config import load_db_config, setup_logger
+from dsview.config import get_sqlite_url, setup_logger
 from dsview.labelling.schema import clear_er_labelling, clear_content_labelling
 from dsview.obsidian.obsidian_utils import clear_vault, retrieve_contents_path
 from .ingest_source import IngestPipeline, FailedIngestion
@@ -23,9 +23,8 @@ load_dotenv()
 setup_logger()
 
 logger = logging.getLogger(__name__)
-db_config = load_db_config()
 
-engine = create_engine(db_config.sqlite_url)
+engine = create_engine(get_sqlite_url())
 SQLModel.metadata.create_all(engine)
 
 app = typer.Typer()

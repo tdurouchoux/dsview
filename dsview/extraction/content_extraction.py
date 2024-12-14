@@ -2,7 +2,7 @@ import logging
 from typing import List, Tuple
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 from sqlmodel import Session
 
 from dsview.content.content_loader import ContentLoader, UrlLoader

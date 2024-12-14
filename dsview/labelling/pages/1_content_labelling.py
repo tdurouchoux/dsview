@@ -7,12 +7,13 @@ from dsview.content.content_loader import get_content_loader
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.labelling.form import generate_labelling_form
 from dsview.labelling.schema import get_engine, check_link_labelled
-from dsview.config import load_db_config, load_model_config
+from dsview.config import get_sqlite_url, load_model_config
 
 # Load config
-db_config = load_db_config()
+sqlite_url = get_sqlite_url()
 model_config = load_model_config()
 
+st.set_page_config(page_title="Content labelling")
 # how to feed new url ? > list input or random
 
 # Delta storage ?
@@ -35,15 +36,16 @@ def content_extraction(link: str):
 
     return content_loader, content_description, topics, content_links, all_links
 
+# TODO would be better if session was a cached resource
 
 def main():
     if "engine" not in st.session_state:
-        st.session_state["engine"] = get_engine(db_config.sqlite_url)
+        st.session_state["engine"] = get_engine(sqlite_url)
 
     if "labelling" not in st.session_state:
         st.session_state["labelling"] = False
 
-    st.title("Content labelling")
+    # st.title("Content labelling")
 
     col1, col2 = st.columns([2, 1], vertical_alignment="bottom")
 
@@ -64,5 +66,4 @@ def main():
         generate_labelling_form(*st.session_state.extraction_results)
 
 
-if __name__ == "__main__":
-    main()
+main()

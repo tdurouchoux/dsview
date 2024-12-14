@@ -2,11 +2,13 @@ import streamlit as st
 
 from sqlmodel import Session, select
 
-from dsview.config import load_db_config
+from dsview.config import get_sqlite_url
 from dsview.extraction.extraction_db_schema import ERComparison
 from dsview.labelling.schema import ERLabels, get_engine
 
-db_config = load_db_config()
+sqlite_url = get_sqlite_url()
+
+st.set_page_config(page_title="ER comparison labelling")
 
 # TODO package create engine and db
 
@@ -25,9 +27,8 @@ def get_missing_label_comparison(session: Session) -> ERComparison:
 
     return comparison
 
-
 def main():
-    engine = get_engine(db_config.sqlite_url)
+    engine = get_engine(sqlite_url)
 
     st.title("ER comparison labelling")
 
@@ -70,5 +71,4 @@ def main():
             st.rerun()
 
 
-if __name__ == "__main__":
-    main()
+main()

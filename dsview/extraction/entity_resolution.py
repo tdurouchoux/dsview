@@ -5,7 +5,7 @@ from typing import List
 
 import frontmatter
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic.v1 import BaseModel, Field
 from Levenshtein import jaro
 import obsidiantools.api as otools
 from sqlmodel import Session
