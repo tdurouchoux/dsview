@@ -1,3 +1,9 @@
+# DB files
+*.db
+
+# mlflow
+mlruns/
+
 data/input/
 data/output/
 data/test/

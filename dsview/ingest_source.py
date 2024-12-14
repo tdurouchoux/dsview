@@ -1,176 +1,113 @@
-from datetime import datetime
-import json
 import logging
-from pathlib import Path
+import os
 
-from dotenv import load_dotenv
-import frontmatter
 from langchain_openai import ChatOpenAI
 from rich.progress import track
-import typer
+from sqlmodel import Session, SQLModel, select, Field
 
 from dsview.content.content_loader import (
     get_content_loader,
-    WebRequestFailure,
 )
-from dsview.content.input_content import InputContent
+from dsview.content.content_db_schema import InputContent
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.entity_resolution import ERSolver
-from dsview.config import load_model_config, setup_logger
-from dsview.obsidian.obsidian_utils import clear_vault, retrieve_contents_path
+from dsview.config import load_model_config
 from dsview.obsidian.notes_generator import NotesGenerator
 
-load_dotenv()
-setup_logger()
 logger = logging.getLogger(__name__)
 model_config = load_model_config()
 
-app = typer.Typer()
+
+class FailedIngestion(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    content_id: int = Field(unique=True, foreign_key="inputcontent.id")
+    error_type: str
+    error_message: str
 
 
-OUTPUT_DIRECTORY = Path("data/output")
-
-# TODO Follow failed request url
-
-def ingest_single_content(
-    content: InputContent, content_extractor: ContentExtractor, er_solver: ERSolver
-):
-    content_loader = get_content_loader(content.link, model_config.token_limit)
-
-    summary, content_description, topics, content_links = (
-        content_extractor.extract_content(content_loader)
-    )
-
-    topics = er_solver.run_topics_er(topics)
-
-    notes_generator = NotesGenerator(
-        content,
-        content_loader.get_hyperlink(),
-        summary,
-        content_description,
-        topics,
-        content_links,
-    )
-
-    notes_generator.generate_topics_md()
-    notes_generator.generate_content_md()
-    logger.info("New content added")
+class ContentAlreadyExists(Exception):
+    def __init__(self, link: str):
+        super().__init__(f"Content with link {link} already exists")
 
 
-@app.command()
-def ingest(
-    link: str,
-    already_read: bool = False,
-    upload_date: datetime = datetime.now(),
-):
-    llm = ChatOpenAI(temperature=0, model_name=model_config.name)
-    content_extractor = ContentExtractor(llm)
-    er_solver = ERSolver(llm)
+class IngestPipeline:
+    def __init__(self, rebuild_mode: bool = False):
+        self.llm = ChatOpenAI(temperature=0, model_name=model_config.name)
+        self.content_extractor = ContentExtractor(self.llm)
+        self.er_solver = ERSolver(self.llm)
+        self.rebuild_mode = rebuild_mode
 
-    content = InputContent(
-        link=link, upload_date=upload_date.date(), already_read=already_read
-    )
+    def _add_in_db(self, content: InputContent, session: Session):
+        existing_content = session.exec(
+            select(InputContent).where(InputContent.link == content.link)
+        ).first()
 
-    logger.info("Received new content %s to ingest in knowledge base", content.link)
+        if existing_content is not None:
+            if self.rebuild_mode:
+                return existing_content
+            raise ContentAlreadyExists(content.link)
 
-    ingest_single_content(content, content_extractor, er_solver)
+        session.add(content)
+        session.commit()
 
+        return content
 
-@app.command()
-def batch_ingest(content_list: Path, start: int = 0):
-    if content_list.suffix != ".json":
-        raise ValueError("Batch ingest only accepts json files.")
+    def _extract(self, content: InputContent, session: Session) -> NotesGenerator:
+        content_loader = get_content_loader(content.link, model_config.token_limit)
 
-    logger.info("Reading content json file")
+        summary, content_description, topics, content_links = (
+            self.content_extractor.extract_content(
+                content_loader,
+                session,
+                content.id,
+            )
+        )
 
-    with open(content_list, "r") as json_file:
-        content_dict_list = json.load(json_file)
+        topics = self.er_solver.run_topics_er(topics, session)
 
-    logger.info("Received %s content_links to ingest", len(content_dict_list) - start)
+        notes_generator = NotesGenerator(
+            content,
+            content_loader.get_hyperlink(),
+            summary,
+            content_description,
+            topics,
+            content_links,
+        )
 
-    llm = ChatOpenAI(temperature=0, model_name=model_config.name)
-    content_extractor = ContentExtractor(llm)
-    er_solver = ERSolver(llm)
+        return notes_generator
 
-    failed_content = []
+    def _ingest(self, notes_generator: NotesGenerator) -> NotesGenerator:
+        notes_generator.generate_topics_md()
+        notes_generator.generate_content_md()
+        notes_generator.insert_in_index()
 
-    i = 0
-    for content_dict in track(content_dict_list[start:]):
-        logger.info("Starting ingestion of file at index %s", i)
+    def _save_failed_ingestion(
+        self, content: InputContent, error: Exception, session: Session
+    ):
+        logger.info("Saving in failed ingestion db.")
 
-        content = InputContent(**content_dict)
+        failed_ingestion = FailedIngestion(
+            content_id=content.id,
+            error_type=error.__class__.__name__,
+            error_message=str(error),
+        )
+        session.add(failed_ingestion)
+        session.commit()
+
+    def ingest_content(self, content: InputContent, session: Session):
+        content = self._add_in_db(content, session)
+
+        logger.info("Ingesting content : %s", content.link)
 
         try:
-            ingest_single_content(content, content_extractor, er_solver)
-        except WebRequestFailure as web_error:
-            logger.exception(
-                "Failed to load content %s with error %s", content.link, web_error
-            )
+            notes_generator = self._extract(content, session)
+            self._ingest(notes_generator)
+            logger.info("Content ingested.")
 
-            failed_content.append(content.get_str_dict())
-            continue
-        i += 1
+        except Exception as error:
+            logger.exception("Failed to ingest content : %s", content.link)
+            self._save_failed_ingestion(content, error, session)
 
-    if len(failed_content) > 0:
-        logger.info(
-            "%s content link failed ingestion, saving to failed_content.json",
-            len(failed_content),
-        )
-
-        with open(OUTPUT_DIRECTORY / "failed_content.json", "w") as json_file:
-            json_file.write(json.dumps(failed_content, indent=4))
-
-
-# TODO Generate csv output with same format as input
-# TODO keep this csv list somewhere safe  s
-
-
-@app.command()
-def save():
-    logger.info("Starting dsview snapshot creation.")
-    content_notes_path = retrieve_contents_path()
-
-    content_dict_list = []
-
-    for note_path in content_notes_path:
-        note = frontmatter.load(note_path)
-        note_dict = dict(note)
-        content_dict_list.append(
-            {
-                key: value
-                for key, value in note_dict.items()
-                if key not in ["type", "tags"] and value is not None
-            }
-        )
-
-    logger.info("Writing input content to %s", "snapshot_content.json")
-    with open(OUTPUT_DIRECTORY / "snapshot_content.json", "w") as json_file:
-        json_file.write(json.dumps(content_dict_list, indent=4))
-
-    # use pydantic csv model for frontmatter attribute selection
-
-    # retrieve_all_content_notes
-    pass
-
-
-@app.command()
-def reset():
-    delete = typer.confirm(
-        "This action will clear the entire obsidian vault. "
-        "Are you sur you want to reset the vault ?"
-    )
-    if not delete:
-        logger.info("Aborting reset")
-        raise typer.Abort()
-
-    logger.info("Launching reset")
-    clear_vault()
-    logger.info("Reset completed")
-
-
-def main():
-    app()
-
-
-if __name__ == "__main__":
-    main()
+    def ingest_content_list(self, content_list: list[InputContent], session: Session):
+        for content in track(content_list):
+            self.ingest_content(content, session)

@@ -1,16 +1,16 @@
 [tool.poetry]
 name = "dsview"
-version = "0.1.0"
+version = "0.2.1"
 description = "DS news monitoring manager using LLMs"
 authors = ["thibaultdu <39222414+thibaultdu@users.noreply.github.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-dsview = "dsview.ingest_source:main"
+dsview = "dsview.cli:main"
 
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.9,<3.9.7 || >3.9.7,<3.12"
 langchain = [
 	{version = "^0.2.14", source="piwheels", platform="linux"},
 	{version = "^0.2.14", source="PyPI", platform="darwin"},
@@ -75,6 +75,22 @@ fastapi = [
 	{extras = ["all"], version = "^0.112.2", source="piwheels", platform="linux"},
 	{version = "^0.112.2", source="PyPI", platform="darwin"},
 ]
+sqlmodel = [
+	{version = "^0.0.22", source="piwheels", platform="linux"},
+	{version = "^0.0.22", source="PyPI", platform="darwin"},
+]
+streamlit = [
+	{version = "^1.39.0", source="piwheels", platform="linux"},
+	{version = "^1.39.0", source="PyPI", platform="darwin"},
+]
+numpy = [
+	{version = "^1.26.4", source="piwheels", platform="linux"},
+	{version = "^1.26.4", source="PyPI", platform="darwin"},
+]
+tiktoken = [
+	{version = "^0.8.0", source="piwheels", platform="linux"},
+	{version = "^0.8.0", source="PyPI", platform="darwin"},
+]
 pypdf = "^5.0.0"
 pydantic-core = {version = "^2.20.1", source="PyPI", platform="linux"}
 annotated-types = {version = "^0.7.0", source="piwheels", platform="linux"}
@@ -91,14 +107,20 @@ optional = true
 jupyter = "^1.0.0"
 wat-inspector = "^0.4.0"
 
-[[tool.poetry.source]]
-name = "piwheels"
-url = "https://www.piwheels.org/simple"
-priority = 'primary'
+[tool.poetry.group.eval]
+optional = true
+
+[tool.poetry.group.eval.dependencies]
+mlflow = "^2.16.2"
 
 [[tool.poetry.source]]
 name = "PyPI"
 priority = 'default'
+
+[[tool.poetry.source]]
+name = "piwheels"
+url = "https://www.piwheels.org/simple"
+priority = 'primary'
 
 [build-system]
 requires = ["poetry-core"]

@@ -13,6 +13,8 @@ from dsview.obsidian.obsidian_utils import get_pdf_filepath
 
 logger = logging.getLogger(__name__)
 
+MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com"]
+
 
 class WebRequestFailure(Exception):
     def __init__(self, url: str, status_code: int) -> None:
@@ -56,6 +58,10 @@ class WebContentLoader(ContentLoader):
     def __init__(self, link: HttpUrl, token_limit: int) -> None:
         super().__init__(link, token_limit)
 
+        if link.host in MEDIUM_HOSTS:
+            logger.info("Received a medium link, redirecting to readmedium")
+            self.link = HttpUrl("https://readmedium.com/" + str(self.link))
+
     def _request_url(self) -> requests.Response:
         response = requests.get(self.link)
 
@@ -77,7 +83,7 @@ class UrlLoader(WebContentLoader):
 
         self.content_soup = BeautifulSoup(response.content, "html.parser")
 
-        if self.link == "readmediu.comm":
+        if self.link.host == "readmedium.com":
             logger.info("Received a link from readmedium, ignoring included summary.")
 
             for line in self.content_soup.find_all(class_="!my-2"):
@@ -91,7 +97,11 @@ class UrlLoader(WebContentLoader):
         for content_link in all_content_links:
             content_link_url = content_link.get("href")
             if content_link_url is not None and content_link_url.startswith("http"):
-                self.content_links.append(str(content_link))
+                # Check for difference in performance
+                # self.content_links.append(str(content_link))
+                self.content_links.append(content_link_url)
+
+        self.content_links = list(set(self.content_links))
 
     def get_hyperlink(self) -> str:
         return str(self.link)

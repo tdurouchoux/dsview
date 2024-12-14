@@ -14,9 +14,6 @@ def api_sync_vault(function: callable) -> callable:
 
         result = await function(*args, **kwargs)
 
-        with open(config.vault_path / "status.md", "w") as status_file:
-            status_file.write(f"Last update on : {datetime.now().isoformat()}")
-
         run(["git", "add", "."], cwd=config.vault_path)
         run(["git", "commit", "-am", "test"], cwd=config.vault_path)
 

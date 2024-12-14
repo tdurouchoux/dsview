@@ -1,0 +1,131 @@
+import streamlit as st
+import pandas as pd
+
+from dsview.config import load_extraction_config
+from dsview.content.content_loader import WebContentLoader
+from dsview.extraction.content_extraction import ContentDescription, DataScienceTopic
+from dsview.labelling.schema import save_labels
+
+extraction_config = load_extraction_config()
+
+
+def topics_labelling(topics: list[DataScienceTopic]) -> pd.DataFrame:
+    st.subheader("Content topics")
+
+    df_topics = pd.DataFrame(
+        [
+            {"rank": i + 1, "name": topic.name, "type": topic.type}
+            for i, topic in enumerate(topics)
+        ]
+        + [{"rank": i + 1, "name": None, "type": None} for i in range(len(topics), 10)]
+    )
+
+    topic_rank_column = st.column_config.NumberColumn(
+        "Rank", width="small", min_value=1, max_value=10, step=1, disabled=True
+    )
+
+    topic_name_column = st.column_config.TextColumn(
+        "Topic name",
+        width="medium",
+    )
+
+    topic_type_column = st.column_config.SelectboxColumn(
+        "Topic type",
+        width="medium",
+        options=extraction_config.topic_categories,
+    )
+
+    topic_ranking = st.data_editor(
+        df_topics,
+        column_config={
+            "rank": topic_rank_column,
+            "name": topic_name_column,
+            "type": topic_type_column,
+        },
+        num_rows="fixed",
+        hide_index=True,
+    )
+
+    return topic_ranking
+
+
+def links_labelling(content_links: str, all_links: list[str]) -> pd.DataFrame:
+    st.subheader("Content links")
+
+    st.text(content_links)
+
+    hyperlink_rank_column = st.column_config.NumberColumn(
+        "Rank", width="small", min_value=1, max_value=10, step=1, disabled=True
+    )
+
+    hyperlink_column = st.column_config.SelectboxColumn(
+        "Hyperlink",
+        width="large",
+        options=all_links,
+    )
+
+    df_links = pd.DataFrame([{"rank": i + 1, "hyperlink": None} for i in range(10)])
+
+    links_ranking = st.data_editor(
+        df_links,
+        column_config={
+            "rank": hyperlink_rank_column,
+            "hyperlink": hyperlink_column,
+        },
+        num_rows="fixed",
+        hide_index=True,
+    )
+
+    return links_ranking
+
+
+def generate_labelling_form(
+    content_loader: WebContentLoader,
+    content_description: ContentDescription,
+    topics: list[DataScienceTopic],
+    content_links: str,
+    all_links: list[str],
+):
+    with st.form("content labellization"):
+        st.subheader("Content description")
+
+        title = st.text_input("Title", value=content_description.title)
+
+        content_type = st.selectbox(
+            "Type",
+            options=extraction_config.content_types,
+            index=extraction_config.content_types.index(
+                content_description.content_type
+            ),
+        )
+
+        tags = st.multiselect(
+            "Tags",
+            extraction_config.tags,
+            default=[tag.name for tag in content_description.tags],
+            max_selections=5,
+        )
+
+        topics_ranking = topics_labelling(topics)
+
+        links_ranking = links_labelling(content_links, all_links)
+
+        submit = st.form_submit_button(
+            "Confirm labels",
+            type="primary",
+        )
+
+        if submit:
+            save_labels(
+                st.session_state["engine"],
+                content_loader.link,
+                content_loader.content,
+                title,
+                content_type,
+                tags,
+                topics_ranking,
+                links_ranking,
+            )
+
+            st.session_state["labelling"] = False
+            st.rerun()

@@ -23,6 +23,14 @@ def load_config(config_class, conf_file: Path):
 
 
 @dataclass
+class DBConfig:
+    sqlite_url: str = "sqlite:///dsview.db"
+
+
+load_db_config: Callable[[], DBConfig] = partial(load_config, DBConfig, "db.yaml")
+
+
+@dataclass
 class ModelConfig:
     name: str = MISSING
     token_limit: int = MISSING
@@ -38,6 +46,7 @@ class ExtractionConfig:
     tags: List[str]
     content_types: List[str]
     topic_categories: List[str]
+    er_jaro_threshold: float
 
 
 load_extraction_config: Callable[[], ExtractionConfig] = partial(
@@ -58,6 +67,7 @@ class ObsidianConfig:
     content_directory: str = "contents"
     topic_directory: str = "topics"
     artefact_directory: str = "artefacts"
+    index_file: str = "index.md"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
 

@@ -24,6 +24,7 @@ tags:
   - "Data Quality"
   - "Model evaluation"
   - "Development tool"
+  - "Data teams management"
 content_types:
   - Course
   - Repository
@@ -33,6 +34,9 @@ content_types:
   - "Scientific article" 
 topic_categories:
   - Library
+  - Tool
   - Model
   - Platform
   - Concept
+  - Dataset 
+er_jaro_threshold: 0.75
