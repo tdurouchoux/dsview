@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dsview"
-version = "0.2.0"
+version = "0.2.1"
 description = "DS news monitoring manager using LLMs"
 authors = ["thibaultdu <39222414+thibaultdu@users.noreply.github.com>"]
 readme = "README.md"

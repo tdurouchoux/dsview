@@ -1,10 +1,9 @@
-import logging
 import streamlit as st
 
 from sqlmodel import Session, select
 
 from dsview.config import load_db_config
-from dsview.extraction.er_db_schema import ERComparison
+from dsview.extraction.extraction_db_schema import ERComparison
 from dsview.labelling.schema import ERLabels, get_engine
 
 db_config = load_db_config()

@@ -13,7 +13,7 @@ from sqlmodel import Session
 from dsview.obsidian.obsidian_utils import get_topic_link, retrieve_topics_path
 from dsview.config import load_extraction_config, load_obsidian_config
 from .content_extraction import DataScienceTopic
-from .er_db_schema import ERDecision, find_or_add_comparison
+from .extraction_db_schema import ERDecision, find_or_add_comparison
 from .prompt_loader import get_prompt
 
 logger = logging.getLogger(__name__)

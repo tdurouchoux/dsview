@@ -60,6 +60,7 @@ def get_engine(db_url: str):
 
     return engine
 
+
 def check_link_labelled(engine, link: str) -> bool:
     with Session(engine) as session:
         statement = select(LabelledContent).where(LabelledContent.link == link)

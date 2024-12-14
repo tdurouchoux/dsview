@@ -8,6 +8,20 @@ logger = logging.getLogger(__name__)
 __version__ = importlib.metadata.version("dsview")
 
 
+class InvalidTag(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    content_id: int = Field(foreign_key="inputcontent.id")
+    name: str
+
+
+class InvalidTopic(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    content_id: int = Field(foreign_key="inputcontent.id")
+    type: str
+    name: str
+    description: str
+
+
 class ERComparison(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name_1: str = Field(nullable=False)

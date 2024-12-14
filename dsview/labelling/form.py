@@ -111,7 +111,7 @@ def generate_labelling_form(
         links_ranking = links_labelling(content_links, all_links)
 
         submit = st.form_submit_button(
-            "Confirm topics",
+            "Confirm labels",
             type="primary",
         )
 

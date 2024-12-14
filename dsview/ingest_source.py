@@ -1,4 +1,5 @@
 import logging
+import os
 
 from langchain_openai import ChatOpenAI
 from rich.progress import track
@@ -19,7 +20,7 @@ model_config = load_model_config()
 
 class FailedIngestion(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(foreign_key="inputcontent.id")
+    content_id: int = Field(unique=True, foreign_key="inputcontent.id")
     error_type: str
     error_message: str
 
@@ -55,7 +56,11 @@ class IngestPipeline:
         content_loader = get_content_loader(content.link, model_config.token_limit)
 
         summary, content_description, topics, content_links = (
-            self.content_extractor.extract_content(content_loader)
+            self.content_extractor.extract_content(
+                content_loader,
+                session,
+                content.id,
+            )
         )
 
         topics = self.er_solver.run_topics_er(topics, session)
@@ -71,9 +76,7 @@ class IngestPipeline:
 
         return notes_generator
 
-    def _ingest(
-        self, notes_generator: NotesGenerator, content: InputContent, session: Session
-    ) -> NotesGenerator:
+    def _ingest(self, notes_generator: NotesGenerator) -> NotesGenerator:
         notes_generator.generate_topics_md()
         notes_generator.generate_content_md()
         notes_generator.insert_in_index()
@@ -98,7 +101,7 @@ class IngestPipeline:
 
         try:
             notes_generator = self._extract(content, session)
-            self._ingest(notes_generator, content, session)
+            self._ingest(notes_generator)
             logger.info("Content ingested.")
 
         except Exception as error:

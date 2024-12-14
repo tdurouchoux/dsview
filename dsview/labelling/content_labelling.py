@@ -25,8 +25,9 @@ def content_extraction(link: str):
     llm = ChatOpenAI(temperature=0, model_name=model_config.name)
     content_extractor = ContentExtractor(llm)
 
+    # TODO Clean this
     _, content_description, topics, content_links = content_extractor.extract_content(
-        content_loader
+        content_loader, None, None,
     )
 
     content_loader.get_hyperlink()
@@ -50,12 +51,11 @@ def main():
     confirm_url = col2.button("Confirm")
 
     if confirm_url:
-        
         already_exist = check_link_labelled(st.session_state.engine, link)
         if already_exist:
             st.error("This url has already been labelled.")
             return
-        
+
         st.session_state["labelling"] = True
         with st.spinner("Extracting content..."):
             st.session_state.extraction_results = content_extraction(link)

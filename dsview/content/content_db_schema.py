@@ -43,6 +43,7 @@ class InputContent(SQLModel, table=True):
 
         if self.link is None:
             del instance_dict["source"]
-        del instance_dict["id"]
+        if "id" in instance_dict:
+            del instance_dict["id"]
 
         return instance_dict

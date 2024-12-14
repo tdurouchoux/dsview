@@ -3,10 +3,13 @@ from typing import List, Tuple
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
+from sqlmodel import Session
 
 from dsview.content.content_loader import ContentLoader, UrlLoader
 from dsview.config import load_extraction_config
+from .extraction_db_schema import InvalidTag, InvalidTopic
 from .prompt_loader import get_prompt
+
 
 logger = logging.getLogger(__name__)
 config = load_extraction_config()
@@ -125,25 +128,26 @@ class ContentExtractor:
         property_name: str,
         attribute: str = "name",
     ) -> List:
-        valid_properties = [
-            prop
-            for prop in property_list
-            if getattr(prop, attribute) in property_attribute_values
-        ]
+        valid_properties = []
+        invalid_properties = []
 
-        diff_len = len(property_list) - len(valid_properties)
+        for prop in property_list:
+            if getattr(prop, attribute) in property_attribute_values:
+                valid_properties.append(prop)
+            else:
+                invalid_properties.append(prop)
 
-        if diff_len > 0:
+        if len(invalid_properties) > 0:
             logger.warning(
                 "%s extracted %s were invalid",
-                diff_len,
+                len(invalid_properties),
                 property_name,
             )
 
-        return valid_properties
+        return valid_properties, invalid_properties
 
     def extract_content(
-        self, content_loader: ContentLoader
+        self, content_loader: ContentLoader, session: Session, content_id: int
     ) -> Tuple[str, ContentDescription, List[DataScienceTopic], str]:
         content_loader.load()
 
@@ -156,15 +160,41 @@ class ContentExtractor:
         content_description = self.description_generator.invoke(
             {"content": content_loader.content}
         )
-        content_description.tags = self.select_valid_properties(
+        content_description.tags, invalid_tags = self.select_valid_properties(
             content_description.tags, config.tags, "tag"
         )
 
+        if session is not None and len(invalid_tags) > 0:
+            session.add_all(
+                [
+                    InvalidTag(
+                        content_id=content_id,
+                        name=tag.name,
+                    )
+                    for tag in invalid_tags
+                ]
+            )
+            session.commit()
+
         logger.info("Launching topics extraction")
         topic_list = self.topics_extractor.invoke({"content": content_loader.content})
-        topics = self.select_valid_properties(
+        topics, invalid_topics = self.select_valid_properties(
             topic_list.topics, config.topic_categories, "topic", attribute="type"
         )
+
+        if session is not None and len(invalid_topics) > 0:
+            session.add_all(
+                [
+                    InvalidTopic(
+                        content_id=content_id,
+                        name=topic.name,
+                        type=topic.type,
+                        description=topic.description,
+                    )
+                    for topic in invalid_topics
+                ]
+            )
+            session.commit()
 
         content_links = None
         if isinstance(content_loader, UrlLoader):

@@ -8,7 +8,12 @@ from sqlmodel import Session, create_engine, SQLModel, select
 import typer
 
 from dsview.content.content_db_schema import InputContent
-from dsview.extraction.er_db_schema import ERComparison, ERDecision
+from dsview.extraction.extraction_db_schema import (
+    ERComparison,
+    ERDecision,
+    InvalidTag,
+    InvalidTopic,
+)
 from dsview.config import load_db_config, setup_logger
 from dsview.labelling.schema import clear_er_labelling, clear_content_labelling
 from dsview.obsidian.obsidian_utils import clear_vault, retrieve_contents_path
@@ -24,6 +29,8 @@ engine = create_engine(db_config.sqlite_url)
 SQLModel.metadata.create_all(engine)
 
 app = typer.Typer()
+
+# TODO log invalid tags ?
 
 
 @app.command()
@@ -64,7 +71,10 @@ def save():
                 else note_dict["upload_date"],
                 already_read=note_dict["already_read"],
                 read_priority=note_dict["read_priority"],
-                source=note_dict["source"] if "source" in note_dict else None,
+                source=note_dict["source"]
+                if "source" in note_dict
+                and note_dict["source"] not in ["None", "Aucune"]
+                else None,
             )
 
             session.add(input_content)
@@ -81,7 +91,7 @@ def retry_failed():
 
         for failed_ingestion in failed_ingestions:
             statement = select(InputContent).where(
-                InputContent.id == failed_ingestion.id
+                InputContent.id == failed_ingestion.content_id
             )
             content = session.exec(statement).first()
 
@@ -89,17 +99,16 @@ def retry_failed():
 
 
 @app.command()
-def rebuild(start: int = 1, end: int = None):
+def rebuild(start: int = 0, end: int = None):
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
     with Session(engine) as session:
-        statement = select(InputContent).where(InputContent.id >= start)
-        if end is not None:
-            statement = statement.where(InputContent.id <= end)
-
-        statement = statement.order_by(InputContent.id.asc())
-
+        statement = select(InputContent).order_by(InputContent.upload_date.asc())
         content_list = session.exec(statement).all()
+        if end is not None:
+            content_list = content_list[start:end]
+        else:
+            content_list = content_list[start:]
 
         ingest_pipeline.ingest_content_list(content_list, session)
 
@@ -114,12 +123,18 @@ def reset_db():
             engine, tables=[InputContent.__table__, FailedIngestion.__table__]
         )
 
-    delete_er = typer.confirm("Clear ER results ? ")
+    delete_extraction = typer.confirm("Clear extraction results ? ")
 
-    if delete_er:
-        logger.info("Deleting ER results")
+    if delete_extraction:
+        logger.info("Deleting extraction results")
         SQLModel.metadata.drop_all(
-            engine, tables=[ERComparison.__table__, ERDecision.__table__]
+            engine,
+            tables=[
+                ERComparison.__table__,
+                ERDecision.__table__,
+                InvalidTag.__table__,
+                InvalidTopic.__table__,
+            ],
         )
 
 
