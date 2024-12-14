@@ -1,0 +1,7 @@
+services:
+  dsview:
+    image: tdurouchoux/dsview_test
+    ports:
+      - 8000:8000
+      - 8501:8051
+    env_file : ".env"
