@@ -12,9 +12,8 @@ ENV PROMPT_DIR="./prompts"
 
 WORKDIR /app
 RUN uv sync --frozen --no-cache
-RUN uv run python dsview/obsidian/setup.py
 
 EXPOSE 8000
 EXPOSE 8501
 
-CMD ["/bin/sh", "-c", "/app/.venv/bin/fastapi run dsview/api.py & /app/.venv/bin/streamlit run dsview/labelling/interface.py"]
+CMD ["/bin/sh", "-c", "/app/docker_startup.sh"]
