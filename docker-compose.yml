@@ -1,7 +1,7 @@
 services:
   dsview:
-    image: tdurouchoux/dsview_test
+    image: ghcr.io/tdurouchoux/dsview
     ports:
+      - 8501:8501
       - 8000:8000
-      - 8501:8051
     env_file : ".env"
