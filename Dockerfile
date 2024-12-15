@@ -1,4 +1,4 @@
-FROM arm64v8/python:3.11-slim
+FROM --platform=$BUILDPLATFORM python:3.11-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 RUN apt-get update && \
