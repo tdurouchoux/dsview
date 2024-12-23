@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dsview-pod
+spec:
+  containers:
+    - name: dsview-deploy
+      image: ghcr.io/tdurouchoux/dsview:latest
+      env:
+        - name: OPENAI_API_KEY
+          value: "${OPENAI_API_KEY}"
+        - name: VAULT_REPOSITORY
+          value: "${VAULT_REPOSITORY}"
+        - name: GITHUB_USERNAME
+          value: "${GITHUB_USERNAME}"
+        - name: GITHUB_TOKEN
+          value: "${GITHUB_TOKEN}"
+      resources:
+        limits:
+          memory: "8000Mi"
+          cpu: "4000m"
+        requests:
+          memory: "2000Mi"
+          cpu: "1000m"
+            

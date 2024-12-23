@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsview-ingress
+  namespace: user-tdurouchoux
+  annotations: {}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: user-tdurouchoux-dsview.lab.sspcloud.fr
+    http: 
+      paths:
+        - path: /label
+          pathType: Prefix
+          backend:
+            service:
+              name: dsview-service
+              port:
+                number: 8501
+  tls:
+  - hosts:
+    - user-tdurouchoux-dsview.lab.sspcloud.fr
