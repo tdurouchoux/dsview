@@ -10,7 +10,7 @@ spec:
   - host: user-tdurouchoux-dsview.lab.sspcloud.fr
     http: 
       paths:
-        - path: /label
+        - path: /
           pathType: Prefix
           backend:
             service:
