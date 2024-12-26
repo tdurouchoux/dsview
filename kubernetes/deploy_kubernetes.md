@@ -2,6 +2,12 @@
 
 > Next step would be to make it a helm charts
 
+## Step 0 : Create a service account 
+
+```
+kubectl create serviceaccount dsview-sa
+```
+
 ## Step 1 : Set dsview secrets from .env
 
 ```
@@ -16,20 +22,32 @@ sudo apt-get update
 sudo apt-get install apache2-utils 
 ```
 
-2. Generate passwords encodings
+2. Generate passwords for label interface
 ```
-htpasswd -c auth_label <username>
-htpasswd -c auth_ingest <username>
+htpasswd -c auth <username>
+kubectl create secret generic basic-auth-dsview-label --from-file=auth
+rm auth
 ```
 
-3. Save passwords as secrets 
+
+2. Generate passwords for ingest API
 ```
-kubectl create secret generic basic-auth-label --from-file=auth_label
-kubectl create secret generic basic-auth-ingest --from-files=auth_ingest
+htpasswd -c auth <username>
+kubectl create secret generic basic-auth-dsview-ingest --from-file=auth
+rm auth
 ```
 
 ## Step 3 : Apply kubernetes configuration
 
 ```
 kubectl apply -f kube_full_deploy.yaml
+```
+
+## Deployment removal : 
+
+```
+kubectl delete deployment dsview
+kubectl delete svc dsview-service
+kubectl delete ingress dsview-ingest-ingress
+kubectl delete ingress dsview-label-ingress
 ```

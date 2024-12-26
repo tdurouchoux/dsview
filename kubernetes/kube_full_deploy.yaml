@@ -47,11 +47,11 @@ spec:
             secretKeyRef:
               name: dsview-secret
               key: OPENAI_API_KEY
-        - name: VAULT_REPOSITORY
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: VAULT_REPOSITORY
+        # - name: VAULT_REPOSITORY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: dsview-secret
+        #       key: VAULT_REPOSITORY
         - name: GITHUB_USERNAME
           valueFrom:
             secretKeyRef:
@@ -82,3 +82,59 @@ spec:
     port: 8501
     targetPort: 8501
   type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsview-ingest-ingress
+  namespace: user-tdurouchoux
+  labels:
+    app: dsview
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-ingest
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: dsview-ingest.lab.sspcloud.fr
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dsview-service
+              port:
+                number: 8000
+  tls:
+  - hosts:
+    - dsview-ingest.lab.sspcloud.fr
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsview-label-ingress
+  namespace: user-tdurouchoux
+  labels:
+    app: dsview
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-label
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: dsview-label.lab.sspcloud.fr
+    http: 
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: dsview-service
+              port:
+                number: 8501
+  tls:
+  - hosts:
+    - dsview-label.lab.sspcloud.fr
