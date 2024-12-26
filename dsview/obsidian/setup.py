@@ -12,7 +12,7 @@ obsidian_config = config.load_obsidian_config()
 
 def init_vault():
     logger.info("Initializing vault...")
-    if obsidian_config.github_vault.enabled:
+    if obsidian_config.github_vault.repository is not None:
         logger.info("Github vault enabled, cloning repository ...")
         run(["git", "clone", obsidian_config.github_vault.repository])
 

@@ -48,7 +48,6 @@ load_extraction_config: Callable[[], ExtractionConfig] = partial(
 
 @dataclass
 class GithubVault:
-    enabled: bool = False
     repository: str | None = "${oc.env:VAULT_REPOSITORY,null}"
     username: str | None = "${oc.env:GITHUB_USERNAME,null}"
     token: str | None = "${oc.env:GITHUB_TOKEN,null}"

@@ -9,7 +9,7 @@ config = load_obsidian_config()
 def api_sync_vault(function: callable) -> callable:
     @wraps(function)
     async def function_with_sync(*args, **kwargs):
-        if not config.github_vault.enabled:
+        if config.github_vault.repository is None:
             return await function(*args, **kwargs)
 
         run(["git", "pull"], cwd=config.vault_path)
