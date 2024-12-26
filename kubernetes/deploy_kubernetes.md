@@ -30,12 +30,20 @@ rm auth
 ```
 
 
-2. Generate passwords for ingest API
+3. Generate passwords for ingest API
 ```
 htpasswd -c auth <username>
 kubectl create secret generic basic-auth-dsview-ingest --from-file=auth
 rm auth
 ```
+
+4. Get header for ingest api
+
+```
+echo -n "<username>:<password>" | base64
+```
+
+Header should like : `Authorization: Basic <base64_encoded_auth>`
 
 ## Step 3 : Apply kubernetes configuration
 
