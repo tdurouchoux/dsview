@@ -27,7 +27,8 @@ app = FastAPI()
 # TODO Remove support for path content
 # TODO Maybe use prompt caching to avoid feeding content multiples times https://platform.openai.com/docs/guides/prompt-caching
 # TODO Add relevant images ???
-# TODO Add semantic search for topics 
+# TODO Add semantic search for topics
+
 
 @app.post("/ingest")
 @api_sync_vault

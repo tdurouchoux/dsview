@@ -50,6 +50,7 @@ load_extraction_config: Callable[[], ExtractionConfig] = partial(
 class GithubVault:
     repository: str | None = "${oc.env:VAULT_REPOSITORY,null}"
     username: str | None = "${oc.env:GITHUB_USERNAME,null}"
+    email: str | None = "${oc.env:GITHUB_USER_EMAIL,null}"
     token: str | None = "${oc.env:GITHUB_TOKEN,null}"
 
 
@@ -68,8 +69,8 @@ load_obsidian_config: Callable[[], ObsidianConfig] = partial(
     load_config, ObsidianConfig, "obsidian.yaml"
 )
 
-def get_sqlite_url() -> str:
 
+def get_sqlite_url() -> str:
     obsidian_config = load_obsidian_config()
     return f"sqlite:///{obsidian_config.vault_path}/{obsidian_config.db_file}"
 

@@ -20,6 +20,15 @@ def init_vault():
             ".git", ""
         )
 
+        run(
+            ["git", "config", "user.name", obsidian_config.github_vault.username],
+            cwd=Path(directory_name).resolve(),
+        )
+        run(
+            ["git", "config", "user.email", obsidian_config.github_vault.email],
+            cwd=Path(directory_name).resolve(),
+        )
+
         Path(directory_name).rename(obsidian_config.vault_path)
 
         return

@@ -27,6 +27,7 @@ def get_missing_label_comparison(session: Session) -> ERComparison:
 
     return comparison
 
+
 def main():
     engine = get_engine(sqlite_url)
 

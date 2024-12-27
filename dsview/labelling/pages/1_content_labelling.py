@@ -28,7 +28,9 @@ def content_extraction(link: str):
 
     # TODO Clean this
     _, content_description, topics, content_links = content_extractor.extract_content(
-        content_loader, None, None,
+        content_loader,
+        None,
+        None,
     )
 
     content_loader.get_hyperlink()
@@ -36,7 +38,9 @@ def content_extraction(link: str):
 
     return content_loader, content_description, topics, content_links, all_links
 
+
 # TODO would be better if session was a cached resource
+
 
 def main():
     if "engine" not in st.session_state:
