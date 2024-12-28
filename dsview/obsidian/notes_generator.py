@@ -91,8 +91,15 @@ class NotesGenerator:
 
         update_time_line = "> Last updated on : " + datetime.now().isoformat() + "\n\n"
 
-        table_header = "| Upload Date | Read priority | Source | Note |\n"
-        table_header += "|-------------|---------------|--------|------|\n"
+        index_columns = [
+            "Upload Date",
+            "Read priority",
+            "Source",
+            "Note"
+        ]
+
+        table_header = f"| {' | '.join(index_columns)} |\n"
+        table_header += f"| {' | '.join(['-' * len(col) for col in index_columns])} |\n"
 
         table_line = (
             f"| {self.content.upload_date.isoformat()} | {self.content.read_priority} |"
@@ -113,9 +120,10 @@ class NotesGenerator:
                 "> Last updated on : .*\n\n", update_time_line, index_content
             )
 
-            index_content = index_content.replace(
-                table_header, table_header + table_line
-            )
+            table_header_regex = r"\| " + r" +\| ".join(index_columns) + r" +\|\n"
+            table_header_regex += r"\| -+ " * len(index_columns) + r"\|\n"
+
+            index_content = re.sub(table_header_regex, table_header + table_line, index_content)
 
         with open(index_path, "wb") as index_file:
             index_file.write(index_content.encode("utf-8"))
