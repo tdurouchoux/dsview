@@ -48,7 +48,8 @@ Header should like : `Authorization: Basic <base64_encoded_auth>`
 ## Step 3 : Apply kubernetes configuration
 
 ```
-kubectl apply -f kube_full_deploy.yaml
+kubectl apply -f dsview_deployment.yaml
+kubectl apply -f dsview_ingress.md
 ```
 
 ## Deployment removal : 

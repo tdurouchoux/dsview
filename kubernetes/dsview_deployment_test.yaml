@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dsview-test
+  labels:
+    app: dsview
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dsview
+  template:
+    metadata:
+      labels:
+        app: dsview
+    spec:
+      serviceAccountName: dsview-sa
+      containers:
+      - name: dsview-deploy
+        image: ghcr.io/tdurouchoux/dsview:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        - containerPort: 8501
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+            scheme: HTTP
+          timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+            scheme: HTTP
+          timeoutSeconds: 1
+        resources:
+          requests:
+            memory: "1000Mi"
+            cpu: "1000m"
+          limits:
+            memory: "8000Mi"
+            cpu: "4000m"
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: dsview-secret-test
+              key: OPENAI_API_KEY
