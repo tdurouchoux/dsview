@@ -5,6 +5,7 @@ from pydantic import HttpUrl
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
 from dsview.content.content_db_schema import LinkType
+from dsview.obsidian.sync_vault import label_sync_vault
 
 
 class LabelledContent(SQLModel, table=True):
@@ -67,7 +68,7 @@ def check_link_labelled(engine, link: str) -> bool:
         result = session.exec(statement).first()
         return result is not None
 
-
+@label_sync_vault("content")
 def save_labels(
     engine,
     link: str,
@@ -133,6 +134,15 @@ def clear_content_labelling(engine):
         ],
     )
 
+@label_sync_vault("er")
+def save_er_label(session, er_comparison_id: int, merge: bool):
+    er_label = ERLabels(
+        er_comparison_id=er_comparison_id,
+        merge=merge,
+    )
+
+    session.add(er_label)
+    session.commit()
 
 def clear_er_labelling(engine):
     SQLModel.metadata.drop_all(engine, tables=[ERLabels.__table__])

@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from dsview.config import get_sqlite_url
 from dsview.extraction.extraction_db_schema import ERComparison
-from dsview.labelling.schema import ERLabels, get_engine
+from dsview.labelling.schema import ERLabels, get_engine, save_er_label
 
 sqlite_url = get_sqlite_url()
 
@@ -26,7 +26,6 @@ def get_missing_label_comparison(session: Session) -> ERComparison:
     ).first()
 
     return comparison
-
 
 def main():
     engine = get_engine(sqlite_url)
@@ -62,14 +61,7 @@ def main():
         not_merge = col2.button("No", type="primary", use_container_width=True)
 
         if merge or not_merge:
-            er_label = ERLabels(
-                er_comparison_id=comparison.id,
-                merge=merge,
-            )
-
-            session.add(er_label)
-            session.commit()
+            save_er_label(session, comparison.id, merge)
             st.rerun()
-
 
 main()
