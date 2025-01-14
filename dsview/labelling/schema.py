@@ -68,6 +68,7 @@ def check_link_labelled(engine, link: str) -> bool:
         result = session.exec(statement).first()
         return result is not None
 
+
 @label_sync_vault("content")
 def save_labels(
     engine,
@@ -134,6 +135,7 @@ def clear_content_labelling(engine):
         ],
     )
 
+
 @label_sync_vault("er")
 def save_er_label(session, er_comparison_id: int, merge: bool):
     er_label = ERLabels(
@@ -144,5 +146,16 @@ def save_er_label(session, er_comparison_id: int, merge: bool):
     session.add(er_label)
     session.commit()
 
+
 def clear_er_labelling(engine):
     SQLModel.metadata.drop_all(engine, tables=[ERLabels.__table__])
+
+
+def update_er_label(session, label_id: int, merge: bool):
+    statement = select(ERLabels).where(ERLabels.id == label_id)
+    er_label = session.exec(statement).one()
+
+    er_label.merge = merge
+    session.add(er_label)
+    session.commit()
+    session.refresh(er_label)

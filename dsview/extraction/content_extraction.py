@@ -127,7 +127,7 @@ class ContentExtractor:
         property_attribute_values: List[str],
         property_name: str,
         attribute: str = "name",
-    ) -> List:
+    ) -> Tuple[List, List]:
         valid_properties = []
         invalid_properties = []
 

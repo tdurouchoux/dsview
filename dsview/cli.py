@@ -15,6 +15,7 @@ from dsview.extraction.extraction_db_schema import (
     InvalidTopic,
 )
 from dsview.config import get_sqlite_url, setup_logger
+from dsview.evaluation.evaluate import evaluate_app
 from dsview.labelling.schema import clear_er_labelling, clear_content_labelling
 from dsview.obsidian.obsidian_utils import clear_vault, retrieve_contents_path
 from .ingest_source import IngestPipeline, FailedIngestion
@@ -28,7 +29,7 @@ engine = create_engine(get_sqlite_url())
 SQLModel.metadata.create_all(engine)
 
 app = typer.Typer()
-
+app.add_typer(evaluate_app, name="evaluate")
 # TODO log invalid tags ?
 
 
@@ -38,6 +39,7 @@ def ingest(
     already_read: bool = False,
     upload_date: datetime = datetime.now(),
     read_priority: int = 0,
+    relevance: int = 0,
     source: str = None,
 ):
     ingest_pipeline = IngestPipeline()
@@ -47,6 +49,7 @@ def ingest(
         upload_date=upload_date.date(),
         already_read=already_read,
         read_priority=read_priority,
+        relevance=relevance,
         source=source,
     )
     with Session(engine) as session:
@@ -63,17 +66,28 @@ def save():
             note = frontmatter.load(note_path)
             note_dict = dict(note)
 
-            input_content = InputContent(
-                link=note_dict["link"],
-                upload_date=date.fromisoformat(note_dict["upload_date"])
+            upload_date = (
+                date.fromisoformat(note_dict["upload_date"])
                 if isinstance(note_dict["upload_date"], str)
-                else note_dict["upload_date"],
-                already_read=note_dict["already_read"],
-                read_priority=note_dict["read_priority"],
-                source=note_dict["source"]
+                else note_dict["upload_date"]
+            )
+
+            relevance = note_dict["relevance"] if "relevance" in note_dict else 0
+
+            source = (
+                note_dict["source"]
                 if "source" in note_dict
                 and note_dict["source"] not in ["None", "Aucune"]
-                else None,
+                else None
+            )
+
+            input_content = InputContent(
+                link=note_dict["link"],
+                upload_date=upload_date,
+                already_read=note_dict["already_read"],
+                read_priority=note_dict["read_priority"],
+                relevance=relevance,
+                source=source,
             )
 
             session.add(input_content)

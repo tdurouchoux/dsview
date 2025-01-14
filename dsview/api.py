@@ -1,8 +1,10 @@
 from dotenv import load_dotenv
 import logging
 
-from fastapi import FastAPI
-from sqlmodel import SQLModel, Session, create_engine
+from fastapi import FastAPI, HTTPException
+from pydantic import HttpUrl
+from sqlalchemy.exc import NoResultFound
+from sqlmodel import SQLModel, Session, create_engine, select
 
 from dsview.config import load_model_config, get_sqlite_url, setup_logger
 from dsview.content.content_db_schema import InputContent
@@ -43,3 +45,32 @@ async def ingest(content: InputContent):
     # ? Maybe it is slower than session dependency
     with Session(engine) as session:
         ingest_pipeline.ingest_content(content, session)
+
+
+# TODO Update sqlite db and test locally
+
+
+@app.patch("/relevance")
+@api_sync_vault
+async def relevance(link: HttpUrl, relevance: int):
+    with Session(engine) as session:
+        statement = select(InputContent).where(InputContent.link == link)
+        result = session.exec(statement)
+
+        try:
+            input_content = result.one()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=404,
+                detail="Provided link not found, cannot change relevance.",
+            )
+
+        input_content.relevance = relevance
+        input_content.read_priority = 0
+        input_content.already_read = True
+
+        session.add(input_content)
+        session.commit()
+        session.refresh(input_content)
+
+    logger.info("Updated relevance from link %s to %s", link, relevance)
