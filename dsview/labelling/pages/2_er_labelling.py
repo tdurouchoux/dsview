@@ -27,6 +27,7 @@ def get_missing_label_comparison(session: Session) -> ERComparison:
 
     return comparison
 
+
 def main():
     engine = get_engine(sqlite_url)
 
@@ -63,5 +64,6 @@ def main():
         if merge or not_merge:
             save_er_label(session, comparison.id, merge)
             st.rerun()
+
 
 main()

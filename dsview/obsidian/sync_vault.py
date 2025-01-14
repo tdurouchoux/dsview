@@ -5,11 +5,12 @@ from dsview.config import load_obsidian_config
 
 config = load_obsidian_config()
 
+
 def pull_changes():
     run(["git", "pull"], cwd=config.vault_path)
 
-def upload_changes(commit_message: str):
 
+def upload_changes(commit_message: str):
     run(["git", "add", "."], cwd=config.vault_path)
     run(["git", "commit", "-am", commit_message], cwd=config.vault_path)
 
@@ -18,6 +19,7 @@ def upload_changes(commit_message: str):
         f"@{config.github_vault.repository.replace('https://', '')}"
     )
     run(["git", "push", remote, "main"], cwd=config.vault_path)
+
 
 def label_sync_vault(label_type: str):
     def sync_vault(function: callable) -> callable:
@@ -37,6 +39,7 @@ def label_sync_vault(label_type: str):
         return function_with_sync
 
     return sync_vault
+
 
 def api_sync_vault(function: callable) -> callable:
     @wraps(function)

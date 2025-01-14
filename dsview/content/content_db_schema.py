@@ -1,5 +1,7 @@
 from datetime import date
 from pathlib import Path
+from re import L
+from sqlite3.dbapi2 import SQLITE_CONSTRAINT_FOREIGNKEY
 from typing import Dict
 
 from sqlmodel import SQLModel, Field
@@ -33,7 +35,8 @@ class InputContent(SQLModel, table=True):
     link: HttpUrl | Path = Field(unique=True, sa_type=LinkType)
     upload_date: date
     already_read: bool = Field(default=False)
-    read_priority: int = Field(default=1, ge=0, le=5)
+    read_priority: int = Field(default=0, ge=0, le=5)
+    relevance: int = Field(default=0, ge=0, le=5)
     source: str | None = Field(default=None)
 
     def get_str_dict(self) -> Dict:
@@ -47,3 +50,8 @@ class InputContent(SQLModel, table=True):
             del instance_dict["id"]
 
         return instance_dict
+
+
+class ContentNote(SQLModel, table=True):
+    note_link: str = Field(primary_key=True)
+    note_id: int = Field()

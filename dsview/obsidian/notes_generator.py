@@ -92,19 +92,22 @@ class NotesGenerator:
         update_time_line = "> Last updated on : " + datetime.now().isoformat() + "\n\n"
 
         index_columns = [
+            "Id",
             "Upload Date",
             "Read priority",
+            "Relevance",
             "Source",
-            "Note"
+            "Note",
         ]
 
         table_header = f"| {' | '.join(index_columns)} |\n"
         table_header += f"| {' | '.join(['-' * len(col) for col in index_columns])} |\n"
 
         table_line = (
-            f"| {self.content.upload_date.isoformat()} | {self.content.read_priority} |"
+            f"| {self.content.id} | {self.content.upload_date.isoformat()} |"
+            f" {self.content.read_priority} | {self.content.relevance} |"
+            f" {self.content.source} | {get_content_url_link(self.content_description.title)} |\n"
         )
-        table_line += f" {self.content.source} | {get_content_url_link(self.content_description.title)} |\n"
 
         if not index_path.exists():
             index_content = "# Index of Input Contents\n\n"
@@ -123,7 +126,9 @@ class NotesGenerator:
             table_header_regex = r"\| " + r" +\| ".join(index_columns) + r" +\|\n"
             table_header_regex += r"\| -+ " * len(index_columns) + r"\|\n"
 
-            index_content = re.sub(table_header_regex, table_header + table_line, index_content)
+            index_content = re.sub(
+                table_header_regex, table_header + table_line, index_content
+            )
 
         with open(index_path, "wb") as index_file:
             index_file.write(index_content.encode("utf-8"))
