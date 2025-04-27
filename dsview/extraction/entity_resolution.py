@@ -1,25 +1,21 @@
-from datetime import date
 import logging
+from datetime import date
 from pathlib import Path
 from typing import List
 
 import frontmatter
-from langchain_core.prompts import ChatPromptTemplate
-from Levenshtein import jaro
 import obsidiantools.api as otools
-from openai import OpenAI
-from pydantic.v1 import BaseModel, Field
+from Levenshtein import jaro
+
+# from openai import OpenAI
 from sqlmodel import Session
 
-from dsview.obsidian.obsidian_utils import get_topic_link, retrieve_topics_path
 from dsview.config import load_extraction_config, load_obsidian_config
+from dsview.models.llm_models import ERClassifier
+from dsview.obsidian.obsidian_utils import get_topic_link, retrieve_topics_path
+
 from .content_extraction import DataScienceTopic
 from .extraction_db_schema import ERDecision, find_or_add_comparison
-from .prompt_loader import get_prompt
-
-ER_SYSTEM_PROMPT_FILE = "system_entity_resolution.txt"
-ER_USER_PROMPT_FILE = "user_entity_resolution.txt"
-
 
 logger = logging.getLogger(__name__)
 
@@ -27,83 +23,13 @@ obsidian_config = load_obsidian_config()
 content_extraction_config = load_extraction_config()
 
 # TODO : Give examples in input prompt
-# TODO : Bettter search for close topics
+# TODO : Better search for close topics
 # TODO : only one query for 1 topic
 
 
-class SimpleERResult(BaseModel):
-    merge_topic: bool = Field(
-        description="Wether or not the two provided topics should be merged."
-    )
-
-
-class ERResult(BaseModel):
-    merge_topic: bool = Field(
-        description="Wether or not the two provided topics should be merged."
-    )
-    topic: DataScienceTopic = Field(
-        default=None,
-        description="Result of the merge between the two topics, only provided if topics should be merged",
-    )
-
-
-def get_er_predict_func(
-    model_name: str, system_prompt: str, user_prompt: str
-) -> callable:
-    client = OpenAI()
-
-    if system_prompt is None:
-        system_prompt = get_prompt(ER_SYSTEM_PROMPT_FILE)
-
-    system_prompt = system_prompt.format(
-        ", ".join(content_extraction_config.topic_categories)
-    )
-
-    if user_prompt is None:
-        user_prompt = get_prompt(ER_USER_PROMPT_FILE)
-
-    def er_predict(topic_comparison: dict[str, str]) -> ERResult:
-        completion = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt.format(**topic_comparison)},
-            ],
-            response_format=ERResult,
-        )
-        return completion.choices[0].message.parsed
-
-    return er_predict
-
-
-def get_er_classifier(llm, system_prompt: str, user_prompt: str):
-    if system_prompt is None:
-        system_prompt = get_prompt(ER_SYSTEM_PROMPT_FILE)
-
-    system_prompt = system_prompt.format(
-        ", ".join(content_extraction_config.topic_categories)
-    )
-
-    if user_prompt is None:
-        user_prompt = get_prompt(ER_USER_PROMPT_FILE)
-
-    er_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", system_prompt),
-            ("user", user_prompt),
-        ]
-    )
-
-    return er_prompt | llm.with_structured_output(schema=ERResult)
-
-
-# def get_er_classifier()
-# def predict(topic_comparison)
-
-
 class ERSolver:
-    def __init__(self, llm, system_prompt: str = None, user_prompt: str = None) -> None:
-        self.er_classifier = get_er_classifier(llm, system_prompt, user_prompt)
+    def __init__(self) -> None:
+        self.er_classifier = ERClassifier()
         self.vault = otools.Vault(obsidian_config.vault_path).connect()
         self.topic_note_list: List[Path] = None
 
@@ -171,7 +97,7 @@ class ERSolver:
 
             er_comparison = find_or_add_comparison(topic_comparison, session)
 
-            result: ERResult = self.er_classifier.invoke(topic_comparison)
+            result = self.er_classifier.predict(topic_comparison)
 
             if result.merge_topic:
                 logger.warning(

@@ -1,26 +1,31 @@
 import logging
-import os
+from urllib.parse import urlunparse
 
-from langchain_openai import ChatOpenAI
+from pydantic import HttpUrl
 from rich.progress import track
-from sqlmodel import Session, SQLModel, select, Field
+from sqlmodel import Field, Session, SQLModel, select
 
+from dsview.config import load_model_config
+from dsview.content.content_db_schema import InputContent
 from dsview.content.content_loader import (
     get_content_loader,
 )
-from dsview.content.content_db_schema import InputContent
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.entity_resolution import ERSolver
-from dsview.config import load_model_config
 from dsview.obsidian.notes_generator import NotesGenerator
 
 logger = logging.getLogger(__name__)
 model_config = load_model_config()
 
+# TODO Add medium hosts as configuration
+MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com", "netflixtechblog.com"]
+IGNORE_CLEAN_HOSTS = ["www.youtube.com"]
+
 
 class FailedIngestion(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     content_id: int = Field(unique=True, foreign_key="inputcontent.id")
+    original_link: str
     error_type: str
     error_message: str
 
@@ -32,10 +37,27 @@ class ContentAlreadyExists(Exception):
 
 class IngestPipeline:
     def __init__(self, rebuild_mode: bool = False):
-        self.llm = ChatOpenAI(temperature=0, model_name=model_config.name)
-        self.content_extractor = ContentExtractor(self.llm)
-        self.er_solver = ERSolver(self.llm)
+        self.content_extractor = ContentExtractor()
+        self.er_solver = ERSolver()
         self.rebuild_mode = rebuild_mode
+
+    def _clean_content_url(self, link: HttpUrl) -> HttpUrl:
+        # remove query and fragment from url
+
+        logger.info("Cleaning content url")
+
+        if link.host not in IGNORE_CLEAN_HOSTS:
+            clean_url = HttpUrl(
+                urlunparse((link.scheme, link.host, link.path, "", "", ""))
+            )
+        else:
+            clean_url = link
+
+        if clean_url.host in MEDIUM_HOSTS:
+            logger.info("Received a medium link, redirecting to readmedium")
+            clean_url = HttpUrl("https://readmedium.com/" + str(clean_url))
+
+        return clean_url
 
     def _add_in_db(self, content: InputContent, session: Session):
         existing_content = session.exec(
@@ -79,15 +101,19 @@ class IngestPipeline:
     def _ingest(self, notes_generator: NotesGenerator) -> NotesGenerator:
         notes_generator.generate_topics_md()
         notes_generator.generate_content_md()
-        notes_generator.insert_in_index()
 
     def _save_failed_ingestion(
-        self, content: InputContent, error: Exception, session: Session
+        self,
+        content: InputContent,
+        original_link: str,
+        error: Exception,
+        session: Session,
     ):
         logger.info("Saving in failed ingestion db.")
 
         failed_ingestion = FailedIngestion(
             content_id=content.id,
+            original_link=original_link,
             error_type=error.__class__.__name__,
             error_message=str(error),
         )
@@ -95,6 +121,11 @@ class IngestPipeline:
         session.commit()
 
     def ingest_content(self, content: InputContent, session: Session):
+        original_link = str(content.link)
+
+        if isinstance(content.link, HttpUrl):
+            content.link = self._clean_content_url(content.link)
+
         content = self._add_in_db(content, session)
 
         logger.info("Ingesting content : %s", content.link)
@@ -106,7 +137,7 @@ class IngestPipeline:
 
         except Exception as error:
             logger.exception("Failed to ingest content : %s", content.link)
-            self._save_failed_ingestion(content, error, session)
+            self._save_failed_ingestion(content, original_link, error, session)
 
     def ingest_content_list(self, content_list: list[InputContent], session: Session):
         for content in track(content_list):

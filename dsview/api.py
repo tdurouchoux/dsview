@@ -1,15 +1,15 @@
-from dotenv import load_dotenv
 import logging
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import HttpUrl
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import SQLModel, Session, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
 
-from dsview.config import load_model_config, get_sqlite_url, setup_logger
-from dsview.content.content_db_schema import InputContent
-from dsview.obsidian.sync_vault import api_sync_vault
+from dsview.config import get_sqlite_url, load_model_config, setup_logger
+from dsview.content.content_db_schema import InputContent, update_content
 from dsview.ingest_source import IngestPipeline
+from dsview.obsidian.sync_vault import api_sync_vault
 
 load_dotenv()
 setup_logger()
@@ -53,24 +53,19 @@ async def ingest(content: InputContent):
 @app.patch("/relevance")
 @api_sync_vault
 async def relevance(link: HttpUrl, relevance: int):
-    with Session(engine) as session:
-        statement = select(InputContent).where(InputContent.link == link)
-        result = session.exec(statement)
-
-        try:
-            input_content = result.one()
-        except NoResultFound:
-            raise HTTPException(
-                status_code=404,
-                detail="Provided link not found, cannot change relevance.",
+    try:
+        with Session(engine) as session:
+            update_content(
+                session,
+                content_link=link,
+                already_read=True,
+                read_priority=0,
+                relevance=relevance,
             )
-
-        input_content.relevance = relevance
-        input_content.read_priority = 0
-        input_content.already_read = True
-
-        session.add(input_content)
-        session.commit()
-        session.refresh(input_content)
+    except NoResultFound:
+        raise HTTPException(
+            status_code=404,
+            detail="Provided link not found, cannot change relevance.",
+        )
 
     logger.info("Updated relevance from link %s to %s", link, relevance)

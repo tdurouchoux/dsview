@@ -37,6 +37,16 @@ When analyzing the topics, complete your analysis inside <topic_comparison> tags
     [Based on the above analysis, decide whether to merge the topics or not]
 </topic_comparison>
 
+The output should take the following format :
+<output>
+    merge_topic (bool): Wether or not the two provided topics should be merged.
+    topic : Result of the merge between the two topics, only provided if topics should be merged (None if merge_topic is False)
+        type : Merged topic type from topic_tags
+        name : Merge topic name
+        description : Merged topic description
+</output>
+
+
 Here are some examples :
 <examples>
 Example 1 :
@@ -60,7 +70,7 @@ Example 2 :
 		- name : Data Transformation
 		- type : Concept
 		- description : The process of converting data from one format or structure into another, often a key step in data pipelines.
-    - Result : 
+    - Result :
         - merge_topic : True
         - topic :
             - name : Data Transformation
@@ -76,12 +86,12 @@ Example 3 :
 		- name : vLLM
 		- type : Library
 		- description : A fast and easy-to-use library for LLM inference and serving, featuring state-of-the-art serving throughput and efficient memory management.
-	- Result : 
+	- Result :
         - merge_topic : True
         - topic :
             - name : vLLM
             - type : Library
-            - description : An easy-to-use serving framework for large language models, featuring state-of-the-art performances and capabilities such 
+            - description : An easy-to-use serving framework for large language models, featuring state-of-the-art performances and capabilities such
             as caching mechanisms and efficient memory management.
 
 Example 4 :
@@ -93,7 +103,7 @@ Example 4 :
 		- name : Machine Learning Pipeline
 		- type : Concept
 		- description : The end-to-end process of building and deploying machine learning models.
-	- Result : 
+	- Result :
         - merge_topic : False
 
 Example 5 :
@@ -105,7 +115,7 @@ Example 5 :
 		- name : TensorFlow
 		- type : Library
 		- description : An open-source library for machine learning and deep learning applications, including a framework for implementing federated learning and federated analytics.
-	- Result : 
+	- Result :
         - merge_topic : False
-        
+
 </examples>

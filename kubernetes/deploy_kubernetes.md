@@ -1,8 +1,8 @@
-# Deploy on kubernetes 
+# Deploy on kubernetes
 
 > Next step would be to make it a helm charts
 
-## Step 0 : Create a service account 
+## Step 0 : Create a service account
 
 ```
 kubectl create serviceaccount dsview-sa
@@ -14,23 +14,25 @@ kubectl create serviceaccount dsview-sa
 kubectl create secret generic dsview-secret --from-env-file=.env
 ```
 
-## Step 2 : Generate password for streamlit and api 
+## Step 2 : Generate password for streamlit and api
 
 1. Install `htpasswd`
+
 ```
 sudo apt-get update
-sudo apt-get install apache2-utils 
+sudo apt-get install apache2-utils
 ```
 
 2. Generate passwords for label interface
+
 ```
 htpasswd -c auth <username>
-kubectl create secret generic basic-auth-dsview-label --from-file=auth
+kubectl create secret generic basic-auth-dsview-dashboard --from-file=auth
 rm auth
 ```
 
-
 3. Generate passwords for ingest API
+
 ```
 htpasswd -c auth <username>
 kubectl create secret generic basic-auth-dsview-ingest --from-file=auth
@@ -52,11 +54,11 @@ kubectl apply -f dsview_deployment.yaml
 kubectl apply -f dsview_ingress.md
 ```
 
-## Deployment removal : 
+## Deployment removal :
 
 ```
 kubectl delete deployment dsview
 kubectl delete svc dsview-service
 kubectl delete ingress dsview-ingest-ingress
-kubectl delete ingress dsview-label-ingress
+kubectl delete ingress dsview-dashboard-ingress
 ```

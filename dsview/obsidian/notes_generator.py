@@ -1,19 +1,18 @@
-from dataclasses import dataclass
-from datetime import datetime
 import logging
-import regex as re
-from typing import List
+from dataclasses import dataclass
 
 import frontmatter
 
 from dsview.content.content_db_schema import InputContent
-from dsview.extraction.content_extraction import ContentDescription, DataScienceTopic
+from dsview.extraction.content_extraction import (
+    ContentDescription,
+    DataScienceTopic,
+    RelevantLink,
+)
 from dsview.obsidian.obsidian_utils import (
+    get_content_path,
     get_topic_link,
     get_topic_path,
-    get_content_path,
-    get_index_path,
-    get_content_url_link,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,8 +24,8 @@ class NotesGenerator:
     hyperlink: str
     summary: str
     content_description: ContentDescription
-    topics: List[DataScienceTopic]
-    content_links: str = None
+    topics: list[DataScienceTopic]
+    content_links: list[RelevantLink] = None
 
     def generate_topics_md(self):
         logger.info("Starting topics markdown notes generation")
@@ -34,7 +33,7 @@ class NotesGenerator:
         for topic in self.topics:
             logger.info("Writing note for topic %s", topic.name)
 
-            topic_path = get_topic_path(topic.name, topic.type)
+            topic_path = get_topic_path(topic.name, topic.type.value)
             topic_path.parent.mkdir(parents=True, exist_ok=True)
 
             if topic_path.exists():
@@ -43,7 +42,7 @@ class NotesGenerator:
 
             note = frontmatter.Post(topic.description)
             note["date"] = self.content.upload_date.isoformat()
-            note["type"] = topic.type
+            note["type"] = topic.type.value
 
             with open(topic_path, "wb") as note_file:
                 frontmatter.dump(note, note_file)
@@ -59,25 +58,27 @@ class NotesGenerator:
 
         # Adding links
         if self.content_links is not None:
-            note_content += "\n## Links\n\n" + self.content_links
+            note_content += "\n## Links\n\n"
+            for link in self.content_links:
+                note_content += f"- [{link.name}]({link.url}) : {link.description}\n"
 
         # Adding topics
         note_content += "\n## Topics\n\n"
         for topic in self.topics:
-            note_content += f"{get_topic_link(topic.name, topic.type)}\n\n"
+            note_content += f"{get_topic_link(topic.name, topic.type.value)}\n\n"
 
         note = frontmatter.Post(note_content, **self.content.get_str_dict())
         note["type"] = "Content"
 
         if len(self.content_description.tags) > 0:
             note["tags"] = [
-                tag.name.replace(" ", "_")
+                tag.name.value.replace(" ", "_")
                 for tag in self.content_description.tags
                 if tag is not None
             ]
 
         content_path = get_content_path(
-            self.content_description.title, self.content_description.content_type
+            self.content_description.title, self.content_description.content_type.value
         )
         content_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -85,50 +86,3 @@ class NotesGenerator:
             frontmatter.dump(note, note_file)
 
         logger.info("Main content note generation completed")
-
-    def insert_in_index(self) -> None:
-        index_path = get_index_path()
-
-        update_time_line = "> Last updated on : " + datetime.now().isoformat() + "\n\n"
-
-        index_columns = [
-            "Id",
-            "Upload Date",
-            "Read priority",
-            "Relevance",
-            "Source",
-            "Note",
-        ]
-
-        table_header = f"| {' | '.join(index_columns)} |\n"
-        table_header += f"| {' | '.join(['-' * len(col) for col in index_columns])} |\n"
-
-        table_line = (
-            f"| {self.content.id} | {self.content.upload_date.isoformat()} |"
-            f" {self.content.read_priority} | {self.content.relevance} |"
-            f" {self.content.source} | {get_content_url_link(self.content_description.title)} |\n"
-        )
-
-        if not index_path.exists():
-            index_content = "# Index of Input Contents\n\n"
-            index_content += update_time_line
-
-            index_content += table_header
-            index_content += table_line
-        else:
-            with open(index_path, "r") as index_file:
-                index_content = index_file.read()
-
-            index_content = re.sub(
-                "> Last updated on : .*\n\n", update_time_line, index_content
-            )
-
-            table_header_regex = r"\| " + r" +\| ".join(index_columns) + r" +\|\n"
-            table_header_regex += r"\| -+ " * len(index_columns) + r"\|\n"
-
-            index_content = re.sub(
-                table_header_regex, table_header + table_line, index_content
-            )
-
-        with open(index_path, "wb") as index_file:
-            index_file.write(index_content.encode("utf-8"))

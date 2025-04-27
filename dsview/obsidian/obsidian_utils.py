@@ -1,10 +1,10 @@
-from functools import partial
 import shutil
 import urllib.parse
-import regex as re
+from functools import partial
+from pathlib import Path
 from typing import List
 
-from pathlib import Path
+import regex as re
 
 from dsview.config import load_obsidian_config
 
@@ -39,16 +39,12 @@ def get_content_path(content_title: str, content_type: str) -> Path:
     )
 
 
-def get_index_path() -> Path:
-    return config.vault_path / config.index_file
-
-
 def get_content_url_link(content_title: str) -> str:
     cleaned_title = clean_note_title(content_title)
     title_query = urllib.parse.quote(cleaned_title)
     content_url = f"obsidian://open?vault={config.vault_path.name}&file={title_query}"
 
-    return f"[{cleaned_title}]({content_url})"
+    return content_url
 
 
 class InvalidNoteDirectory(Exception):
@@ -83,12 +79,10 @@ def clear_vault():
     topic_dir = config.vault_path / config.topic_directory
     content_dir = config.vault_path / config.content_directory
     artefact_dir = config.vault_path / config.artefact_directory
-    index_file = get_index_path()
 
     shutil.rmtree(topic_dir)
     shutil.rmtree(content_dir)
     shutil.rmtree(artefact_dir)
-    index_file.unlink(missing_ok=True)
 
     topic_dir.mkdir()
     content_dir.mkdir()

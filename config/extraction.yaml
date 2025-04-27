@@ -1,42 +1,43 @@
 tags:
-  - "Deep Learning"
-  - "Cloud Computing"
-  - "Statistics"
-  - "Mathematics"
-  - "MlOps"
-  - "Data Engineering"
-  - "Feature Engineering"
-  - "Data Visualization"
-  - "DevOps"
-  - "Python"
-  - "Large Language Model"
-  - "Natural Language Processing"
-  - "Generative AI"
-  - "Time Series"
-  - "Graph"
-  - "Computer Vision"
-  - "Supervised Learning"
-  - "Unsupervised Learning"
-  - "Semi-supervised Learning"
-  - "Dimensionality reduction"
-  - "Active Learning"
-  - "AI regulation"
-  - "Data Quality"
-  - "Model evaluation"
-  - "Development tool"
-  - "Data teams management"
+  DEEP_LEARNING: "Deep Learning"
+  CLOUD_COMPUTING: "Cloud Computing"
+  STATISTICS: "Statistics"
+  MATHEMATICS: "Mathematics"
+  MLOPS: "MlOps"
+  DATA_ENGINEERING: "Data Engineering"
+  FEATURE_ENGINEERING: "Feature Engineering"
+  DATA_ANALYSIS: "Data Analysis"
+  DATA_VISUALIZATION: "Data Visualization"
+  DEVOPS: "DevOps"
+  PYTHON: "Python"
+  LARGE_LANGUAGE_MODEL: "Large Language Model"
+  AI_AGENT: "AI agent"
+  NATURAL_LANGUAGE_PROCESSING: "Natural Language Processing"
+  TIME_SERIES: "Time Series"
+  GRAPH: "Graph"
+  COMPUTER_VISION: "Computer Vision"
+  SUPERVISED_LEARNING: "Supervised Learning"
+  UNSUPERVISED_LEARNING: "Unsupervised Learning"
+  SEMI_SUPERVISED_LEARNING: "Semi-supervised Learning"
+  DIMENSIONALITY_REDUCTION: "Dimensionality reduction"
+  ACTIVE_LEARNING: "Active Learning"
+  AI_REGULATION: "AI regulation"
+  DATA_QUALITY: "Data Quality"
+  MODEL_EVALUATION: "Model evaluation"
+  DEVELOPMENT_TOOL: "Development tool"
+  DATA_TEAMS_MANAGEMENT: "Data teams management"
 content_types:
-  - Course
-  - Repository
-  - Documentation
-  - "Blog post"
-  - "Product main page"
-  - "Scientific article" 
+  COURSE: Course
+  REPOSITORY: Repository
+  DOCUMENTATION: Documentation
+  BLOG_POST: "Blog post"
+  PRODUCT_MAIN_PAGE: "Product main page"
+  SCIENTIFIC_ARTICLE: "Scientific article"
 topic_categories:
-  - Library
-  - Tool
-  - Model
-  - Platform
-  - Concept
-  - Dataset 
+  LIBRARY: Library
+  TOOL: Tool
+  MODEL: Model
+  PLATFORM: Platform
+  CONCEPT: Concept
+  DATASET: Dataset
 er_jaro_threshold: 0.75

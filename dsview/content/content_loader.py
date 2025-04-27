@@ -1,19 +1,16 @@
-from abc import ABC, abstractmethod
 import logging
+from abc import ABC, abstractmethod
 from pathlib import Path
-import requests
 from typing import Union
 
+import requests
 from bs4 import BeautifulSoup
 from pydantic import HttpUrl
 from pypdf import PdfReader
 
 from dsview.obsidian.obsidian_utils import get_pdf_filepath
 
-
 logger = logging.getLogger(__name__)
-
-MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com"]
 
 
 class WebRequestFailure(Exception):
@@ -57,10 +54,6 @@ class TextLoader(ContentLoader):
 class WebContentLoader(ContentLoader):
     def __init__(self, link: HttpUrl, token_limit: int) -> None:
         super().__init__(link, token_limit)
-
-        if link.host in MEDIUM_HOSTS:
-            logger.info("Received a medium link, redirecting to readmedium")
-            self.link = HttpUrl("https://readmedium.com/" + str(self.link))
 
     def _request_url(self) -> requests.Response:
         response = requests.get(self.link)
