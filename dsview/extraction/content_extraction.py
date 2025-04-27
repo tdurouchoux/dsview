@@ -1,125 +1,38 @@
+import asyncio
 import logging
+import time
 from typing import List, Tuple
 
-from langchain_core.prompts import ChatPromptTemplate
-from pydantic.v1 import BaseModel, Field
 from sqlmodel import Session
 
-from dsview.content.content_loader import ContentLoader, UrlLoader
 from dsview.config import load_extraction_config
-from .extraction_db_schema import InvalidTag, InvalidTopic
-from .prompt_loader import get_prompt
+from dsview.content.content_loader import ContentLoader, UrlLoader
+from dsview.models.llm_models.description_generation import (
+    ContentDescription,
+    DataScienceTag,
+    DescriptionGenerator,
+)
+from dsview.models.llm_models.links_extraction import LinksExtractor, RelevantLink
+from dsview.models.llm_models.summary_generation import SummaryGenerator
+from dsview.models.llm_models.topics_extraction import DataScienceTopic, TopicsExtractor
 
+from .extraction_db_schema import ExtractionResult, InvalidTag, InvalidTopic
 
-logger = logging.getLogger(__name__)
 config = load_extraction_config()
 
-
-def get_summary_generator(llm):
-    summarization_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", get_prompt("system_generate_summary.txt")),
-            ("user", get_prompt("user_generate_summary.txt")),
-        ]
-    )
-    return summarization_prompt | llm
-
-
-class DataScienceTag(BaseModel):
-    name: str = Field(
-        description="Data science topic discussed in the source, it should be as precise as possible",
-        enum=config.tags,
-    )
-
-
-class ContentDescription(BaseModel):
-    title: str = Field(
-        description=(
-            "Title of the source, should be the actual title when it exists. "
-            "If it does not exists, generate one, it can not exceed 50 characters."
-        )
-    )
-    content_type: str = Field(
-        description=(
-            "Type of the content that most accurately describe the source. "
-            "For example, a github link will most of the time be a 'repository'."
-            "Or another example, a medium article is a 'blog post'. "
-        ),
-        enum=config.content_types,
-    )
-    tags: List[DataScienceTag]
-
-
-def get_description_generator(llm):
-    content_description_prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", get_prompt("system_content_description.txt")),
-            ("user", get_prompt("user_content_description.txt")),
-        ]
-    )
-
-    return content_description_prompt | llm.with_structured_output(
-        schema=ContentDescription
-    )
-
-
-class DataScienceTopic(BaseModel):
-    type: str = Field(
-        default=None,
-        description="Type of the described topic in the source.",
-        enum=config.topic_categories,
-    )
-    name: str = Field(
-        default=None, description="Name of the described topic in the source."
-    )
-    description: str = Field(
-        default=None,
-        description=(
-            "General and detailed description of the topic, it should not "
-            "be a description of the source or how the source "
-            "tackle this topic. But the description must be "
-            "created using the provided information or any prior knowledge."
-        ),
-    )
-
-
-class TopicList(BaseModel):
-    topics: List[DataScienceTopic]
-
-
-def get_topics_extractor(llm):
-    topics_prompt = ChatPromptTemplate.from_messages(
-        [
-            (
-                "system",
-                get_prompt("system_topics_extraction.txt").format(
-                    ", ".join(config.tags)
-                ),
-            ),
-            ("user", get_prompt("user_topics_extraction.txt")),
-        ]
-    )
-
-    return topics_prompt | llm.with_structured_output(schema=TopicList)
-
-
-def get_link_extractor(llm):
-    link_extraction_prompt = ChatPromptTemplate.from_template(
-        get_prompt("links_extraction.txt")
-    )
-
-    return link_extraction_prompt | llm
-
+logger = logging.getLogger(__name__)
 
 # TODO implement llm response monitoring (mainly tokens)
+# TODO fix this script this should not be a class
+# TODO implement asynchronous requests
 
 
 class ContentExtractor:
-    def __init__(self, llm) -> None:
-        self.summary_generator = get_summary_generator(llm)
-        self.description_generator = get_description_generator(llm)
-        self.topics_extractor = get_topics_extractor(llm)
-        self.link_extractor = get_link_extractor(llm)
+    def __init__(self) -> None:
+        self.summary_generator = SummaryGenerator()
+        self.description_generator = DescriptionGenerator()
+        self.topics_extractor = TopicsExtractor()
+        self.link_extractor = LinksExtractor()
 
     @staticmethod
     def select_valid_properties(
@@ -146,25 +59,18 @@ class ContentExtractor:
 
         return valid_properties, invalid_properties
 
-    def extract_content(
-        self, content_loader: ContentLoader, session: Session, content_id: int
-    ) -> Tuple[str, ContentDescription, List[DataScienceTopic], str]:
-        content_loader.load()
+    def _save_extraction_results(
+        self,
+        invalid_tags: list[DataScienceTag],
+        invalid_topics: list[DataScienceTopic],
+        content_description: ContentDescription,
+        session: Session,
+        content_id: int,
+    ):
+        if session is None:
+            return
 
-        logger.info("Launching summary generation")
-        summary = self.summary_generator.invoke(
-            {"content": content_loader.content}
-        ).content
-
-        logger.info("Launching description generation")
-        content_description = self.description_generator.invoke(
-            {"content": content_loader.content}
-        )
-        content_description.tags, invalid_tags = self.select_valid_properties(
-            content_description.tags, config.tags, "tag"
-        )
-
-        if session is not None and len(invalid_tags) > 0:
+        if len(invalid_tags) > 0:
             session.add_all(
                 [
                     InvalidTag(
@@ -176,13 +82,7 @@ class ContentExtractor:
             )
             session.commit()
 
-        logger.info("Launching topics extraction")
-        topic_list = self.topics_extractor.invoke({"content": content_loader.content})
-        topics, invalid_topics = self.select_valid_properties(
-            topic_list.topics, config.topic_categories, "topic", attribute="type"
-        )
-
-        if session is not None and len(invalid_topics) > 0:
+        if len(invalid_topics) > 0:
             session.add_all(
                 [
                     InvalidTopic(
@@ -194,17 +94,79 @@ class ContentExtractor:
                     for topic in invalid_topics
                 ]
             )
+
             session.commit()
 
-        content_links = None
+        extraction_result = ExtractionResult(
+            content_id=content_id,
+            title=content_description.title,
+            content_type=content_description.content_type.value,
+        )
+
+        session.add(extraction_result)
+        session.commit()
+
+    async def _send_api_requests(
+        self, content_loader: ContentLoader
+    ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
+        logger.info("Launching extraction api requests ...")
+
+        tasks = []
+
+        tasks.append(
+            self.summary_generator.async_predict({"content": content_loader.content})
+        )
+        await asyncio.sleep(0.1)
+        tasks.append(
+            self.description_generator.async_predict(
+                {"content": content_loader.content}
+            )
+        )
+        await asyncio.sleep(0.1)
+        tasks.append(
+            self.topics_extractor.async_predict({"content": content_loader.content}),
+        )
+
         if isinstance(content_loader, UrlLoader):
-            logger.info("Launching links extraction")
-            content_links = self.link_extractor.invoke(
-                {
-                    "url": content_loader.link,
-                    "content": content_loader.content,
-                    "content_links": "\n".join(content_loader.content_links),
-                }
-            ).content
+            await asyncio.sleep(0.1)
+            tasks.append(self.link_extractor.async_predict(content_loader))
+
+            result = await asyncio.gather(*tasks)
+            return result[0], result[1], result[2].topics, result[3].links
+
+        else:
+            result = await asyncio.gather(*tasks)
+            return result[0], result[1], result[2].topics, None
+
+    def extract_content(
+        self, content_loader: ContentLoader, session: Session, content_id: int
+    ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
+        starting_time = time.perf_counter()
+
+        content_loader.load()
+
+        summary, content_description, topics, content_links = asyncio.run(
+            self._send_api_requests(content_loader)
+        )
+
+        content_description.tags, invalid_tags = self.select_valid_properties(
+            content_description.tags, config.tags.values(), "tag"
+        )
+
+        topics, invalid_topics = self.select_valid_properties(
+            topics,
+            config.topic_categories.values(),
+            "topic",
+            attribute="type",
+        )
+
+        logger.info("Saving extraction results")
+        self._save_extraction_results(
+            invalid_tags, invalid_topics, content_description, session, content_id
+        )
+
+        logger.info(
+            f"Total time for extraction: {time.perf_counter() - starting_time:.1f} seconds"
+        )
 
         return summary, content_description, topics, content_links

@@ -1,24 +1,24 @@
-from datetime import datetime, date
 import logging
+from datetime import date, datetime
 
-from dotenv import load_dotenv
 import frontmatter
-from rich.progress import track
-from sqlmodel import Session, create_engine, SQLModel, select
+import mlflow
 import typer
+from dotenv import load_dotenv
+from rich.progress import track
+from sqlmodel import Session, SQLModel, create_engine, select
 
+from dsview.config import get_sqlite_url, setup_logger
 from dsview.content.content_db_schema import InputContent
 from dsview.extraction.extraction_db_schema import (
     ERComparison,
     ERDecision,
+    ExtractionResult,
     InvalidTag,
     InvalidTopic,
 )
-from dsview.config import get_sqlite_url, setup_logger
-from dsview.evaluation.evaluate import evaluate_app
-from dsview.labelling.schema import clear_er_labelling, clear_content_labelling
-from dsview.obsidian.obsidian_utils import clear_vault, retrieve_contents_path
-from .ingest_source import IngestPipeline, FailedIngestion
+
+from .ingest_source import FailedIngestion
 
 load_dotenv()
 setup_logger()
@@ -29,8 +29,9 @@ engine = create_engine(get_sqlite_url())
 SQLModel.metadata.create_all(engine)
 
 app = typer.Typer()
-app.add_typer(evaluate_app, name="evaluate")
-# TODO log invalid tags ?
+
+# TODO Implement evaluation cli
+# app.add_typer(evaluate_app, name="evaluate")
 
 
 @app.command()
@@ -42,6 +43,8 @@ def ingest(
     relevance: int = 0,
     source: str = None,
 ):
+    from .ingest_source import IngestPipeline
+
     ingest_pipeline = IngestPipeline()
 
     content = InputContent(
@@ -58,6 +61,8 @@ def ingest(
 
 @app.command()
 def save():
+    from dsview.obsidian.obsidian_utils import retrieve_contents_path
+
     with Session(engine) as session:
         logger.info("Starting dsview snapshot creation.")
         content_notes_path = retrieve_contents_path()
@@ -96,6 +101,8 @@ def save():
 
 @app.command()
 def retry_failed():
+    from .ingest_source import FailedIngestion, IngestPipeline
+
     with Session(engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
@@ -113,6 +120,10 @@ def retry_failed():
 
 @app.command()
 def rebuild(start: int = 0, end: int = None):
+    from .ingest_source import IngestPipeline
+
+    mlflow.set_experiment(experiment_name="rebuild")
+
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
     with Session(engine) as session:
@@ -132,9 +143,7 @@ def reset_db():
 
     if delete_input_content:
         logger.info("Deleting input content")
-        SQLModel.metadata.drop_all(
-            engine, tables=[InputContent.__table__, FailedIngestion.__table__]
-        )
+        SQLModel.metadata.drop_all(engine, tables=[InputContent.__table__])
 
     delete_extraction = typer.confirm("Clear extraction results ? ")
 
@@ -143,16 +152,20 @@ def reset_db():
         SQLModel.metadata.drop_all(
             engine,
             tables=[
+                FailedIngestion.__table__,
                 ERComparison.__table__,
                 ERDecision.__table__,
                 InvalidTag.__table__,
                 InvalidTopic.__table__,
+                ExtractionResult.__table__,
             ],
         )
 
 
 @app.command()
 def reset_vault():
+    from dsview.obsidian.obsidian_utils import clear_vault
+
     delete = typer.confirm(
         "This action will clear the entire obsidian vault. "
         "Are you sur you want to reset the vault ?"
@@ -168,6 +181,11 @@ def reset_vault():
 
 @app.command()
 def reset_labelling():
+    from dsview.evaluation.labels_schema import (
+        clear_content_labelling,
+        clear_er_labelling,
+    )
+
     delete_content_labelling = typer.confirm("Clear content labelling ?")
     if delete_content_labelling:
         logger.info("Clearing content labels")

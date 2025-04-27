@@ -1,12 +1,10 @@
 from datetime import date
 from pathlib import Path
-from re import L
-from sqlite3.dbapi2 import SQLITE_CONSTRAINT_FOREIGNKEY
 from typing import Dict
 
-from sqlmodel import SQLModel, Field
-from sqlalchemy.types import String, TypeDecorator
 from pydantic import HttpUrl
+from sqlalchemy.types import String, TypeDecorator
+from sqlmodel import Field, Session, SQLModel, select
 
 from dsview.config import load_extraction_config
 
@@ -52,6 +50,41 @@ class InputContent(SQLModel, table=True):
         return instance_dict
 
 
-class ContentNote(SQLModel, table=True):
-    note_link: str = Field(primary_key=True)
-    note_id: int = Field()
+def update_content(
+    session: Session,
+    content_id: int = None,
+    content_link: str = None,
+    already_read: bool = None,
+    read_priority: int = None,
+    relevance: int = None,
+):
+    if content_id is None and content_link is None:
+        raise ValueError(
+            "At least one of id or link should be provided to perform an update."
+        )
+
+    if all((already_read is None, read_priority is None, relevance is None)):
+        raise ValueError("No value to update")
+
+    statement = select(InputContent)
+
+    if content_id is not None:
+        statement = statement.where(InputContent.id == content_id)
+    else:
+        statement = statement.where(InputContent.link == content_link)
+
+    result = session.exec(statement)
+    input_content = result.one()
+
+    if already_read is not None:
+        input_content.already_read = already_read
+
+    if read_priority is not None:
+        input_content.read_priority = read_priority
+
+    if relevance is not None:
+        input_content.relevance = relevance
+
+    session.add(input_content)
+    session.commit()
+    session.refresh(input_content)

@@ -9,14 +9,14 @@ spec:
   selector:
     app: dsview
   ports:
-  - name: dsview-ingest
-    protocol: TCP
-    port: 8000
-    targetPort: 8000
-  - name: dsview-label
-    protocol: TCP
-    port: 8501
-    targetPort: 8501
+    - name: dsview-ingest
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+    - name: dsview-dashboard
+      protocol: TCP
+      port: 8501
+      targetPort: 8501
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
@@ -29,48 +29,48 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
     nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-ingest
-    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   ingressClassName: nginx
   rules:
-  - host: dsview-ingest.lab.sspcloud.fr
-    http: 
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: dsview-service
-              port:
-                number: 8000
+    - host: dsview-ingest.lab.sspcloud.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dsview-service
+                port:
+                  number: 8000
   tls:
-  - hosts:
-    - dsview-ingest.lab.sspcloud.fr
+    - hosts:
+        - dsview-ingest.lab.sspcloud.fr
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: dsview-label-ingress
+  name: dsview-dashboard-ingress
   namespace: user-tdurouchoux
   labels:
     app: dsview
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-label
-    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-dashboard
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
 spec:
   ingressClassName: nginx
   rules:
-  - host: dsview-label.lab.sspcloud.fr
-    http: 
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: dsview-service
-              port:
-                number: 8501
+    - host: dsview-dashboard.lab.sspcloud.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dsview-service
+                port:
+                  number: 8501
   tls:
-  - hosts:
-    - dsview-label.lab.sspcloud.fr
+    - hosts:
+        - dsview-dashboard.lab.sspcloud.fr

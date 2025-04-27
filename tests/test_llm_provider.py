@@ -1,0 +1,138 @@
+import numpy as np
+import pytest
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from dsview.config import LLMProvider, ModelConfig
+from dsview.models import get_model_provider
+from dsview.models.model_provider import MissingAPIKey, ModelConfigurationError
+from dsview.models.providers import (
+    AnthropicProvider,
+    MistralProvider,
+    OllamaProvider,
+    OpenAIProvider,
+)
+
+load_dotenv()
+
+OPENAI_MODEL_CONFIG = ModelConfig(
+    chat_model="gpt-4o-mini-2024-07-18",
+    embedding_model="text-embedding-3-small",
+    provider=LLMProvider.OPENAI,
+    token_limit=128_000,
+)
+
+MISTRAL_MODEL_CONFIG = ModelConfig(
+    chat_model="mistral-small-latest",
+    provider=LLMProvider.MISTRAL,
+    token_limit=32_000,
+)
+
+OLLAMA_MODEL_CONFIG = ModelConfig(
+    chat_model="smollm2:1.7b",
+    embedding_model="all-minilm:latest",
+    provider=LLMProvider.OLLAMA,
+    token_limit=8_192,
+)
+
+ANTHROPIC_MODEL_CONFIG = ModelConfig(
+    chat_model="claude-3-5-haiku-20241022",
+    provider=LLMProvider.ANTHROPIC,
+    token_limit=200_000,
+    model_specific_config={"max_tokens": 1_024},
+)
+
+
+@pytest.mark.parametrize(
+    "model_config, provider_type",
+    [
+        (OPENAI_MODEL_CONFIG, OpenAIProvider),
+        (MISTRAL_MODEL_CONFIG, MistralProvider),
+        (OLLAMA_MODEL_CONFIG, OllamaProvider),
+        (ANTHROPIC_MODEL_CONFIG, AnthropicProvider),
+    ],
+)
+def test_get_model_provider(model_config: ModelConfig, provider_type: LLMProvider):
+    model_provider = get_model_provider(model_config)
+    assert isinstance(model_provider, provider_type)
+
+
+def test_missing_api_key():
+    OpenAIProvider.PROVIDER_API_KEY_NAME = "SOME_OTHER_KEY"
+
+    with pytest.raises(MissingAPIKey):
+        _ = OpenAIProvider(OPENAI_MODEL_CONFIG)
+
+    OpenAIProvider.PROVIDER_API_KEY_NAME = "OPENAI_API_KEY"
+
+
+def test_model_configuration_error():
+    OPENAI_MODEL_CONFIG.chat_model = "no-gpt"
+
+    with pytest.raises(ModelConfigurationError):
+        _ = get_model_provider(OPENAI_MODEL_CONFIG)
+
+    OPENAI_MODEL_CONFIG.chat_model = "gpt-4o-mini-2024-07-18"
+
+
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        OPENAI_MODEL_CONFIG,
+        MISTRAL_MODEL_CONFIG,
+        OLLAMA_MODEL_CONFIG,
+        ANTHROPIC_MODEL_CONFIG,
+    ],
+)
+def test_send_messages(model_config: ModelConfig):
+    messages = [
+        {"role": "user", "content": "Hello !"},
+    ]
+
+    model_provider = get_model_provider(model_config)
+
+    response = model_provider.send_messages(messages)
+
+    assert isinstance(response, str)
+
+
+class Response(BaseModel):
+    is_fine: bool
+
+
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        OPENAI_MODEL_CONFIG,
+        MISTRAL_MODEL_CONFIG,
+        OLLAMA_MODEL_CONFIG,
+        ANTHROPIC_MODEL_CONFIG,
+    ],
+)
+def test_send_messaged_structured(model_config: ModelConfig):
+    messages = [
+        {"role": "user", "content": "How are you ?"},
+    ]
+
+    model_provider = get_model_provider(model_config)
+
+    response = model_provider.send_messages(messages, structured_output_class=Response)
+
+    assert isinstance(response, Response)
+
+
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        OPENAI_MODEL_CONFIG,
+        OLLAMA_MODEL_CONFIG,
+    ],
+)
+def test_embed(model_config: ModelConfig):
+    input = "What is the meaning of life ?"
+
+    model_provider = get_model_provider(model_config)
+
+    embedding = model_provider.embed(input)
+
+    assert isinstance(embedding, np.ndarray)

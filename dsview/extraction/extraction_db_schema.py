@@ -1,7 +1,7 @@
 import importlib.metadata
 import logging
 
-from sqlmodel import SQLModel, Field, Session, select
+from sqlmodel import Field, Session, SQLModel, select
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,13 @@ class InvalidTopic(SQLModel, table=True):
     description: str
 
 
+class ExtractionResult(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    content_id: int = Field(foreign_key="inputcontent.id")
+    title: str
+    content_type: str
+
+
 class ERComparison(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name_1: str = Field(nullable=False)
@@ -32,7 +39,9 @@ class ERComparison(SQLModel, table=True):
     description_2: str = Field(nullable=False)
 
 
-def find_or_add_comparison(topic_comparison: dict, session: Session) -> ERComparison:
+def find_or_add_comparison(
+    topic_comparison: dict[str, str], session: Session
+) -> ERComparison:
     # Check if the comparison already exists in the database
     existing_comparison = session.exec(
         select(ERComparison).where(

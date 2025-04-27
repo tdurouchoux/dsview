@@ -1,17 +1,16 @@
-from dataclasses import dataclass, field
-from functools import partial
-import os
-from typing import Callable, List, Optional
-
 import logging.config
+import os
+from dataclasses import dataclass, field
+from enum import Enum
+from functools import partial
 from pathlib import Path
+from typing import Callable, Optional, Union
 
-from dotenv import load_dotenv
-from omegaconf import OmegaConf, MISSING
 import yaml
+from dotenv import load_dotenv
+from omegaconf import MISSING, OmegaConf
 
 load_dotenv()
-os.getenv("CONF_DIR")
 
 
 def load_config(config_class, conf_file: Path):
@@ -22,22 +21,82 @@ def load_config(config_class, conf_file: Path):
     return OmegaConf.to_object(merged_config)
 
 
+class LLMProvider(str, Enum):
+    OPENAI = "openai"
+    MISTRAL = "mistral"
+    ANTHROPIC = "anthropic"
+    OLLAMA = "ollama"
+
+
+class ModelType(Enum):
+    DEFAULT = 0
+    DESCRIPTION_GENERATION = 1
+    ER_CLASSIFICATION = 2
+    LINKS_EXTRACTION = 3
+    SUMMARY_GENERATION = 4
+    TOPICS_EXTRACTION = 5
+    SEMANTIC_SCORE = 6
+
+
 @dataclass
 class ModelConfig:
-    name: str = MISSING
+    chat_model: str = MISSING
+    embedding_model: Optional[str] = None
+    provider: LLMProvider = LLMProvider.OPENAI
     token_limit: int = MISSING
+    model_specific_config: Optional[dict[str, Union[int, str]]] = field(
+        default_factory=lambda: {}
+    )
 
 
-load_model_config: Callable[[], ModelConfig] = partial(
-    load_config, ModelConfig, "model.yaml"
-)
+@dataclass
+class ModelSpecificConfig:
+    model_type: ModelType = ModelType.DEFAULT
+    model_config: ModelConfig = MISSING
+
+
+@dataclass
+class GlobalModelConfig:
+    configs: list[ModelSpecificConfig]
+
+
+class ModelConfigurationError(Exception):
+    def __init__(self, model_type: ModelType):
+        super().__init__(
+            f"No model configuration was found for model type {model_type}, "
+            "and no default model config was found."
+            f"Could not determine model configuration."
+        )
+
+
+def load_model_config(model_type: ModelType = None) -> ModelConfig:
+    if model_type is None:
+        model_type = ModelType.DEFAULT
+
+    config_list = load_config(GlobalModelConfig, "model.yaml").configs
+
+    default_model_config = None
+
+    for model_specific_config in config_list:
+        if (
+            model_type != ModelType.DEFAULT
+            and model_specific_config.model_type == ModelType.DEFAULT
+        ):
+            default_model_config = model_specific_config.model_config
+
+        if model_specific_config.model_type.value == model_type.value:
+            return model_specific_config.model_config
+
+    if default_model_config is None:
+        raise ModelConfigurationError(model_type)
+    return default_model_config
 
 
 @dataclass
 class ExtractionConfig:
-    tags: List[str]
-    content_types: List[str]
-    topic_categories: List[str]
+    tags: dict[str, str]
+    content_types: dict[str, str]
+    topic_categories: dict[str, str]
     er_jaro_threshold: float
 
 
@@ -61,7 +120,6 @@ class ObsidianConfig:
     content_directory: str = "contents"
     topic_directory: str = "topics"
     artefact_directory: str = "artefacts"
-    index_file: str = "index.md"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
 

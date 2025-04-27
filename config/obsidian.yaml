@@ -2,4 +2,3 @@ vault_path: dsview_vault
 db_file: vault.db
 content_directory: "contents"
 topic_directory: "topics"
-index_file: "index.md"

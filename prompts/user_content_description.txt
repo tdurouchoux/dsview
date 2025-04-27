@@ -1,1 +1,6 @@
-Please extract description for this source : {content}
+Here is the content that I want you to describe :
+<content>
+{content}
+</content>
+
+Please procede with your analysis, and provide an accurate description.

@@ -4,6 +4,9 @@
 # mlflow
 mlruns/
 
+# Marimo
+__marimo__/
+
 # VSCode
 .vscode/
 
