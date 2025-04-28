@@ -25,6 +25,7 @@ Next steps :
 - [ ] Fix issue with read medium
 - [ ] Implement thinking query for LLMMode
 - [ ] Get more info on try / retry
+- [ ] Async ER run
 
 Larger picture :
 
@@ -61,3 +62,11 @@ Model Maj 0.2:
 - links extraction : no improvments
 
 RAG on topics and content
+
+TODO :
+fix aysncio run when in api mode
+
+v2 ? :
+
+- s3
+- Qdrant

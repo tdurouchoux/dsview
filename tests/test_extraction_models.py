@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from pydantic import HttpUrl
 
@@ -82,7 +83,7 @@ def test_select_valid_properties():
 def test_content_extractor(content_loader):
     content_extractor = ContentExtractor()
     summary, content_description, topics, content_links = (
-        content_extractor.extract_content(content_loader, None, 1)
+        asyncio.run(content_extractor.extract_content(content_loader, None, 1))
     )
 
     assert len(summary) > 0 and isinstance(summary, str)

@@ -44,7 +44,7 @@ async def ingest(content: InputContent):
 
     # ? Maybe it is slower than session dependency
     with Session(engine) as session:
-        ingest_pipeline.ingest_content(content, session)
+        await ingest_pipeline.async_ingest_content(content, session)
 
 
 # TODO Update sqlite db and test locally

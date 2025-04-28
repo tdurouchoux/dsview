@@ -138,16 +138,15 @@ class ContentExtractor:
             result = await asyncio.gather(*tasks)
             return result[0], result[1], result[2].topics, None
 
-    def extract_content(
+    async def extract_content(
         self, content_loader: ContentLoader, session: Session, content_id: int
     ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
         starting_time = time.perf_counter()
 
         content_loader.load()
 
-        summary, content_description, topics, content_links = asyncio.run(
-            self._send_api_requests(content_loader)
-        )
+        summary, content_description, topics, content_links = await self._send_api_requests(content_loader)
+
 
         content_description.tags, invalid_tags = self.select_valid_properties(
             content_description.tags, config.tags.values(), "tag"

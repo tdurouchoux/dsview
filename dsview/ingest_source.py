@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from urllib.parse import urlunparse
 
@@ -74,11 +75,11 @@ class IngestPipeline:
 
         return content
 
-    def _extract(self, content: InputContent, session: Session) -> NotesGenerator:
+    async def _extract(self, content: InputContent, session: Session) -> NotesGenerator:
         content_loader = get_content_loader(content.link, model_config.token_limit)
 
         summary, content_description, topics, content_links = (
-            self.content_extractor.extract_content(
+            await self.content_extractor.extract_content(
                 content_loader,
                 session,
                 content.id,
@@ -120,7 +121,8 @@ class IngestPipeline:
         session.add(failed_ingestion)
         session.commit()
 
-    def ingest_content(self, content: InputContent, session: Session):
+
+    async def async_ingest_content(self, content: InputContent, session: Session):
         original_link = str(content.link)
 
         if isinstance(content.link, HttpUrl):
@@ -131,13 +133,16 @@ class IngestPipeline:
         logger.info("Ingesting content : %s", content.link)
 
         try:
-            notes_generator = self._extract(content, session)
+            notes_generator = await self._extract(content, session)
             self._ingest(notes_generator)
             logger.info("Content ingested.")
 
         except Exception as error:
             logger.exception("Failed to ingest content : %s", content.link)
             self._save_failed_ingestion(content, original_link, error, session)
+
+    def ingest_content(self, content: InputContent, session: Session):
+        asyncio.run(self.async_ingest_content(content, session))
 
     def ingest_content_list(self, content_list: list[InputContent], session: Session):
         for content in track(content_list):

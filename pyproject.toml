@@ -1,6 +1,6 @@
 [project]
 name = "dsview"
-version = "1.0.0"
+version = "1.0.1"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -48,7 +48,4 @@ build-backend = "hatchling.build"
 dsview = "dsview.cli:main"
 
 [dependency-groups]
-dev = [
-    "jupyter>=1.1.1",
-    "marimo>=0.13.2",
-]
+dev = ["jupyter>=1.1.1", "marimo>=0.13.2"]
