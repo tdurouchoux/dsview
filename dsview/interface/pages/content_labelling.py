@@ -12,7 +12,7 @@ from dsview.interface.interface_utils import get_sidebar
 sqlite_url = get_sqlite_url()
 model_config = load_model_config()
 
-st.set_page_config(page_title="Content labelling", page_icon="📚")
+st.set_page_config(page_title="Content labelling", page_icon="small_icon.png")
 # how to feed new url ? > list input or random
 
 # Delta storage ?

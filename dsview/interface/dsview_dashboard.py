@@ -18,7 +18,7 @@ load_dotenv()
 engine = create_engine(get_sqlite_url())
 
 st.set_option("client.showSidebarNavigation", False)
-st.set_page_config(page_title="Content dashboard", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Content dashboard", page_icon="small_icon.png", layout="wide")
 
 # TODO Add option to change relevance
 

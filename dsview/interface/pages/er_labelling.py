@@ -10,7 +10,7 @@ from dsview.interface.interface_utils import get_sidebar
 
 sqlite_url = get_sqlite_url()
 
-st.set_page_config(page_title="ER comparison labelling", page_icon="⛓️‍💥")
+st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.png")
 
 # TODO package create engine and db
 
