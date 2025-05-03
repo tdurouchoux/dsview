@@ -4,50 +4,34 @@ Data science news monitoring management tools using LLM and graph representation
 
 Next steps :
 
-- [x] Refactor ER to openai API
-- [x] ER content extraction evaluation helper model
-- [x] Content extraction evaluation
-- [x] ER migration to new backend
-- [x] Full migration to model_config and removal of langchain
-- [x] Add new model providers
-- [x] Migrate content_links
-- [x] Model specific configuration
-- [ ] Update configuration
-- [ ] Streamlit vault db interface + Remove index logic
-- [x] Add safeguard for duplicate content in inputcontent
-- [ ] Fix update relevance, remove query in every stored url
-- [ ] Add prediction table with title (and later cost ?)
-- [ ] Git lfs dsview_vault migration
-- [ ] Remove query from url > done only for new ingestion, original url will be kept in case of error in FailedIngestion table
-- [ ] Better error notifications
-- [ ] Faster queries - asynchronous parallel requests - add tests
-- [ ] Query optimization with Dspy before implementation (if successfull)
-- [ ] Fix issue with read medium
-- [ ] Implement thinking query for LLMMode
-- [ ] Get more info on try / retry
-- [ ] Async ER run
+- Better interface :
 
-Larger picture :
+  - [ ] RAG like interface to fetch interesting content on a subject
+  - [ ] Qwartz or equivalent for publishing + hosting ?
+  - [ ] Newsletter like notifications (with relevance prediction ?)
+  - [ ] Have some king of "watch" feature or remind me
+  - [ ] Switch to marimo for dashboard interface
 
-- Faster queries - asynchronous parallel requests
-- Interact more with s3 for input and outputs (logs and config)
-- Improve logging, add observability measures prices and consumption (ecologits), maybe try vector.dev (see calmcode for more info) (tokens + price + kWh) on ES openTelemetry ?
-- Implement a newsletter-like mailing server + mail whenever the ingestion failed
-- Improve PDF ingestion and remove token limit from content loaders
-- Improve ER search for close topics, use semantic score + jaro
-- Enable vector search on db > to explore
-- Recommendation using relevance prediction
+- Better data management :
 
-Next steps :
+  - [ ] Fix issue with missing note for some topics (could be related to that they already exist but under another type)
+  - [ ] Migrate from git to S3 save state
 
-1. Quickly finish opt
-2. Test again
-3. Clean repo
-4. Rerun full ingestion
-5. Deploy
+- Better models :
 
-6. More labels
-7. More opt + switch to mistral API (or claude for complex topics)
+  - [ ] Improve ER with vector db like search + jaro
+  - [ ] Async ER run
+  - [ ] Improve pdf ingestion and remove token limit from content loaders + better summarization
+  - [ ] New LLM call architecture
+  - [ ] Opt when sufficient number of annotations
+  - [ ] Fix issue with read medium
+  - [ ] Relevance prediction
+  - [ ] Switch to Mistral
+  - [ ] Better mlflow management (especially for selecting current parameters)
+
+- Better management :
+  - [ ] Better error notifications
+  - [ ] Improve logging (with observability price consumption if possible) ES openTelemetry, vector.dev, ecologits
 
 Model Maj 0.2:
 
@@ -60,13 +44,3 @@ Model Maj 0.2:
   - looking for system prompt
   - Found one, more recall a bit better in precision but more topics > check if it is not too much
 - links extraction : no improvments
-
-RAG on topics and content
-
-TODO :
-fix aysncio run when in api mode
-
-v2 ? :
-
-- s3
-- Qdrant

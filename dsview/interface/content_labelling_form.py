@@ -1,14 +1,16 @@
 import pandas as pd
 import streamlit as st
+from mistralai.models.deltamessage import Content
 
-from dsview.config import load_extraction_config
 from dsview.content.content_loader import WebContentLoader
-from dsview.models.llm_models.description_generation import ContentDescription
-from dsview.models.llm_models.links_extraction import RelevantLink
-from dsview.models.llm_models.topics_extraction import DataScienceTopic
 from dsview.evaluation.labels_schema import save_labels
-
-extraction_config = load_extraction_config()
+from dsview.models.llm_models.description_generation import (
+    ContentDescription,
+    ContentType,
+    TagsType,
+)
+from dsview.models.llm_models.links_extraction import RelevantLink
+from dsview.models.llm_models.topics_extraction import DataScienceTopic, TopicType
 
 
 def topics_labelling(topics: list[DataScienceTopic]) -> pd.DataFrame:
@@ -34,7 +36,7 @@ def topics_labelling(topics: list[DataScienceTopic]) -> pd.DataFrame:
     topic_type_column = st.column_config.SelectboxColumn(
         "Topic type",
         width="medium",
-        options=extraction_config.topic_categories,
+        options=TopicType,
     )
 
     topic_ranking = st.data_editor(
@@ -96,19 +98,18 @@ def generate_labelling_form(
 
         title = st.text_input("Title", value=content_description.title)
 
-        content_type = st.selectbox(
+        content_type = st.multiselect(
             "Type",
-            options=extraction_config.content_types,
-            index=extraction_config.content_types.index(
-                content_description.content_type
-            ),
-        )
+            ContentType,
+            default=content_description.content_type,
+            max_selections=1,
+        )[0]
 
         tags = st.multiselect(
             "Tags",
-            extraction_config.tags,
+            TagsType,
             default=[tag.name for tag in content_description.tags],
-            max_selections=5,
+            max_selections=3,
         )
 
         topics_ranking = topics_labelling(topics)

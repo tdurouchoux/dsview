@@ -2,7 +2,7 @@ import logging.config
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import partial
+from functools import cache, partial
 from pathlib import Path
 from typing import Callable, Optional, Union
 
@@ -13,6 +13,7 @@ from omegaconf import MISSING, OmegaConf
 load_dotenv()
 
 
+@cache
 def load_config(config_class, conf_file: Path):
     default_config = OmegaConf.structured(config_class)
     file_config = OmegaConf.load(Path(os.getenv("CONF_DIR")) / conf_file)

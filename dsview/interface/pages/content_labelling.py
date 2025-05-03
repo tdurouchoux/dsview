@@ -1,10 +1,12 @@
+import asyncio
+
 import streamlit as st
 from pydantic import HttpUrl
 
 from dsview.config import get_sqlite_url, load_model_config
 from dsview.content.content_loader import get_content_loader
-from dsview.extraction.content_extraction import ContentExtractor
 from dsview.evaluation.labels_schema import check_link_labelled, get_engine
+from dsview.extraction.content_extraction import ContentExtractor
 from dsview.interface.content_labelling_form import generate_labelling_form
 from dsview.interface.interface_utils import get_sidebar
 
@@ -25,10 +27,12 @@ def content_extraction(link: str):
     content_extractor = ContentExtractor()
 
     # TODO Clean this
-    _, content_description, topics, content_links = content_extractor.extract_content(
-        content_loader,
-        None,
-        None,
+    _, content_description, topics, content_links = asyncio.run(
+        content_extractor.extract_content(
+            content_loader,
+            None,
+            None,
+        )
     )
 
     content_loader.get_hyperlink()
