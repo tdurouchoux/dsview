@@ -33,6 +33,14 @@ class MistralProvider(ModelProvider):
 
         return np.array(response.data[0].embedding)
 
+    async def _async_embed(self, input: str) -> np.ndarray:
+        response = await self.client.embeddings.create_async(
+            model=self.model_config.embedding_model,
+            inputs=[input],
+        )
+
+        return np.array(response.data[0].embedding)
+
     def _complete(
         self,
         messages: list[dict[str, str]],

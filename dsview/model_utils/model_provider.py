@@ -15,8 +15,6 @@ from dsview.config import LLMProvider, ModelConfig, ModelType, load_model_config
 
 default_model_config = load_model_config(ModelType.DEFAULT)
 
-# TODO Prevent rate limit errors
-
 
 class MissingAPIKey(Exception):
     def __init__(self, provider: LLMProvider, api_key_name: str) -> None:
@@ -45,8 +43,10 @@ class ModelProvider(ABC):
         self.model_config = model_config
         self.force_provider = force_provider
 
+        # ! Kind of annoying that check is made for every single model
+
         self._check_api_key()
-        self._check_model_config()
+        # self._check_model_config()
 
     def _check_api_key(self):
         if self.PROVIDER_API_KEY_NAME is None:
@@ -83,6 +83,14 @@ class ModelProvider(ABC):
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
     def embed(self, input: str) -> np.ndarray:
         return self._embed(input)
+
+    @abstractmethod
+    async def _async_embed(self, input: str) -> np.ndarray:
+        pass
+
+    @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(5))
+    async def async_embed(self, input: str) -> np.ndarray:
+        return await self._async_embed(input)
 
     @abstractmethod
     def _complete(

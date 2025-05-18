@@ -5,7 +5,7 @@ from nltk.tokenize import word_tokenize
 from scipy.spatial.distance import cosine
 
 from dsview.config import ModelType, load_model_config
-from dsview.models import get_model_provider
+from dsview.model_utils import get_model_provider
 
 nltk.download("stopwords")
 

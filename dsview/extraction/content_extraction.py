@@ -1,22 +1,28 @@
 import asyncio
 import logging
 import time
-from typing import List, Tuple
 
 from sqlmodel import Session
 
 from dsview.config import load_extraction_config
-from dsview.content.content_loader import ContentLoader, UrlLoader
-from dsview.models.llm_models.description_generation import (
+from dsview.db.ingest import (
+    embed_and_save_topic,
+    embed_and_update_topic,
+    save_er_comparison,
+    save_extraction_results,
+    save_topic_relations,
+)
+from dsview.db.query import TopicsIndex, get_topic_by_name
+from dsview.extraction.content_loader import ContentLoader, UrlLoader
+from dsview.extraction.models.er_classification import ERClassifier
+
+from .models.description_generation import (
     ContentDescription,
-    DataScienceTag,
     DescriptionGenerator,
 )
-from dsview.models.llm_models.links_extraction import LinksExtractor, RelevantLink
-from dsview.models.llm_models.summary_generation import SummaryGenerator
-from dsview.models.llm_models.topics_extraction import DataScienceTopic, TopicsExtractor
-
-from .extraction_db_schema import ExtractionResult, InvalidTag, InvalidTopic
+from .models.links_extraction import LinksExtractor, RelevantLink
+from .models.summary_generation import SummaryGenerator
+from .models.topics_extraction import DataScienceTopic, TopicsExtractor
 
 config = load_extraction_config()
 
@@ -26,6 +32,8 @@ logger = logging.getLogger(__name__)
 # TODO fix this script this should not be a class
 # TODO implement asynchronous requests
 
+# TODO encode and ingest summary
+
 
 class ContentExtractor:
     def __init__(self) -> None:
@@ -33,78 +41,7 @@ class ContentExtractor:
         self.description_generator = DescriptionGenerator()
         self.topics_extractor = TopicsExtractor()
         self.link_extractor = LinksExtractor()
-
-    @staticmethod
-    def select_valid_properties(
-        property_list: List,
-        property_attribute_values: List[str],
-        property_name: str,
-        attribute: str = "name",
-    ) -> Tuple[List, List]:
-        valid_properties = []
-        invalid_properties = []
-
-        for prop in property_list:
-            if getattr(prop, attribute) in property_attribute_values:
-                valid_properties.append(prop)
-            else:
-                invalid_properties.append(prop)
-
-        if len(invalid_properties) > 0:
-            logger.warning(
-                "%s extracted %s were invalid",
-                len(invalid_properties),
-                property_name,
-            )
-
-        return valid_properties, invalid_properties
-
-    def _save_extraction_results(
-        self,
-        invalid_tags: list[DataScienceTag],
-        invalid_topics: list[DataScienceTopic],
-        content_description: ContentDescription,
-        session: Session,
-        content_id: int,
-    ):
-        if session is None:
-            return
-
-        if len(invalid_tags) > 0:
-            session.add_all(
-                [
-                    InvalidTag(
-                        content_id=content_id,
-                        name=tag.name,
-                    )
-                    for tag in invalid_tags
-                ]
-            )
-            session.commit()
-
-        if len(invalid_topics) > 0:
-            session.add_all(
-                [
-                    InvalidTopic(
-                        content_id=content_id,
-                        name=topic.name,
-                        type=topic.type,
-                        description=topic.description,
-                    )
-                    for topic in invalid_topics
-                ]
-            )
-
-            session.commit()
-
-        extraction_result = ExtractionResult(
-            content_id=content_id,
-            title=content_description.title,
-            content_type=content_description.content_type.value,
-        )
-
-        session.add(extraction_result)
-        session.commit()
+        self.er_classifier = ERClassifier()
 
     async def _send_api_requests(
         self, content_loader: ContentLoader
@@ -116,19 +53,16 @@ class ContentExtractor:
         tasks.append(
             self.summary_generator.async_predict({"content": content_loader.content})
         )
-        await asyncio.sleep(0.1)
         tasks.append(
             self.description_generator.async_predict(
                 {"content": content_loader.content}
             )
         )
-        await asyncio.sleep(0.1)
         tasks.append(
             self.topics_extractor.async_predict({"content": content_loader.content}),
         )
 
         if isinstance(content_loader, UrlLoader):
-            await asyncio.sleep(0.1)
             tasks.append(self.link_extractor.async_predict(content_loader))
 
             result = await asyncio.gather(*tasks)
@@ -140,32 +74,102 @@ class ContentExtractor:
 
     async def extract_content(
         self, content_loader: ContentLoader, session: Session, content_id: int
-    ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
+    ) -> tuple[list[int], list[int]]:
         starting_time = time.perf_counter()
 
-        content_loader.load()
-
-        summary, content_description, topics, content_links = await self._send_api_requests(content_loader)
-
-
-        content_description.tags, invalid_tags = self.select_valid_properties(
-            content_description.tags, config.tags.values(), "tag"
-        )
-
-        topics, invalid_topics = self.select_valid_properties(
+        (
+            summary,
+            content_description,
             topics,
-            config.topic_categories.values(),
-            "topic",
-            attribute="type",
-        )
+            content_links,
+        ) = await self._send_api_requests(content_loader)
 
         logger.info("Saving extraction results")
-        self._save_extraction_results(
-            invalid_tags, invalid_topics, content_description, session, content_id
+        save_extraction_results(
+            summary,
+            content_description,
+            content_links,
+            content_id,
+            session,
         )
 
         logger.info(
             f"Total time for extraction: {time.perf_counter() - starting_time:.1f} seconds"
         )
 
-        return summary, content_description, topics, content_links
+        logger.info("Launching topic ER")
+
+        return await self.topics_er(topics, content_id, session)
+
+    async def _single_topic_er(
+        self,
+        topic: DataScienceTopic,
+        topics_index: TopicsIndex,
+        session: Session,
+    ) -> tuple[tuple[int, DataScienceTopic] | None, int | None]:
+        candidate_topics = topics_index.query_topic(topic)
+
+        for candidate_id, candidate_topic in candidate_topics:
+            result = await self.er_classifier.async_predict(topic, candidate_topic)
+
+            save_er_comparison(topic, candidate_topic, result, session)
+
+            if result.merge_topic:
+                # This means I don't have to update older links
+                logger.warning(
+                    "Merging topics %s and %s into %s ",
+                    topic.name,
+                    candidate_topic.name,
+                    result.topic.name,
+                )
+
+                await embed_and_update_topic(candidate_id, result.topic, session)
+
+                return (candidate_id, candidate_topic), None
+
+        topic_id = await embed_and_save_topic(topic, session)
+
+        return None, topic_id
+
+    async def topics_er(
+        self, topics: list[DataScienceTopic], content_id: int, session: Session
+    ) -> tuple[tuple[int, DataScienceTopic], int]:
+        # Get topics to update
+        # update links
+        # Get new topics
+        # Update links
+        # Returns id list of updated topics and
+
+        # !!! I kinda wait topics_id to surface
+        # !! TODO Configure embedding size
+
+        existing_topic_ids = []
+        tasks = []
+
+        with TopicsIndex() as topics_index:
+            for topic in topics:
+                existing_topic = get_topic_by_name(topic.name, session)
+
+                if existing_topic is not None:
+                    logger.warning("Topic %s already exists", topic.name)
+                    existing_topic_ids.append(existing_topic.id)
+                    continue
+
+                tasks.append(self._single_topic_er(topic, topics_index, session))
+
+            # ! I am not sure but I may need thread safe session
+            er_results = await asyncio.gather(*tasks)
+
+        # take into account the fact that two topics can update the same one
+        # Asynchronous code make it not so well handled
+        updated_topics = [result[0] for result in er_results if result[1] is None]
+        updated_topic_ids = [e[0] for e in updated_topics]
+        new_topic_ids = [result[1] for result in er_results if result[0] is None]
+
+        save_topic_relations(
+            content_id,
+            set(existing_topic_ids + updated_topic_ids + new_topic_ids),
+            session,
+        )
+
+        return updated_topics, new_topic_ids

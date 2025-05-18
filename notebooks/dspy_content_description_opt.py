@@ -16,7 +16,7 @@ def _():
 @app.cell
 def _():
     from dsview.config import ModelConfig, LLMProvider, get_sqlite_url
-    from dsview.models.providers import OllamaProvider
+    from dsview.model_utils.providers import OllamaProvider
     return (
         LLMProvider,
         ModelConfig,

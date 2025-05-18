@@ -6,15 +6,14 @@ from pydantic import BaseModel
 from tqdm import tqdm
 
 from dsview.config import ModelConfig, load_extraction_config
-from dsview.evaluation.labels_schema import TopicsLabels
-from dsview.models.model_utils import LLMModel
-from dsview.models.llm_models.topics_extraction import (
+from dsview.db.query import get_labels_data
+from dsview.db.schemas import TopicsLabels
+from dsview.extraction.models.topics_extraction import (
     DataScienceTopic,
-    TopicType,
     TopicsExtractor,
+    TopicType,
 )
-
-from .evaluation_extraction_utils import get_labels_data
+from dsview.model_utils import LLMModel
 
 tqdm.pandas()
 

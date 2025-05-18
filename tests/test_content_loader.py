@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import HttpUrl
 
-from dsview.content.content_loader import (
+from dsview.extraction.content_loader import (
     PdfUrlLoader,
     TextLoader,
     UrlLoader,

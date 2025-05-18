@@ -6,11 +6,10 @@ from pydantic import HttpUrl
 from tqdm import tqdm
 
 from dsview.config import ModelConfig
-from dsview.content.content_loader import UrlLoader
-from dsview.evaluation.labels_schema import LinksLabels
-from dsview.models.llm_models import LinksExtractor
-
-from .evaluation_extraction_utils import get_labels_data
+from dsview.db.query import get_labels_data
+from dsview.db.schemas import LinksLabels
+from dsview.extraction.content_loader import UrlLoader
+from dsview.extraction.models import LinksExtractor
 
 MAX_N_EXTRACTED_LINKS = 5
 

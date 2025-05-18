@@ -29,13 +29,13 @@ def _():
         get_sqlite_url,
         load_extraction_config,
     )
-    from dsview.models.providers import OllamaProvider
+    from dsview.model_utils.providers import OllamaProvider
     return LLMProvider, ModelConfig, evaluate, load_extraction_config, mlflow
 
 
 @app.cell
 def _():
-    from dsview.models.llm_models.description_generation import TagsType
+    from dsview.extraction.models.description_generation import TagsType
     return (TagsType,)
 
 
@@ -149,79 +149,79 @@ def _():
 
 
     Here as some examples (only extracts):
-    <examples> 
+    <examples>
     Example 1 :
 
-    - content : 
+    - content :
         Building effective agents
         Published Dec 19, 2024
-    
+
         We've worked with dozens of teams building LLM agents across industries. Consistently, the most successful implementations use simple, composable patterns rather than complex frameworks.
-    
+
         Over the past year, we've worked with dozens of teams building large language model (LLM) agents across industries. Consistently, the most successful implementations weren't using complex frameworks or specialized libraries. Instead, they were building with simple, composable patterns.
-    
+
         In this post, we share what we’ve learned from working with our customers and building agents ourselves, and give practical advice for developers on building effective agents.
-    - Output : 
+    - Output :
 
         - title : Building effective agents
         - content_type : Blog post
         - tags : Large Language Model
 
-    Example 2 : 
-    - Content : 
+    Example 2 :
+    - Content :
         DuckDB is a fast
         in-process|
         database system
         Query and transform your data anywhere
         using DuckDB's feature-rich SQL dialect
-    
+
         Installation Documentation
-    
+
         Live demo
         DuckDB at a glance
         Simple
         DuckDB is easy to install and deploy. It has zero external dependencies and runs in-process in its host application or as a single binary.
-    
+
         Read more
         Portable
         DuckDB runs on Linux, macOS, Windows, Android, iOS and all popular hardware architectures. It has idiomatic client APIs for major programming languages.
-    
+
         Read more
         Feature-rich
         DuckDB offers a rich SQL dialect. It can read and write file formats such as CSV, Parquet, and JSON, to and from the local file system and remote endpoints such as S3 buckets.
-    
+
         Read more
         Fast
         DuckDB runs analytical queries at blazing speed thanks to its columnar engine, which supports parallel execution and can process larger-than-memory workloads.
-    
+
         Read more
         Extensible
         DuckDB is extensible by third-party features such as new data types, functions, file formats and new SQL syntax. User contributions are available as community extensions.
-    
+
         Read more
         Free
         DuckDB and its core extensions are open-source under the permissive MIT License. The intellectual property of the project is held by the DuckDB Foundation.
-    
+
         Read more
     - Output :
         - title : DuckDB is a fast in-process database system
         - content_type :  Product main page
         - tags : Data Engineering
 
-    Example 3 : 
-    - Content : 
+    Example 3 :
+    - Content :
         Owner avatar
         timely-dataflow
         Public
         TimelyDataflow/timely-dataflow
         Go to file
         t
-        Name		
+        Name
         frankmcsherry
         frankmcsherry
         Linear connectivity (#651)
         d0ea86f
-         · 
+         ·
         5 days ago
         .github
         Add support for release-plz (#548)
@@ -275,9 +275,9 @@ def _():
         Timely dataflow is a low-latency cyclic dataflow computational model, introduced in the paper Naiad: a timely dataflow system. This project is an extended and more modular implementation of timely dataflow in Rust.
 
         This project is something akin to a distributed data-parallel compute engine, which scales the same program up from a single thread on your laptop to distributed execution across a cluster of computers. The main goals are expressive power and high performance. It is probably strictly more expressive and faster than whatever you are currently using, assuming you aren't yet using timely dataflow.
-    
+
         Be sure to read the documentation for timely dataflow. It is a work in progress, but mostly improving. There is more long-form text in mdbook format with examples tested against the current builds. There is also a series of blog posts (part 1, part 2, part 3) introducing timely dataflow in a different way, though be warned that the examples there may need tweaks to build against the current code.
-    
+
     - output:
         - title : Timely Dataflow
         - content_type :  Repository

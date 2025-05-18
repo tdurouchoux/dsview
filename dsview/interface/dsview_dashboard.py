@@ -7,18 +7,19 @@ from dotenv import load_dotenv
 from sqlmodel import Session, create_engine
 from streamlit.commands.page_config import Layout
 
-
 from dsview.config import get_sqlite_url
-from dsview.content.content_db_schema import update_content
-from dsview.obsidian.obsidian_utils import get_content_url_link
+from dsview.db.ingest import update_content
 from dsview.interface.interface_utils import get_sidebar
+from dsview.obsidian.obsidian_utils import get_content_url_link
 
 load_dotenv()
 
 engine = create_engine(get_sqlite_url())
 
 st.set_option("client.showSidebarNavigation", False)
-st.set_page_config(page_title="Content dashboard", page_icon="small_icon.png", layout="wide")
+st.set_page_config(
+    page_title="Content dashboard", page_icon="small_icon.png", layout="wide"
+)
 
 # TODO Add option to change relevance
 

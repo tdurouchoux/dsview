@@ -4,9 +4,9 @@ import streamlit as st
 from pydantic import HttpUrl
 
 from dsview.config import get_sqlite_url, load_model_config
-from dsview.content.content_loader import get_content_loader
-from dsview.evaluation.labels_schema import check_link_labelled, get_engine
+from dsview.db.query import check_link_labelled
 from dsview.extraction.content_extraction import ContentExtractor
+from dsview.extraction.content_loader import get_content_loader
 from dsview.interface.content_labelling_form import generate_labelling_form
 from dsview.interface.interface_utils import get_sidebar
 
@@ -47,9 +47,6 @@ def content_extraction(link: str):
 def main():
     get_sidebar()
 
-    if "engine" not in st.session_state:
-        st.session_state["engine"] = get_engine(sqlite_url)
-
     if "labelling" not in st.session_state:
         st.session_state["labelling"] = False
 
@@ -61,7 +58,7 @@ def main():
     confirm_url = col2.button("Confirm")
 
     if confirm_url:
-        already_exist = check_link_labelled(st.session_state.engine, link)
+        already_exist = check_link_labelled(link)
         if already_exist:
             st.error("This url has already been labelled.")
             return

@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from pydantic import HttpUrl
 from pypdf import PdfReader
 
+# TODO Find a way to remove this
 from dsview.obsidian.obsidian_utils import get_pdf_filepath
 
 logger = logging.getLogger(__name__)

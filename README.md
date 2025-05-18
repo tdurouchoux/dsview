@@ -2,20 +2,76 @@
 
 Data science news monitoring management tools using LLM and graph representation in Obsidian
 
+#TODO switch to sessionmaker ?
+#TODO add testing of async endpoints for every provider
+
+Added tags and topic/content relation > implement ingestion + refacto obsidian
+
+Add tests to evaluation
+
+topics are defined :
+
+- at the extraction result level ( + embedding)
+- at the model level
+- at the labels level ( - description)
+
+> I could test out feeding a SQLModel, But I would still need the id (unless I decide that the name is a primary key). Works but still how would it work ??
+
+Full restructuration (Cleaner code will kill me, but it might be worth it just for xp sake):
+
+- models > models_utils
+- llm_models > extraction/models + other place
+- Central directory for all database schemas
+- Obsidian creation launched via id calls (build note with id, build topic with id, ...) > avoid the need to forward extraction result and more agnostic to workflow. DB would be truly at the center
+
+Use tach to trace this, just testing it
+
+Search :
+
+Commencer avec la création d'une interface de recherche
+Utilisation de Qdrant + embedding de Concept ? ou Content ?
+
+> Utilisation de duckdb in memory:
+
+- sqlite fts5 only exact match of tokens
+- sqlite-vec not really active dev, documentation still in beta
+- sqlite would require finding ways to synchronize tables and virtual tables (a concern mostly for sqlite-vec)
+- duckdb is fast to setup, can be build at run time only when needed
+- duckdb is simpler to use, and has more search features (especially for fts)
+- qdrant would have similar features but need to be managed + synchronized
+- alternative would be pgvector + bm25 extension, could be done probably not worth it
+- Most important issue storage of embedings as text in sqlite
+
+> potential bottleneck from storing then querying array from sqlite
+
+Search a topic :
+
+- Find relevant topics and display graph
+
+Ask some kind of question :
+
+- Fetch relevant sources ?
+
 Next steps :
 
 - Better interface :
 
   - [ ] RAG like interface to fetch interesting content on a subject
-  - [ ] Qwartz or equivalent for publishing + hosting ?
+  - [ ] Qwartz or equivalent for publishing + hosting ? Tried not full convincing, medium to poor presentation. still could be usefull as a backup (especially if storage is moved to s3). Need to think about what is usefull remotely (which features)
   - [ ] Newsletter like notifications (with relevance prediction ?)
   - [ ] Have some king of "watch" feature or remind me
   - [ ] Switch to marimo for dashboard interface
+  - [ ] Migrate to Marimo ?
+
+- Better data :
+
+  - [ ] Follow RSS Feed of interesting publications (for example : Google research)- https://github.com/kurtmckee/feedparser or maybe scrap in some cases (Anthropic)
 
 - Better data management :
 
   - [ ] Fix issue with missing note for some topics (could be related to that they already exist but under another type)
   - [ ] Migrate from git to S3 save state
+  - [ ] Regular database dump to Sa3
 
 - Better models :
 
@@ -44,3 +100,13 @@ Model Maj 0.2:
   - looking for system prompt
   - Found one, more recall a bit better in precision but more topics > check if it is not too much
 - links extraction : no improvments
+
+Generalization :
+
+- more content types (represented differently)
+- maybe need for support of tree structures (directory)
+- privacy setting ? testing with small to really small langages models
+- move from topic to Subjects > inferred by user with quickstart
+- disappearance of tree structure ? add some kind of tag
+  - would be a full datamanagement system
+  - alternative to storing

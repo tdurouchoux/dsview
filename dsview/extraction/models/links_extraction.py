@@ -3,9 +3,8 @@ from typing import List
 from pydantic import BaseModel
 
 from dsview.config import ModelType, load_model_config
-from dsview.content.content_loader import UrlLoader
-
-from ..model_utils import LLMModel
+from dsview.extraction.content_loader import UrlLoader
+from dsview.model_utils import LLMModel
 
 links_extraction_model_config = load_model_config(ModelType.LINKS_EXTRACTION)
 

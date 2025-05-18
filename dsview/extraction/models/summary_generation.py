@@ -1,6 +1,6 @@
 from dsview.config import ModelType, load_model_config
 
-from ..model_utils import LLMModel
+from dsview.model_utils import LLMModel
 
 summary_generation_model_config = load_model_config(ModelType.SUMMARY_GENERATION)
 

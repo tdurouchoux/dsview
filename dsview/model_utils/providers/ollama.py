@@ -70,6 +70,13 @@ class OllamaProvider(ModelProvider):
 
         return np.array(response.embeddings[0])
 
+    async def _async_embed(self, input: str) -> np.ndarray:
+        response = await self.async_client.embed(
+            model=self.model_config.embedding_model, input=input
+        )
+
+        return np.array(response.embeddings[0])
+
     def _complete(
         self,
         messages: list[dict[str, str]],
@@ -83,9 +90,6 @@ class OllamaProvider(ModelProvider):
                 # **self.model_config.model_specific_config,
             )
 
-            # chat_response = structured_output_class.model_validate_json(
-            #     response.message.content
-            # )
             return response
 
         else:
@@ -109,16 +113,6 @@ class OllamaProvider(ModelProvider):
                 response_model=structured_output_class,
             )
 
-            # response = await self.async_client.chat(
-            #     messages=messages,
-            #     model=self.model_config.chat_model,
-            #     format=structured_output_class.model_json_schema(),
-            #     **self.model_config.model_specific_config,
-            # )
-
-            # chat_response = structured_output_class.model_validate_json(
-            #     response.message.content
-            # )
             return response
 
         else:

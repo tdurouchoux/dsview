@@ -4,16 +4,18 @@ from urllib.parse import urlunparse
 
 from pydantic import HttpUrl
 from rich.progress import track
-from sqlmodel import Field, Session, SQLModel, select
+from sqlmodel import Session
 
 from dsview.config import load_model_config
-from dsview.content.content_db_schema import InputContent
-from dsview.content.content_loader import (
+from dsview.db.ingest import save_content, save_failed_ingestion
+from dsview.db.schemas import InputContent
+from dsview.extraction.content_extraction import ContentExtractor
+from dsview.extraction.content_loader import (
+    ContentLoader,
     get_content_loader,
 )
-from dsview.extraction.content_extraction import ContentExtractor
-from dsview.extraction.entity_resolution import ERSolver
-from dsview.obsidian.notes_generator import NotesGenerator
+from dsview.extraction.models.topics_extraction import DataScienceTopic
+from dsview.obsidian import write_notes
 
 logger = logging.getLogger(__name__)
 model_config = load_model_config()
@@ -23,23 +25,9 @@ MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com", "netflixtechblog.com"]
 IGNORE_CLEAN_HOSTS = ["www.youtube.com"]
 
 
-class FailedIngestion(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(unique=True, foreign_key="inputcontent.id")
-    original_link: str
-    error_type: str
-    error_message: str
-
-
-class ContentAlreadyExists(Exception):
-    def __init__(self, link: str):
-        super().__init__(f"Content with link {link} already exists")
-
-
 class IngestPipeline:
     def __init__(self, rebuild_mode: bool = False):
         self.content_extractor = ContentExtractor()
-        self.er_solver = ERSolver()
         self.rebuild_mode = rebuild_mode
 
     def _clean_content_url(self, link: HttpUrl) -> HttpUrl:
@@ -60,67 +48,42 @@ class IngestPipeline:
 
         return clean_url
 
-    def _add_in_db(self, content: InputContent, session: Session):
-        existing_content = session.exec(
-            select(InputContent).where(InputContent.link == content.link)
-        ).first()
+    # make ingest_source load
+    def _load(self, content: InputContent) -> ContentLoader:
+        logger.info("Loading input content")
 
-        if existing_content is not None:
-            if self.rebuild_mode:
-                return existing_content
-            raise ContentAlreadyExists(content.link)
-
-        session.add(content)
-        session.commit()
-
-        return content
-
-    async def _extract(self, content: InputContent, session: Session) -> NotesGenerator:
         content_loader = get_content_loader(content.link, model_config.token_limit)
+        content_loader.load()
 
-        summary, content_description, topics, content_links = (
-            await self.content_extractor.extract_content(
-                content_loader,
-                session,
-                content.id,
-            )
+        return content_loader
+
+    async def _extract(
+        self, content_loader: ContentLoader, content_id: int, session: Session
+    ) -> tuple[DataScienceTopic, int]:
+        logging.info("Launching content extraction")
+
+        (updated_topics, new_topic_ids) = await self.content_extractor.extract_content(
+            content_loader,
+            session,
+            content_id,
         )
 
-        topics = self.er_solver.run_topics_er(topics, session)
+        return (updated_topics, new_topic_ids)
 
-        notes_generator = NotesGenerator(
-            content,
-            content_loader.get_hyperlink(),
-            summary,
-            content_description,
-            topics,
-            content_links,
-        )
-
-        return notes_generator
-
-    def _ingest(self, notes_generator: NotesGenerator) -> NotesGenerator:
-        notes_generator.generate_topics_md()
-        notes_generator.generate_content_md()
-
-    def _save_failed_ingestion(
+    def _write(
         self,
         content: InputContent,
-        original_link: str,
-        error: Exception,
+        hyperlink: str,
+        updated_topics: list[DataScienceTopic],
+        new_topic_ids: list[int],
         session: Session,
     ):
-        logger.info("Saving in failed ingestion db.")
+        logger.info("Writing extraction to Obsidian notes")
 
-        failed_ingestion = FailedIngestion(
-            content_id=content.id,
-            original_link=original_link,
-            error_type=error.__class__.__name__,
-            error_message=str(error),
-        )
-        session.add(failed_ingestion)
-        session.commit()
-
+        # must be done before
+        write_notes.write_content_note(content, hyperlink, session)
+        write_notes.update_topic_list_notes(updated_topics, session)
+        write_notes.write_topic_list_notes(new_topic_ids, session)
 
     async def async_ingest_content(self, content: InputContent, session: Session):
         original_link = str(content.link)
@@ -128,18 +91,31 @@ class IngestPipeline:
         if isinstance(content.link, HttpUrl):
             content.link = self._clean_content_url(content.link)
 
-        content = self._add_in_db(content, session)
+        if not self.rebuild_mode:
+            content = save_content(content, session)
 
         logger.info("Ingesting content : %s", content.link)
 
         try:
-            notes_generator = await self._extract(content, session)
-            self._ingest(notes_generator)
-            logger.info("Content ingested.")
+            content_loader = self._load(content)
+
+            (updated_topics, new_topic_ids) = await self._extract(
+                content_loader, content.id, session
+            )
+
+            self._write(
+                content,
+                content_loader.get_hyperlink(),
+                updated_topics,
+                new_topic_ids,
+                session,
+            )
+
+            logger.info("Ingestion successful.")
 
         except Exception as error:
             logger.exception("Failed to ingest content : %s", content.link)
-            self._save_failed_ingestion(content, original_link, error, session)
+            save_failed_ingestion(content, original_link, error, session)
 
     def ingest_content(self, content: InputContent, session: Session):
         asyncio.run(self.async_ingest_content(content, session))

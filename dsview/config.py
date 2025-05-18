@@ -9,6 +9,7 @@ from typing import Callable, Optional, Union
 import yaml
 from dotenv import load_dotenv
 from omegaconf import MISSING, OmegaConf
+from sqlmodel import create_engine
 
 load_dotenv()
 
@@ -37,6 +38,7 @@ class ModelType(Enum):
     SUMMARY_GENERATION = 4
     TOPICS_EXTRACTION = 5
     SEMANTIC_SCORE = 6
+    INDEX = 7
 
 
 @dataclass
@@ -76,21 +78,21 @@ def load_model_config(model_type: ModelType = None) -> ModelConfig:
 
     config_list = load_config(GlobalModelConfig, "model.yaml").configs
 
-    default_model_config = None
+    model_config = None
 
     for model_specific_config in config_list:
         if (
             model_type != ModelType.DEFAULT
             and model_specific_config.model_type == ModelType.DEFAULT
         ):
-            default_model_config = model_specific_config.model_config
+            model_config = model_specific_config.model_config
 
         if model_specific_config.model_type.value == model_type.value:
             return model_specific_config.model_config
 
-    if default_model_config is None:
+    if model_config is None:
         raise ModelConfigurationError(model_type)
-    return default_model_config
+    return model_config
 
 
 @dataclass
@@ -129,9 +131,14 @@ load_obsidian_config: Callable[[], ObsidianConfig] = partial(
 )
 
 
-def get_sqlite_url() -> str:
+def get_db_path() -> Path:
     obsidian_config = load_obsidian_config()
-    return f"sqlite:///{obsidian_config.vault_path}/{obsidian_config.db_file}"
+    return obsidian_config.vault_path / obsidian_config.db_file
+
+
+@cache
+def get_sqlite_engine() -> str:
+    return create_engine(f"sqlite:///{get_db_path()}")
 
 
 def setup_logger():

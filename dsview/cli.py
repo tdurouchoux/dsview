@@ -1,32 +1,31 @@
 import logging
-from datetime import date, datetime
+from datetime import datetime
 
-import frontmatter
 import mlflow
 import typer
 from dotenv import load_dotenv
-from rich.progress import track
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel
 
-from dsview.config import get_sqlite_url, setup_logger
-from dsview.content.content_db_schema import InputContent
-from dsview.extraction.extraction_db_schema import (
+from dsview.config import setup_logger
+from dsview.db.query import get_content_list, get_failed_ingestions
+from dsview.db.schemas import (
+    ContentTopicRelation,
     ERComparison,
     ERDecision,
+    ExtractionLink,
     ExtractionResult,
-    InvalidTag,
-    InvalidTopic,
+    ExtractionTag,
+    ExtractionTopic,
+    FailedIngestion,
+    InputContent,
+    drop_tables,
+    engine,
 )
-
-from .ingest_source import FailedIngestion
 
 load_dotenv()
 setup_logger()
 
 logger = logging.getLogger(__name__)
-
-engine = create_engine(get_sqlite_url())
-SQLModel.metadata.create_all(engine)
 
 app = typer.Typer()
 
@@ -60,62 +59,17 @@ def ingest(
 
 
 @app.command()
-def save():
-    from dsview.obsidian.obsidian_utils import retrieve_contents_path
-
-    with Session(engine) as session:
-        logger.info("Starting dsview snapshot creation.")
-        content_notes_path = retrieve_contents_path()
-
-        for note_path in track(content_notes_path):
-            note = frontmatter.load(note_path)
-            note_dict = dict(note)
-
-            upload_date = (
-                date.fromisoformat(note_dict["upload_date"])
-                if isinstance(note_dict["upload_date"], str)
-                else note_dict["upload_date"]
-            )
-
-            relevance = note_dict["relevance"] if "relevance" in note_dict else 0
-
-            source = (
-                note_dict["source"]
-                if "source" in note_dict
-                and note_dict["source"] not in ["None", "Aucune"]
-                else None
-            )
-
-            input_content = InputContent(
-                link=note_dict["link"],
-                upload_date=upload_date,
-                already_read=note_dict["already_read"],
-                read_priority=note_dict["read_priority"],
-                relevance=relevance,
-                source=source,
-            )
-
-            session.add(input_content)
-            session.commit()
-
-
-@app.command()
 def retry_failed():
-    from .ingest_source import FailedIngestion, IngestPipeline
+    from .ingest_source import IngestPipeline
 
     with Session(engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
-        failed_ingestions = session.exec(select(FailedIngestion)).all()
-        SQLModel.metadata.drop_all(engine, tables=[FailedIngestion.__table__])
+        content_list = get_failed_ingestions(session)
+        drop_tables([FailedIngestion], engine)
+        SQLModel.metadata.create_all(engine)
 
-        for failed_ingestion in failed_ingestions:
-            statement = select(InputContent).where(
-                InputContent.id == failed_ingestion.content_id
-            )
-            content = session.exec(statement).first()
-
-            ingest_pipeline.ingest_content(content, session)
+        ingest_pipeline.ingest_content_list(content_list, session)
 
 
 @app.command()
@@ -127,12 +81,11 @@ def rebuild(start: int = 0, end: int = None):
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
     with Session(engine) as session:
-        statement = select(InputContent).order_by(InputContent.upload_date.asc())
-        content_list = session.exec(statement).all()
-        if end is not None:
-            content_list = content_list[start:end]
-        else:
-            content_list = content_list[start:]
+        content_list = get_content_list(
+            session,
+            start_id=start,
+            end_id=end,
+        )
 
         ingest_pipeline.ingest_content_list(content_list, session)
 
@@ -143,22 +96,24 @@ def reset_db():
 
     if delete_input_content:
         logger.info("Deleting input content")
-        SQLModel.metadata.drop_all(engine, tables=[InputContent.__table__])
+        drop_tables([InputContent], engine)
 
     delete_extraction = typer.confirm("Clear extraction results ? ")
 
     if delete_extraction:
         logger.info("Deleting extraction results")
-        SQLModel.metadata.drop_all(
-            engine,
-            tables=[
-                FailedIngestion.__table__,
-                ERComparison.__table__,
-                ERDecision.__table__,
-                InvalidTag.__table__,
-                InvalidTopic.__table__,
-                ExtractionResult.__table__,
+        drop_tables(
+            [
+                FailedIngestion,
+                ContentTopicRelation,
+                # ERComparison,
+                ERDecision,
+                ExtractionLink,
+                ExtractionResult,
+                ExtractionTag,
+                ExtractionTopic,
             ],
+            engine,
         )
 
 
@@ -181,20 +136,35 @@ def reset_vault():
 
 @app.command()
 def reset_labelling():
-    from dsview.evaluation.labels_schema import (
-        clear_content_labelling,
-        clear_er_labelling,
+    from dsview.db.schemas import (
+        ContentTypeLabels,
+        ERLabels,
+        LabelledContent,
+        LinksLabels,
+        TagLabels,
+        TitleLabels,
+        TopicsLabels,
     )
 
     delete_content_labelling = typer.confirm("Clear content labelling ?")
     if delete_content_labelling:
         logger.info("Clearing content labels")
-        clear_content_labelling(engine)
+        drop_tables(
+            [
+                LabelledContent,
+                TitleLabels,
+                ContentTypeLabels,
+                TagLabels,
+                TopicsLabels,
+                LinksLabels,
+            ],
+            engine,
+        )
 
     delete_er_labelling = typer.confirm("Clear ER labelling ?")
     if delete_er_labelling:
         logger.info("Clearing ER labels")
-        clear_er_labelling(engine)
+        drop_tables([ERLabels], engine)
 
 
 def main():

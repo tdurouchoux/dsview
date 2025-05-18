@@ -4,8 +4,7 @@ from typing import List
 from pydantic import BaseModel
 
 from dsview.config import ModelType, load_extraction_config, load_model_config
-
-from ..model_utils import LLMModel
+from dsview.model_utils import LLMModel
 
 extraction_config = load_extraction_config()
 description_generation_model_config = load_model_config(

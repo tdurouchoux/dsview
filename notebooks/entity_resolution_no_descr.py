@@ -22,7 +22,7 @@ def _():
 def _(mo):
     mo.md(
         r"""
-        ## No descr Er model 
+        ## No descr Er model
         """
     )
     return
@@ -66,7 +66,7 @@ def _(config):
 
     2. Define topics
        [Define each topics]
-   
+
     3. Key Concepts :
        [List key concepts from each description]
 
@@ -105,7 +105,7 @@ def _(config):
     	- Topic 2 :
     		- name : Data Transformation
     		- type : Concept
-        - Result : 
+        - Result :
             - merge_topic : True
 
     Example 3 :
@@ -115,7 +115,7 @@ def _(config):
     	- Topic 2 :
     		- name : vLLM
     		- type : Library
-    	- Result : 
+    	- Result :
             - merge_topic : True
 
     Example 4 :
@@ -125,7 +125,7 @@ def _(config):
     	- Topic 2 :
     		- name : Machine Learning Pipeline
     		- type : Concept
-    	- Result : 
+    	- Result :
             - merge_topic : False
 
     Example 5 :
@@ -135,9 +135,9 @@ def _(config):
     	- Topic 2 :
     		- name : TensorFlow
     		- type : Library
-    	- Result : 
+    	- Result :
             - merge_topic : False
-        
+
     </examples>
     """
     return (system_prompt,)
@@ -146,7 +146,7 @@ def _(config):
 @app.cell
 def _():
     user_prompt = """
-    Here is the first Data Science topic : 
+    Here is the first Data Science topic :
         - name : {name_1}
         - type : {type_1}
 
@@ -168,16 +168,16 @@ def _(OpenAI):
 @app.cell
 def _(SimpleErResult, client, system_prompt, user_prompt):
     def predict_merge(name_1, type_1, name_2, type_2):
-    	prompt = user_prompt.format(name_1=name_1, type_1=type_1, name_2=name_2, type_2=type_2)
-    	response = client.beta.chat.completions.parse(
-    		model="gpt-4o-mini-2024-07-18",
-    		messages=[
-    			{"role": "system", "content": system_prompt},
-    			{"role": "user", "content": prompt}
-    		],
-    		response_format=SimpleErResult,
-    	)
-    	return response.choices[0].message.parsed
+        prompt = user_prompt.format(name_1=name_1, type_1=type_1, name_2=name_2, type_2=type_2)
+        response = client.beta.chat.completions.parse(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+            ],
+            response_format=SimpleErResult,
+        )
+        return response.choices[0].message.parsed
     return (predict_merge,)
 
 
@@ -234,7 +234,7 @@ def _(mo):
 
 @app.cell
 def _():
-    import mlflow 
+    import mlflow
     from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score
 
     experiment = mlflow.set_experiment("Topic extraction ER evaluator")
@@ -264,7 +264,7 @@ def _(
     with mlflow.start_run(run_name="default_adj_2_er_pipeline", experiment_id = experiment.experiment_id):
 
     	mlflow.log_param("system_prompt", system_prompt)
-    	mlflow.log_param("user_prompt", user_prompt)
+        mlflow.log_param("user_prompt", user_prompt)
 
     	eval_data["merge_pred"] = eval_data.apply(lambda row: predict_merge(
     		name_1=row["name_1"],

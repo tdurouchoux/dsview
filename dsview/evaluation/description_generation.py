@@ -6,9 +6,9 @@ from rouge import Rouge
 from tqdm import tqdm
 
 from dsview.config import ModelConfig
-from dsview.evaluation.evaluation_extraction_utils import get_labels_data
-from dsview.evaluation.labels_schema import ContentTypeLabels, TagLabels, TitleLabels
-from dsview.models.llm_models import DescriptionGenerator
+from dsview.db.query import get_labels_data
+from dsview.db.schemas import ContentTypeLabels, TagLabels, TitleLabels
+from dsview.extraction.models import DescriptionGenerator
 
 from .semantic_score import semantic_score
 

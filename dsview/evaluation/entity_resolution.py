@@ -1,12 +1,10 @@
 import mlflow
-import numpy as np
-import pandas as pd
 from rich.progress import track
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sqlmodel import Session, create_engine
 
-from dsview.config import ModelConfig, get_sqlite_url
-from dsview.models.llm_models import ERClassifier
+from dsview.config import ModelConfig
+from dsview.db.query import get_er_labels
+from dsview.extraction.models import ERClassifier
 
 RANDOM_STATE = 42
 SPLIT_RATIOS = {
@@ -14,43 +12,6 @@ SPLIT_RATIOS = {
     "eval": 0.5,
     "test": 0.1,
 }
-
-engine = create_engine(get_sqlite_url())
-
-
-def get_er_data() -> pd.DataFrame:
-    with Session(engine) as session:
-        conn = session.connection()
-
-        query = """
-            SELECT
-            	erlabels.id,
-                erlabels.merge,
-                ercomparison.name_1,
-                ercomparison.description_1,
-                ercomparison.type_1,
-                ercomparison.name_2,
-                ercomparison.description_2,
-                ercomparison.type_2
-            FROM erlabels
-            JOIN ercomparison
-            ON erlabels.er_comparison_id = ercomparison.id
-        """
-
-        # Use the connection with pandas read_sql
-        df = pd.read_sql(
-            query,
-            conn,
-            index_col="id",
-        )
-
-    df["row_type"] = np.random.RandomState(RANDOM_STATE).choice(
-        list(SPLIT_RATIOS.keys()),
-        size=df.shape[0],
-        p=list(SPLIT_RATIOS.values()),
-    )
-
-    return df
 
 
 def evaluate(
@@ -60,7 +21,7 @@ def evaluate(
     set_type: str = "eval",
     remove_descr=False,
 ):
-    er_data = get_er_data()
+    er_data = get_er_labels(SPLIT_RATIOS, RANDOM_STATE)
     run_data = er_data[er_data["row_type"] == set_type]
 
     er_classifier = ERClassifier(

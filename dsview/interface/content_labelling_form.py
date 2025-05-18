@@ -1,16 +1,15 @@
 import pandas as pd
 import streamlit as st
-from mistralai.models.deltamessage import Content
 
-from dsview.content.content_loader import WebContentLoader
-from dsview.evaluation.labels_schema import save_labels
-from dsview.models.llm_models.description_generation import (
+from dsview.db.ingest import save_labels
+from dsview.extraction.content_loader import WebContentLoader
+from dsview.extraction.models.description_generation import (
     ContentDescription,
     ContentType,
     TagsType,
 )
-from dsview.models.llm_models.links_extraction import RelevantLink
-from dsview.models.llm_models.topics_extraction import DataScienceTopic, TopicType
+from dsview.extraction.models.links_extraction import RelevantLink
+from dsview.extraction.models.topics_extraction import DataScienceTopic, TopicType
 
 
 def topics_labelling(topics: list[DataScienceTopic]) -> pd.DataFrame:
@@ -123,7 +122,6 @@ def generate_labelling_form(
 
         if submit:
             save_labels(
-                st.session_state["engine"],
                 content_loader.link,
                 content_loader.content,
                 title,
