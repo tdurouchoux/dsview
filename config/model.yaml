@@ -5,6 +5,19 @@ configs:
       embedding_model: text-embedding-3-small
       provider: OPENAI
       token_limit: 128000
+  - model_type: DESCRIPTION_GENERATION
+    model_config:
+      chat_model: mistral-small-latest
+      embedding_model: None
+      provider: MISTRAL
+      token_limit: 100000
+  - model_type: LINKS_EXTRACTION
+    model_config:
+      chat_model: mistral-small-latest
+      embedding_model: None
+      provider: MISTRAL
+      token_limit: 100000
+
   # - model_type: LINKS_EXTRACTION
   #   model_config:
   #     chat_model: claude-3-5-haiku-20241022

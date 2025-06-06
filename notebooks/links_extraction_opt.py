@@ -1,12 +1,10 @@
-
-
 import marimo
 
-__generated_with = "0.13.0"
-app = marimo.App(width="medium")
+__generated_with = "0.13.11"
+app = marimo.App(width="columns")
 
 
-@app.cell
+@app.cell(column=0)
 def _():
     import marimo as mo
     import mlflow
@@ -18,176 +16,201 @@ def _():
     from dsview.config import (
         ModelConfig,
         LLMProvider,
-        get_sqlite_url,
         load_extraction_config,
     )
-    return LLMProvider, ModelConfig, evaluate, mlflow
+    return LLMProvider, ModelConfig, evaluate, mlflow, mo
 
 
 @app.cell
 def _(mlflow):
-    experiment = mlflow.set_experiment("Links extraction")
+    experiment = mlflow.set_experiment("Links extraction mistral")
     return (experiment,)
 
 
-@app.cell(disabled=True)
+@app.cell
+def _(mo):
+    mo.md(r"""## Compare models""")
+    return
+
+
+@app.cell
 def _(evaluate, experiment, mlflow):
     with mlflow.start_run(
         run_name="Default config", experiment_id=experiment.experiment_id
     ):
-        evaluate()
-    return
-
-
-@app.cell
-def _():
-    anthropic_user_prompt = """
-    Your task is to carefully analyze the source content and the provided links, then select up to 5 links that are the most technically relevant to the source. Follow these guidelines:
-    1. Ignore any social media links (e.g., Twitter, Facebook, LinkedIn) and internal website links.
-    2. Do not include duplicate links in your selection.
-    3. If no relevant links are found, return an empty list.
-
-    Before providing your final output, you should evaluate each provided links.
-
-    Instructions
-    1. Briefly summarize the main topic(s) of the source content.
-    2. List all the links that you consider technically relevant, explaining why each one is important.
-    3. Evaluate each link's relevance on a scale of 1-5, with 5 being the most relevant.
-    4. If you have more than 5 relevant links, explain your criteria for selecting the top 5.
-
-    After your evaluation, provide your final selection of up to 5 links in the following format:
-
-    - name: Name describing the content of the link
-      url: URL of the link
-      description: Short description of the link's content
-
-    Here is the content of the Data Science source:
-
-    <source_content>
-    {content}
-    </source_content>
-
-    And here is the list of links found within this source:
-
-    <source_links>
-    {content_links}
-    </source_links>
-
-    Please extract the most relevant links.
-
-    """
-
-
-    system_prompt = """You are an integral part of a knowledge management system specializing in Data Science resources. Your primary function is to analyze Data Science sources and extract the most relevant technical links. These sources may cover a wide range of topics including mathematics, Python, Machine Learning, Large Language Models, Data engineering, and related subjects."""
-    return anthropic_user_prompt, system_prompt
-
-
-@app.cell
-def _(anthropic_user_prompt, evaluate, experiment, mlflow, system_prompt):
-    with mlflow.start_run(
-        run_name="Anthropic user prompt 1.4",
-        experiment_id=experiment.experiment_id,
-    ):
-        eval_results = evaluate(
-            system_prompt=system_prompt,
-            user_prompt=anthropic_user_prompt,
-        )
+        eval_results = evaluate()
     return (eval_results,)
 
 
 @app.cell
-def _(eval_results):
-    eval_results["pred_hyperlink"].apply(len)
+def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
+    mistral_small_config = ModelConfig(
+        chat_model="mistral-small-latest",
+        provider=LLMProvider.MISTRAL,
+        token_limit=64_000,
+    )
+
+    with mlflow.start_run(
+        run_name="Mistral small", experiment_id=experiment.experiment_id
+    ):
+        eval_results_mistral_small = evaluate(
+            model_config=mistral_small_config,
+        )
+    return (mistral_small_config,)
+
+
+@app.cell
+def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
+    mistral_medium_config = ModelConfig(
+        chat_model="mistral-medium-latest",
+        provider=LLMProvider.MISTRAL,
+        token_limit=64_000,
+    )
+
+    with mlflow.start_run(
+        run_name="Mistral medium", experiment_id=experiment.experiment_id
+    ):
+        eval_results_mistral_medium = evaluate(
+            model_config=mistral_medium_config,
+        )
+    return (eval_results_mistral_medium,)
+
+
+@app.cell
+def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
+    mistral_large_config = ModelConfig(
+        chat_model="mistral-large-latest",
+        provider=LLMProvider.MISTRAL,
+        token_limit=64_000,
+    )
+
+    with mlflow.start_run(
+        run_name="Mistral large", experiment_id=experiment.experiment_id
+    ):
+        eval_results_mistral_large = evaluate(
+            model_config=mistral_large_config,
+        )
     return
 
 
 @app.cell
 def _(eval_results):
-    eval_results["n_predicted_links"] = eval_results["pred_hyperlink"].apply(len)
     eval_results
     return
 
 
 @app.cell
-def _():
-    anthropic_user_prompt_no_limit = """Your goal is to analyze Data Science sources and extract the most relevant technical links. These sources may cover a wide range of topics including mathematics, Python, Machine Learning, Large Language Models, Data engineering, and related subjects.
-
-    Your task is to carefully analyze the source content and the provided links, then select links that are the most technically relevant to the source. Follow these guidelines:
-
-    Instructions : 
-    1. Briefly summarize the main topic(s) of the source content.
-    2. List all the links that you consider technically relevant, explaining why each one is important.
-    3. Evaluate each link's relevance on a scale of 1-5, with 5 being the most relevant.
-    4. Exclude any social media links (e.g., Twitter, Facebook, LinkedIn) and internal website links
-    5. Select the most relevant links, without duplicates. If no relevant links are found, return an empty list.
-
-    Remenber quality is better than quantity, only return the most relevant ones.
-
-    Here is the expected output format for each selected links : 
-    - name: Name describing the content of the link
-      url: URL of the link
-      description: Short description of the link's content
-  
-    Here is the content of the Data Science source from url {url}:
-
-    <source_content>
-    {content}
-    </source_content>
-
-    And here is the list of links found within this source:
-
-    <source_links>
-    {content_links}
-    </source_links>
-
-    Please extract the relevant links
-    """
-    return (anthropic_user_prompt_no_limit,)
-
-
-@app.cell
-def _(anthropic_user_prompt_no_limit, evaluate, experiment, mlflow):
-    with mlflow.start_run(
-        run_name="Anthropic system prompt 2.1 no limit",
-        experiment_id=experiment.experiment_id,
-    ):
-        eval_results_no_limit = evaluate(
-            system_prompt="",
-            user_prompt=anthropic_user_prompt_no_limit,
-        )
-    return (eval_results_no_limit,)
-
-
-@app.cell
-def _(eval_results_no_limit):
-    eval_results_no_limit
+def _(eval_results):
+    eval_results["pred_hyperlink"].apply(len).hist()
     return
 
 
-@app.cell(disabled=True)
+@app.cell
+def _(eval_results_mistral_medium):
+    eval_results_mistral_medium
+    return
+
+
+@app.cell
+def _(eval_results_mistral_medium):
+    eval_results_mistral_medium["pred_hyperlink"].apply(len).hist()
+    return
+
+
+@app.cell(column=1)
+def _():
+    ## Prompt tuning
+    return
+
+
+@app.cell
+def _():
+    run_name = "Mistral small prompt 1.3"
+
+    system_prompt = """
+    You are an advanced AI assistant integrated into a knowledge management system
+    designed to help Data Scientists track and understand new trends and tools in
+    their field. You are a part of multiple agents responsible for information
+    extraction in an user provided content. You should be as accurate as possible,
+    keeping in mind that the user is looking for relevant technical insights.
+    """
+
+    user_prompt = """
+    Your task is to extract the most relevant links within a website content. The content will be related to Data Science, and I am looking for the links that will provide the most value for my knowledge management system.
+
+    Here is the content url :
+    <content_url>
+    {url}
+    </content_url>
+
+    Here is the content : 
+    <content>
+    {content}
+    </content>
+
+    Here is the links within this source (to select from) : 
+    <links>
+    {content_links}
+    </links>
+
+    Instructions: 
+    1. Read and analyze the provided text (within <content>) carefully.
+    2. For each link (provided in <links>), describe the related content and identify what they are pointing to 
+    3. Exclude any internal links or self referencing link (compared to <content_url>)
+    4. Exclude any social networks links
+    5. Select the most relevant links, at most 5 but you should aim for the lowest amount possible
+
+    Provide a list of links with additionnal information, following this format : 
+    <output>
+    - name: Name describing the content of the first link.
+      url : Url to the first link
+      description : Short description of the first link content.
+    - name: Name describing the content of the second link.
+      url : Url to the second link
+      description : Short description of the first second content.
+    </output>
+
+    Please select the most relevant links regarding the provided content
+
+    """
+    return run_name, system_prompt, user_prompt
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell(column=2)
 def _(
-    LLMProvider,
-    ModelConfig,
-    anthropic_user_prompt,
     evaluate,
     experiment,
+    mistral_small_config,
     mlflow,
+    run_name,
+    system_prompt,
+    user_prompt,
 ):
-    mistral_config = ModelConfig(
-        chat_model="mistral-small-latest",
-        provider=LLMProvider.MISTRAL,
-        token_limit=32_000,
-    )
-
     with mlflow.start_run(
-        run_name="Mistral anthropic user prompt",
-        experiment_id=experiment.experiment_id,
+        run_name=run_name, experiment_id=experiment.experiment_id
     ):
-        evaluate(
-            model_config=mistral_config,
-            system_prompt="",
-            user_prompt=anthropic_user_prompt,
+        eval_results_prompt = evaluate(
+            model_config=mistral_small_config,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
         )
+    return (eval_results_prompt,)
+
+
+@app.cell
+def _(eval_results_prompt):
+    eval_results_prompt["pred_hyperlink"].apply(len).hist()
+    return
+
+
+@app.cell
+def _(eval_results_prompt):
+    eval_results_prompt
     return
 
 

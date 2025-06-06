@@ -29,7 +29,7 @@ app = FastAPI()
 
 
 @app.post("/ingest")
-@api_sync_vault
+# @api_sync_vault
 async def ingest(content: InputContent):
     # validate content
 
@@ -44,7 +44,7 @@ async def ingest(content: InputContent):
 
 
 @app.patch("/relevance")
-@api_sync_vault
+# @api_sync_vault
 async def relevance(link: HttpUrl, relevance: int):
     try:
         with Session(engine) as session:

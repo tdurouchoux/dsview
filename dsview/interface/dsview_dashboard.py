@@ -5,16 +5,15 @@ import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 from sqlmodel import Session, create_engine
-from streamlit.commands.page_config import Layout
 
-from dsview.config import get_sqlite_url
+from dsview.config import get_sqlite_engine
 from dsview.db.ingest import update_content
 from dsview.interface.interface_utils import get_sidebar
 from dsview.obsidian.obsidian_utils import get_content_url_link
 
 load_dotenv()
 
-engine = create_engine(get_sqlite_url())
+engine = get_sqlite_engine()
 
 st.set_option("client.showSidebarNavigation", False)
 st.set_page_config(

@@ -1,6 +1,8 @@
+import asyncio
 from typing import Literal
 
 import mlflow
+import nest_asyncio
 import pandas as pd
 from pydantic import BaseModel
 from tqdm import tqdm
@@ -16,6 +18,7 @@ from dsview.extraction.models.topics_extraction import (
 from dsview.model_utils import LLMModel
 
 tqdm.pandas()
+nest_asyncio.apply()
 
 extraction_config = load_extraction_config()
 
@@ -46,27 +49,51 @@ def get_topics_extraction_data(set_type: Literal["eval", "test"]) -> pd.DataFram
     return df_labels
 
 
+async def is_topic_close(
+    simple_er: SimpleERModel,
+    relevant_topic_name: str,
+    relevant_topic_type: str,
+    topic_name: str,
+    topic_type: str,
+) -> bool:
+    result = await simple_er.async_predict(
+        {
+            "name_1": relevant_topic_name,
+            "type_1": relevant_topic_type,
+            "name_2": topic_name,
+            "type_2": topic_type,
+        }
+    )
+
+    return result.merge_topic
+
+
 def find_close_topic(
     simple_er: SimpleERModel,
     topic: DataScienceTopic,
     relevant_topic_name_list: list[str],
     relevant_topic_type_list: list[str],
 ) -> str:
+    tasks = []
+
     for relevant_topic_name, relevant_topic_type in zip(
         relevant_topic_name_list, relevant_topic_type_list
     ):
-        result = simple_er.predict(
-            {
-                "name_1": relevant_topic_name,
-                "type_1": relevant_topic_type,
-                "name_2": topic.name,
-                "type_2": topic.type,
-            }
+        tasks.append(
+            is_topic_close(
+                simple_er,
+                relevant_topic_name,
+                relevant_topic_type,
+                topic.name,
+                topic.type.value,
+            )
         )
-        if result.merge_topic:
-            # print(f"{relevant_topic_name} and {topic.name} are close")
-            return relevant_topic_name
-    return None
+
+    results = asyncio.run(asyncio.gather(*tasks))
+
+    if True not in results:
+        return None
+    return relevant_topic_name_list[results.index(True)]
 
 
 def eval_row(
@@ -78,11 +105,14 @@ def eval_row(
     precision_at_i = []
     count_type_correct = 0
 
+    print(f"Number of predicted topics : {len(pred_topics)}")
+    print(f"Number of er comparison to make : {len(pred_topics) * len(row['name'])}")
+
     for i, topic in enumerate(pred_topics):
         if topic.name in row["name"]:
             topic_match = topic.name
         else:
-            topic_match = find_close_topic(simple_er, topic, row["name"], row["type"])
+            topic_match = find_close_topic(simple_er, topic, row["name"][:1], row["type"][:1])
 
         pred_topics_match.append(topic_match)
 
