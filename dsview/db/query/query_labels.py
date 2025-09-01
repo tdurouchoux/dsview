@@ -5,8 +5,6 @@ import pandas as pd
 from sqlmodel import Session, select
 from sqlmodel.main import SQLModel
 
-from dsview.config import get_sqlite_engine
-
 from ..schemas import LabelledContent
 
 DEFAULT_SPLIT_RATIOS = {
@@ -14,8 +12,6 @@ DEFAULT_SPLIT_RATIOS = {
     "test": 0.3,
 }
 DEFAULT_RANDOM_STATE = 42
-
-engine = get_sqlite_engine()
 
 
 def assign_rows(
@@ -34,10 +30,11 @@ def assign_rows(
 
 def get_labeled_content(
     set_type: Literal["eval", "test"],
+    session: Session,
     split_ratios: dict[str, float] = DEFAULT_SPLIT_RATIOS,
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> pd.DataFrame:
-    df_labeled = pd.read_sql_table(LabelledContent.__tablename__, engine)
+    df_labeled = pd.read_sql_table(LabelledContent.__tablename__, session.bind)
 
     df_labeled = assign_rows(df_labeled, split_ratios, random_state)
 
@@ -45,12 +42,12 @@ def get_labeled_content(
 
 
 def get_labels_data(
-    labels_tables: list[Type[SQLModel]], set_type: Literal["eval", "test"]
+    labels_tables: list[Type[SQLModel]], set_type: Literal["eval", "test"], session: Session,
 ) -> pd.DataFrame:
-    df_labeled = get_labeled_content(set_type)
+    df_labeled = get_labeled_content(set_type, session)
 
     for labels_table in labels_tables:
-        df_labels = pd.read_sql_table(labels_table.__tablename__, engine)
+        df_labels = pd.read_sql_table(labels_table.__tablename__, session.bind)
 
         df_labeled = df_labeled.merge(
             df_labels.drop(columns=["id"]),
@@ -62,18 +59,17 @@ def get_labels_data(
     return df_labeled
 
 
-def check_link_labelled(link: str) -> bool:
-    with Session(engine) as session:
-        statement = select(LabelledContent).where(LabelledContent.link == link)
-        result = session.exec(statement).first()
-        return result is not None
+def check_link_labelled(link: str, session: Session) -> bool:
+    statement = select(LabelledContent).where(LabelledContent.link == link)
+    result = session.exec(statement).first()
+    return result is not None
 
 
 def get_er_labels(
     split_ratios: dict[str, float],
     random_state: int,
+    session: Session,
 ) -> pd.DataFrame:
-    conn = engine.connect()
 
     query = """
         SELECT
@@ -93,7 +89,7 @@ def get_er_labels(
     # Use the connection with pandas read_sql
     df = pd.read_sql(
         query,
-        conn,
+        session.bind,
         index_col="id",
     )
 

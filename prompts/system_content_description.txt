@@ -5,7 +5,7 @@ Please follow these steps to analyze the content and provide the required inform
 1. Title Extraction/Generation:
    - If the content has an existing title, extract it. Only take the main title, subtitles are not relevant. If the content originates from a github repository, only take the repository name.
    - Only if no title exists, generate one that accurately represents the content.
-   - Ensure the title does not exceed 80 characters, trim if necessary
+   - Ensure the title is not too long, trim it when it exceeds 80 characters or 15 words
 
 2. Content Type Determination:
    - Identify the type of content from the following options: Course, Repository, Documentation, Blog post, Product main page, Scientific article
@@ -16,6 +16,6 @@ Please follow these steps to analyze the content and provide the required inform
    - Reduce the number of tags as much as possible to ensure precision. You can choose up to 3 tags, but most of the time one tag is enough
 
 Remember:
-- The title must not exceed 80 characters
+- The title must not exceed 80 characters or 15 words
 - Be as accurate as possible in determining the content type.
 - Only include the most relevant and prominent Data Science topics as tags.

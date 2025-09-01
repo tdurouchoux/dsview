@@ -1,17 +1,16 @@
 import logging
+import tempfile
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Union
 
 import requests
 from bs4 import BeautifulSoup
 from pydantic import HttpUrl
 from pypdf import PdfReader
 
-# TODO Find a way to remove this
-from dsview.obsidian.obsidian_utils import get_pdf_filepath
+from dsview.config import load_model_config
 
 logger = logging.getLogger(__name__)
+token_limit = load_model_config().token_limit
 
 
 class WebRequestFailure(Exception):
@@ -20,17 +19,12 @@ class WebRequestFailure(Exception):
 
 
 class ContentLoader(ABC):
-    def __init__(self, link: Union[Path, HttpUrl], token_limit: int) -> None:
+    def __init__(self, link: HttpUrl) -> None:
         self.link = link
-        self.token_limit = token_limit
         self.content: str = None
 
     @abstractmethod
     def _load_content(self):
-        pass
-
-    @abstractmethod
-    def get_hyperlink(self) -> str:
         pass
 
     def load(self):
@@ -40,21 +34,9 @@ class ContentLoader(ABC):
             self._load_content()
 
 
-class TextLoader(ContentLoader):
-    def __init__(self, link: Path, token_limit: int) -> None:
-        super().__init__(link, token_limit)
-
-    def get_hyperlink(self) -> str:
-        return str(self.link.absolute())
-
-    def _load_content(self):
-        with open(self.link, "r") as content_file:
-            self.content = content_file.read()
-
-
 class WebContentLoader(ContentLoader):
-    def __init__(self, link: HttpUrl, token_limit: int) -> None:
-        super().__init__(link, token_limit)
+    def __init__(self, link: HttpUrl) -> None:
+        super().__init__(link)
 
     def _request_url(self) -> requests.Response:
         response = requests.get(self.link)
@@ -66,8 +48,8 @@ class WebContentLoader(ContentLoader):
 
 
 class UrlLoader(WebContentLoader):
-    def __init__(self, link: HttpUrl, token_limit: int) -> None:
-        super().__init__(link, token_limit)
+    def __init__(self, link: HttpUrl) -> None:
+        super().__init__(link)
 
         self.content_soup = None
         self.content_links = None
@@ -97,27 +79,25 @@ class UrlLoader(WebContentLoader):
 
         self.content_links = list(set(self.content_links))
 
-    def get_hyperlink(self) -> str:
-        return str(self.link)
-
 
 class PdfUrlLoader(WebContentLoader):
-    def __init__(self, link: HttpUrl, token_limit: int) -> None:
-        super().__init__(link, token_limit)
-        self.pdf_filepath = get_pdf_filepath(self.link.path.split("/")[-1])
+    def __init__(self, link: HttpUrl) -> None:
+        super().__init__(link)
 
     def _load_content(self):
-        logger.info("Saving pdf file at path : %s", self.pdf_filepath)
         response = self._request_url()
 
-        with open(self.pdf_filepath, "wb") as pdf_file:
-            pdf_file.write(response.content)
+        with tempfile.NamedTemporaryFile() as temp_pdf:
+            temp_pdf.write(response.content)
+            temp_pdf.flush()
 
-        reader = PdfReader(self.pdf_filepath)
+            reader = PdfReader(temp_pdf.name)
+            self._extract_pdf_content(reader)
 
+    def _extract_pdf_content(self, reader: PdfReader):
         self.content = ""
         word_count = 0
-        word_limit = self.token_limit / 2
+        word_limit = token_limit / 2
 
         for i, page in enumerate(reader.pages):
             page_content = page.extract_text()
@@ -137,17 +117,14 @@ class PdfUrlLoader(WebContentLoader):
 
             self.content += page_content
 
-    def get_hyperlink(self) -> str:
-        return f"![]({'/'.join(self.pdf_filepath.parts[-2:])})"
+
+# ? How to deal with token_limit
 
 
-def get_content_loader(link: Union[HttpUrl, Path], token_limit) -> ContentLoader:
-    if isinstance(link, Path):
-        return TextLoader(link, token_limit)
-
+def get_content_loader(link: HttpUrl) -> ContentLoader:
     # ! Improve pdf detection
     if link.path.endswith(".pdf") or (
         link.host == "arxiv.org" and link.path.startswith("/pdf/")
     ):
-        return PdfUrlLoader(link, token_limit)
-    return UrlLoader(link, token_limit)
+        return PdfUrlLoader(link)
+    return UrlLoader(link)

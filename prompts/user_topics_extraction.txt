@@ -1,31 +1,15 @@
 Your task is to analyze text content related to Data Science and extract the most crucial and relevant topics.
 
-You will be provided with a text about Data Science or a related subject. Your goal is to identify and extract the main technical topics that are introduced, explained, or mentioned in the text. These topics should be highly relevant and potentially useful for a Data Scientist in their work.
+You will be provided with a text about Data Science or a related subject. Your goal is to identify and extract the main technical and **general** topics that are introduced, explained, or mentioned in the text. These topics should be highly relevant for a Data Scientist in their work.
 
-Here is the source text for your analysis:
-<source_text>
-{content}
-</source_text>
-
-Instructions:
-1. Read and analyze the provided text carefully.
-2. Identify the main technical topics, focusing on:
-   - Concepts or methods introduced or explained (they should not only apply to the source content, but reference general methods in the field of Data Science)
-   - Specific practical tools or platform mentioned
-   - Names of libraries or products (especially if the text is from a repository main page)
-3. Ensure that the extracted topics are as generic as possible, unless they refer to a specific tool or product.
-4. Exclude any topics that are close to those :  {tags}
-5. Ensure there are no duplicate or close duplicates in your list
-6. Select the most relevant and less specific topics
-
-After your analysis, provide your final list of topics. Each topic should be formatted as follows:
+After your analysis, provide your final list of topics (at least one but at most 10). Each topic should be formatted as follows:
 - type: Type of the described topic in the source.
 - name: Name of the described topic in the source.
 - description: General and detailed description of the topic. This should not be a description of how the source discusses the topic, but rather a comprehensive explanation of the topic itself, using both the provided information and any relevant prior knowledge.
 
-Remember, it's better to return fewer topics if there aren't enough highly relevant and crucial topics in the text. Quality and relevance are more important than quantity.
+**IMPORTANT** : You should exclude any topic name from this list : {tags}
 
-Please proceed with your analysis and topic extraction based on the provided source text.
+Please double check every output topic against this list, to avoid any mistakes
 
 Here are general examples or relevant topics:
 <examples>
@@ -52,6 +36,9 @@ Here are general examples or relevant topics:
     name : Reinforcment Learning from Human Feedback (RLHF)
 </examples>
 
-Remember, it's better to return fewer topics if there aren't enough highly relevant and crucial topics in the text. Quality and relevance are more important than quantity.
+Here is the source text for your analysis:
+<source_text>
+{content}
+</source_text>
 
 Please proceed with your analysis and topic extraction based on the provided source text.

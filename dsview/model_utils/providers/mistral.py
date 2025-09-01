@@ -1,14 +1,22 @@
 import os
 from typing import Union
+import logging
 
 import numpy as np
 from mistralai import Mistral
-from mistralai.utils import BackoffStrategy, RetryConfig
 from pydantic import BaseModel
+from instructor import from_mistral, Mode
 
 from dsview.config import ModelConfig
 
 from ..model_provider import ModelProvider
+
+
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format='%(asctime)s - %(message)s'
+# )
+# debug_logger = logging.getLogger(__name__)
 
 
 class MistralProvider(ModelProvider):
@@ -17,7 +25,8 @@ class MistralProvider(ModelProvider):
     def __init__(self, model_config: ModelConfig):
         self.client = Mistral(
             api_key=os.environ[self.PROVIDER_API_KEY_NAME],
-            retry_config=RetryConfig("backoff", BackoffStrategy(1, 20, 1.5, 40), False),
+            retry_config=None,
+            # debug_logger=debug_logger,
         )
 
         super().__init__(model_config)
@@ -47,13 +56,27 @@ class MistralProvider(ModelProvider):
         structured_output_class: type[BaseModel] = None,
     ) -> Union[str, BaseModel]:
         if structured_output_class is not None:
-            chat_response = self.client.chat.parse(
+            instructor_client = from_mistral(
+                client=self.client,
                 model=self.model_config.chat_model,
-                messages=messages,
-                response_format=structured_output_class,
+                mode=Mode.MISTRAL_TOOLS,
+                max_tokens=2000,
             )
 
-            return chat_response.choices[0].message.parsed
+            resp = instructor_client.messages.create(
+                response_model=structured_output_class,
+                messages=messages,
+            )
+
+            # chat_response = self.client.chat.parse(
+            #     model=self.model_config.chat_model,
+            #     messages=messages,
+            #     response_format=structured_output_class,
+            # )
+
+            # return chat_response.choices[0].message.parsed
+
+            return resp
         else:
             chat_response = self.client.chat.complete(
                 model=self.model_config.chat_model,
@@ -68,13 +91,28 @@ class MistralProvider(ModelProvider):
         structured_output_class: type[BaseModel] = None,
     ) -> Union[str, BaseModel]:
         if structured_output_class is not None:
-            chat_response = await self.client.chat.parse_async(
+            # chat_response = await self.client.chat.parse_async(
+            #     model=self.model_config.chat_model,
+            #     messages=messages,
+            #     response_format=structured_output_class,
+            # )
+
+            # return chat_response.choices[0].message.parsed
+            #
+            instructor_client = from_mistral(
+                client=self.client,
                 model=self.model_config.chat_model,
-                messages=messages,
-                response_format=structured_output_class,
+                mode=Mode.MISTRAL_TOOLS,
+                max_tokens=2000,
+                use_async=True,
             )
 
-            return chat_response.choices[0].message.parsed
+            resp = await instructor_client.messages.create(
+                response_model=structured_output_class,
+                messages=messages,
+            )
+
+            return resp
         else:
             chat_response = await self.client.chat.complete_async(
                 model=self.model_config.chat_model,

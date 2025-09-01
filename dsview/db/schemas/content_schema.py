@@ -6,6 +6,7 @@ from pydantic import HttpUrl
 from sqlalchemy.types import String, TypeDecorator
 from sqlmodel import Field, SQLModel
 
+INPUT_CONTENT_SCHEMA = "content"
 
 class LinkType(TypeDecorator):
     impl = String(2083)
@@ -23,8 +24,11 @@ class LinkType(TypeDecorator):
 
 
 class InputContent(SQLModel, table=True):
+    __tablename__ = "inputcontent"
+    __table_args__ = {"schema": INPUT_CONTENT_SCHEMA}
+
     id: int | None = Field(default=None, primary_key=True)  # Add an ID as primary key
-    link: HttpUrl | Path = Field(unique=True, sa_type=LinkType)
+    link: HttpUrl = Field(unique=True, sa_type=LinkType)
     upload_date: date
     already_read: bool = Field(default=False)
     read_priority: int = Field(default=0, ge=0, le=5)
@@ -45,8 +49,11 @@ class InputContent(SQLModel, table=True):
 
 
 class FailedIngestion(SQLModel, table=True):
+    __tablename__ = "failedingestion"
+    __table_args__ = {"schema": INPUT_CONTENT_SCHEMA}
+
     id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(unique=True, foreign_key="inputcontent.id")
+    content_id: int = Field(unique=True, foreign_key=f"{INPUT_CONTENT_SCHEMA}.inputcontent.id")
     original_link: str
     error_type: str
     error_message: str

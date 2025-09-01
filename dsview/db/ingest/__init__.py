@@ -8,7 +8,6 @@ from .ingest_extraction import (
     embed_and_save_topic,
     embed_and_update_topic,
     save_er_comparison,
-    save_extraction_results,
-    save_topic_relations,
+    embed_and_format_extraction_results,
 )
 from .ingest_labels import save_er_label, save_labels, update_er_label

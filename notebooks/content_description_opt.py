@@ -60,10 +60,28 @@ def _(load_extraction_config, mlflow):
 @app.cell
 def _(evaluate, experiment, mlflow):
     with mlflow.start_run(
-        run_name="Initial config", experiment_id=experiment.experiment_id
+        run_name="New config", experiment_id=experiment.experiment_id
     ):
         eval_results = evaluate()
     return (eval_results,)
+
+
+@app.cell
+def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
+    ollama_config = ModelConfig(
+        chat_model="gemma3:4b",
+        embedding_model="mxbai-embed-large",
+        provider=LLMProvider.OLLAMA,
+        token_limit=128_000,
+    )
+
+    with mlflow.start_run(
+        run_name="new config gemma3", experiment_id=experiment.experiment_id
+    ):
+        _ = evaluate(
+            model_config=ollama_config,
+        )
+    return
 
 
 @app.cell
@@ -182,7 +200,6 @@ def _(mo):
         r"""
     - mistral medium ~ gpt 4.1 mini
     - Mistral small ~ gpt 4o mini
-
     """
     )
     return

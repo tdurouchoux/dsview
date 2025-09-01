@@ -1,7 +1,11 @@
 import marimo
 
-__generated_with = "0.13.11"
-app = marimo.App(width="medium", layout_file="layouts/dashboard.grid.json")
+__generated_with = "0.14.16"
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/content_dashboard.grid.json",
+    css_file="layouts/marimo_style.css"
+)
 
 
 @app.cell
@@ -16,10 +20,26 @@ def _():
     import marimo as mo
     from sqlmodel import Session
 
-    from dsview.db.schemas import engine
+    from dsview.db import engine
     from dsview.db.ingest import update_content
     from dsview.obsidian.obsidian_utils import get_content_url_link
-    return Session, alt, engine, get_content_url_link, mo, update_content
+    from dsview.interface.dashboard.marimo_sidebar import get_sidebar
+
+    return (
+        Session,
+        alt,
+        engine,
+        get_content_url_link,
+        get_sidebar,
+        mo,
+        update_content,
+    )
+
+
+@app.cell
+def _(get_sidebar):
+    get_sidebar()
+    return
 
 
 @app.cell
@@ -51,8 +71,8 @@ def _(engine, extractionresult, get_refresh, inputcontent, mo):
             source,
             link
         FROM
-            extractionresult
-            JOIN inputcontent ON inputcontent.id = extractionresult.content_id
+            extraction.extractionresult
+            JOIN content.inputcontent ON inputcontent.id = extractionresult.content_id
         ORDER BY
             inputcontent.upload_date DESC
         """,
@@ -139,9 +159,7 @@ def _(alt, filtered_priority_sources, mo):
 
 @app.cell
 def _(filtered_priority_sources, relevance_chart):
-    filtered_sources = coalesce_df(
-        relevance_chart.value, filtered_priority_sources
-    )
+    filtered_sources = coalesce_df(relevance_chart.value, filtered_priority_sources)
     return (filtered_sources,)
 
 
@@ -166,7 +184,7 @@ def _(filtered_sources, mo):
 
 @app.cell
 def _(mo, sources_table):
-    mo.stop(len(sources_table.value) == 0)
+    mo.stop(len(sources_table.value) == 0, mo.callout("No content selected", kind="warn"))
 
     selected_content = sources_table.value.to_dict("records")[0]
     return (selected_content,)
@@ -178,18 +196,18 @@ def fetch_note_summary(engine, extractionresult, mo, selected_content):
         f"""
         Select
             summary
-        FROM 
-            extractionresult
+        FROM
+            extraction.extractionresult
         WHERE content_id = {selected_content["id"]}
         """,
         output=False,
-        engine=engine,
+        engine=engine
     )
     return (note_summary,)
 
 
 @app.cell
-def note_link(get_content_url_link, mo, selected_content):
+def _(get_content_url_link, mo, selected_content):
     mo.center(
         mo.md(
             f"[Go to obsidian note]({get_content_url_link(selected_content['title'])})"
@@ -199,7 +217,7 @@ def note_link(get_content_url_link, mo, selected_content):
 
 
 @app.cell
-def note_summary(mo, note_summary):
+def _(mo, note_summary):
     mo.accordion({"Note summary": note_summary.loc[0, "summary"]})
     return
 

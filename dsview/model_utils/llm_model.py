@@ -51,6 +51,7 @@ class LLMModel:
     DEFAULT_SYSTEM_PROMPT_FILE: str = None
     DEFAULT_USER_PROMPT_FILE: str = None
     DEFAULT_SYSTEM_PROMPT_FORMAT: Union[list[str], dict[str, str]] = None
+    DEFAULT_USER_PROMPT_ADD_FORMAT: dict[str, str] = None
     DEFAULT_STRUCTURED_OUTPUT_CLASS: type[BaseModel] = None
 
     def __init__(
@@ -59,6 +60,7 @@ class LLMModel:
         system_prompt: str = None,
         user_prompt: str = None,
         system_prompt_format: Union[list[str], dict[str, str]] = None,
+        user_prompt_format: dict[str, str] = None,
         structured_output_class: type[BaseModel] = None,
     ):
         model_config = coalesce(model_config, self.DEFAULT_MODEL_CONFIG)
@@ -82,6 +84,10 @@ class LLMModel:
             else:
                 self.system_prompt = self.system_prompt.format(**system_prompt_format)
 
+        self.user_prompt_format = coalesce(
+            user_prompt_format, self.DEFAULT_USER_PROMPT_ADD_FORMAT, {}
+        )
+
         if user_prompt is None:
             if self.DEFAULT_USER_PROMPT_FILE is None:
                 raise ValueError("No user prompt provided.")
@@ -100,7 +106,9 @@ class LLMModel:
         mlflow.log_param("user_prompt_template", self.user_prompt_template)
 
     def _prepare_messages(self, input: dict[str, str]) -> list[dict[str, str]]:
-        user_prompt = self.user_prompt_template.format(**input)
+        user_prompt = self.user_prompt_template.format(
+            **input, **self.user_prompt_format
+        )
         messages = [
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": user_prompt},

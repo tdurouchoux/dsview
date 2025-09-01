@@ -27,11 +27,20 @@ def get_content_list(
 
 def get_failed_ingestions(
     session: Session,
+    ignore_errors: list[str] = None,
 ) -> list[InputContent]:
+    failed_content_stmt = select(FailedIngestion.content_id)
+
+    if ignore_errors is not None:
+        failed_content_stmt = failed_content_stmt.where(FailedIngestion.error_type.not_in(ignore_errors))
+
     content_list = session.exec(
         select(InputContent).where(
-            InputContent.id.in_(select(FailedIngestion.content_id))
+            InputContent.id.in_(failed_content_stmt)
         )
     ).all()
 
     return content_list
+
+
+# class ContentIndex(DuckDBIndex)

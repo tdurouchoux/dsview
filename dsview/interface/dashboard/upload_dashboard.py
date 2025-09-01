@@ -1,13 +1,11 @@
 import marimo
 
-__generated_with = "0.13.11"
-app = marimo.App(width="medium", layout_file="layouts/db_management.grid.json")
-
-
-@app.cell
-def _(mo):
-    mo.center(mo.md(r"""# Content upload dashboard"""))
-    return
+__generated_with = "0.14.16"
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/upload_dashboard.grid.json",
+    css_file="layouts/marimo_style.css",
+)
 
 
 @app.cell
@@ -21,20 +19,35 @@ def _():
     import pandas as pd
     from pydantic import HttpUrl
 
+    from dsview.db import engine
+    from dsview.interface.dashboard.marimo_sidebar import get_sidebar
 
-    from dsview.db.schemas import engine
-    return HttpUrl, alt, date, dp, engine, mo, pd, plt
+    return HttpUrl, alt, date, dp, engine, get_sidebar, mo, pd, plt
 
 
 @app.cell
-def _(engine, inputcontent, mo):
+def _(get_sidebar):
+    get_sidebar()
+    return
+
+
+@app.cell
+def _(mo):
+    mo.center(mo.md(r"""# Upload dashboard"""))
+
+    return
+
+
+@app.cell
+def _(content, engine, inputcontent, mo):
     min_date = mo.sql(
         f"""
-        SELECT 
+        SELECT
             min(upload_date) as min_date
         FROM
-            inputcontent
+            content.inputcontent
         """,
+        output=False,
         engine=engine
     )
     return (min_date,)
@@ -42,7 +55,7 @@ def _(engine, inputcontent, mo):
 
 @app.cell
 def _(date, min_date, mo):
-    min_year = int(min_date.loc[0, "min_date"][:4])
+    min_year = min_date.loc[0, "min_date"].year
     max_year = date.today().year
 
     select_year = mo.md("## Uploads for year {year}").batch(
@@ -62,18 +75,21 @@ def _(select_year):
 
 
 @app.cell
-def _(engine, inputcontent, mo, selected_year):
+def _(content, engine, inputcontent, mo, selected_year):
     content_upload = mo.sql(
         f"""
         SELECT
             upload_date,
             link,
             source
-        FROM 
-            inputcontent
-        WHERE upload_date > \"{str(selected_year)}-01-01\" and upload_date < \"{str(selected_year + 1)}-01-01\"
+        FROM
+            content.inputcontent
+        WHERE upload_date > \'{str(selected_year)}-01-01\' and upload_date < \'{str(selected_year + 1)}-01-01\'
+
+
         """,
         engine=engine,
+        output=False,
     )
     return (content_upload,)
 
@@ -113,9 +129,7 @@ def _(alt, content_upload):
 
 @app.cell
 def _(HttpUrl, content_upload, mo):
-    content_upload["host"] = content_upload["link"].apply(
-        lambda l: HttpUrl(l).host
-    )
+    content_upload["host"] = content_upload["link"].apply(lambda l: HttpUrl(l).host)
 
     mo.ui.table(
         content_upload.value_counts("host").to_frame().head(10),
@@ -130,20 +144,14 @@ def _(mo):
     mo.md(
         r"""
     ---
-        ## Failed ingestion
+    ## Failed ingestion
     """
     )
     return
 
 
 @app.cell
-def _(mo):
-    mo.md("""---""")
-    return
-
-
-@app.cell
-def _(engine, failedingestion, inputcontent, mo):
+def _(content, engine, failedingestion, inputcontent, mo):
     failed_ingestion = mo.sql(
         f"""
         SELECT
@@ -152,25 +160,27 @@ def _(engine, failedingestion, inputcontent, mo):
             error_type,
             error_message
         FROM
-            failedingestion
-            JOIN inputcontent ON failedingestion.content_id = inputcontent.id
+            content.failedingestion
+            JOIN content.inputcontent ON failedingestion.content_id = inputcontent.id
         ORDER BY
             upload_date DESC
         """,
+        output=False,
         engine=engine
     )
     return (failed_ingestion,)
 
 
 @app.cell
-def _(engine, extractionresult, mo):
+def _(engine, extraction, extractionresult, mo):
     count_success = mo.sql(
         f"""
         SELECT
             count(*) as count
         FROM
-            extractionresult
+            extraction.extractionresult
         """,
+        output=False,
         engine=engine
     )
     return (count_success,)

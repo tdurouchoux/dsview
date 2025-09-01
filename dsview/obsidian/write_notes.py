@@ -2,18 +2,13 @@ import logging
 from pathlib import Path
 
 import frontmatter
-from sqlmodel import Session
+from sqlmodel import Session, inspect
 
-from dsview.db.query import (
-    get_content_extraction,
-    get_content_linked_topics,
-    get_topic_linked_contents,
-)
 from dsview.db.schemas import (
     ExtractionTopic,
     InputContent,
 )
-from dsview.extraction.models.topics_extraction import DataScienceTopic
+from dsview.db.schemas.extraction_schema import ExtractionResult
 
 from .obsidian_utils import get_content_path, get_topic_link, get_topic_path
 
@@ -37,9 +32,11 @@ def write_note(note: frontmatter.Post, note_path: Path):
         frontmatter.dump(note, note_file)
 
 
-def write_topic_note(topic: ExtractionTopic, topic_path: Path, session: Session):
-    if topic_path.exists():
-        raise ObsidianNoteShouldNotExists(topic_path)
+def write_topic_note(topic: ExtractionTopic):
+    topic_path = get_topic_path(topic.name, topic.type)
+
+    # if topic_path.exists():
+    #     raise ObsidianNoteShouldNotExists(topic_path)
 
     note = frontmatter.Post(topic.description)
     note["type"] = topic.type
@@ -47,34 +44,34 @@ def write_topic_note(topic: ExtractionTopic, topic_path: Path, session: Session)
     write_note(note, topic_path)
 
 
-def write_topic_list_notes(topics_id: list[int], session: Session):
-    for topic_id in topics_id:
-        topic = session.get(ExtractionTopic, topic_id)
-        topic_path = get_topic_path(topic.name, topic.type)
-        write_topic_note(topic, topic_path, session)
-
-
 def update_topic_note(
-    old_topic: DataScienceTopic, new_topic: ExtractionTopic, session: Session
+    topic: ExtractionTopic
 ):
+    topic_inspection = inspect(topic)
+
+    old_topic_name = topic_inspection.attrs.name.history.non_added()[0]
+    old_topic_type = topic_inspection.attrs.type.history.non_added()[0]
+
+    logger.warning("Updating topic note %s to %s", old_topic_name, topic.name)
+
     # Deleting old note
     old_topic_path = get_topic_path(
-        old_topic.name,
-        old_topic.type.value,
+        old_topic_name,
+        old_topic_type,
     )
-    old_topic_link = get_topic_link(old_topic.name, old_topic.type.value)
-    old_topic_path.unlink()
+    if old_topic_path.exists():
+        old_topic_path.unlink()
+    else:
+        logger.error("Could not find topic note : %s. Continuing anyway", old_topic_name)
+
+    write_topic_note(topic)
 
     # Writing updated note
-    new_topic_path = get_topic_path(new_topic.name, new_topic.type)
-    new_topic_link = get_topic_link(new_topic.name, new_topic.type)
-    write_topic_note(new_topic, new_topic_path, session)
+    old_topic_link = get_topic_link(old_topic_name, old_topic_type)
+    new_topic_link = get_topic_link(topic.name, topic.type)
 
-    # Replacing stale topic links
-    extracted_content_list = get_topic_linked_contents(new_topic.id, session)
-
-    for content in extracted_content_list:
-        content_path = get_content_path(content.title, content.content_type)
+    for extraction in topic.extractions:
+        content_path = get_content_path(extraction.title, extraction.content_type)
         content_note = frontmatter.load(content_path)
 
         content_note.content = content_note.content.replace(
@@ -85,8 +82,22 @@ def update_topic_note(
         write_note(content_note, content_path)
 
 
+def write_and_update_topic_list_notes(
+    topics: list[ExtractionTopic]
+):
+    for topic in topics:
+        topic_inspection = inspect(topic)
+
+        if topic_inspection.modified and not topic_inspection.pending:
+            update_topic_note(topic)
+        else:
+            write_topic_note(topic)
+
+# TODO finish updating write_notes to be cleaner
+
+
 def update_topic_list_notes(
-    updated_topics: list[tuple[int, DataScienceTopic]], session: Session
+    updated_topics: list[ExtractionTopic], session: Session
 ):
     for topic_id, old_topic in updated_topics:
         new_topic = session.get(ExtractionTopic, topic_id)
@@ -94,31 +105,26 @@ def update_topic_list_notes(
 
 
 # ? What about jinja template for this
-def write_content_note(content: InputContent, hyperlink: str, session: Session):
+def write_content_note(content: InputContent, extraction_result: ExtractionResult):
     # Need more than extracted content > query
-    extracted_content, extracted_links, extracted_tags = get_content_extraction(
-        content.id, session
-    )
-    linked_topics = get_content_linked_topics(content.id, session)
-
-    note_content = hyperlink + "\n"
-    note_content += "## Summary\n\n" + extracted_content[0].summary
+    note_content = str(content.link) + "\n"
+    note_content += "## Summary\n\n" + extraction_result.summary
 
     note_content += "\n## Links\n\n"
-    for link in extracted_links:
+    for link in extraction_result.links:
         note_content += f"- [{link.name}]({link.url}) : {link.description}\n"
 
     note_content += "\n## Topics\n\n"
-    for topic in linked_topics:
+    for topic in extraction_result.topics   :
         note_content += f"{get_topic_link(topic.name, topic.type)}\n\n"
 
     note = frontmatter.Post(note_content, **content.get_str_dict())
     note["type"] = "Content"
 
-    note["tags"] = [tag.name.replace(" ", "_") for tag in extracted_tags]
+    note["tags"] = [tag.name.replace(" ", "_") for tag in extraction_result.tags]
 
     content_path = get_content_path(
-        extracted_content[0].title, extracted_content[0].content_type
+        extraction_result.title, extraction_result.content_type
     )
 
     write_note(note, content_path)

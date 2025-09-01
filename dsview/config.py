@@ -6,6 +6,8 @@ from functools import cache, partial
 from pathlib import Path
 from typing import Callable, Optional, Union
 
+from pandas.compat.pickle_compat import load
+from sqlalchemy.orm.base import LOAD_AGAINST_COMMITTED
 import yaml
 from dotenv import load_dotenv
 from omegaconf import MISSING, OmegaConf
@@ -119,27 +121,40 @@ class GithubVault:
 @dataclass
 class ObsidianConfig:
     vault_path: Path = MISSING
-    db_file: str = "vault.db"
     content_directory: str = "contents"
     topic_directory: str = "topics"
     artefact_directory: str = "artefacts"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
+@dataclass
+class PostgresConfig:
+    host: str = "localhost"
+    port: int = 5432
+    database: str = "dsview_db"
+    user: str = "postgres"
+    password: str = "${oc.env:POSTGRES_PASSWORD}"
 
-load_obsidian_config: Callable[[], ObsidianConfig] = partial(
-    load_config, ObsidianConfig, "obsidian.yaml"
+    def db_uri(self, sqlalchemy: bool = True) -> str:
+        return (
+            "postgresql" + ("+psycopg" if sqlalchemy else "") +
+            f"://{self.user}:{self.password}" +
+            f"@{self.host}:{self.port}/{self.database}"
+        )
+
+@dataclass
+class StorageConfig:
+    obsidian: ObsidianConfig = field(default_factory=ObsidianConfig)
+    postgres: PostgresConfig = field(default_factory=PostgresConfig)
+
+load_storage_config: Callable[[], StorageConfig] = partial(
+    load_config, StorageConfig, "storage.yaml"
 )
 
+def load_obsidian_config() -> ObsidianConfig:
+    return load_storage_config().obsidian
 
-def get_db_path() -> Path:
-    obsidian_config = load_obsidian_config()
-    return obsidian_config.vault_path / obsidian_config.db_file
-
-
-@cache
-def get_sqlite_engine() -> str:
-    return create_engine(f"sqlite:///{get_db_path()}")
-
+def load_postgres_config() -> PostgresConfig:
+    return load_storage_config().postgres
 
 def setup_logger():
     with open(Path(os.getenv("CONF_DIR")) / "logging.yaml") as config_file:

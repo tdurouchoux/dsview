@@ -39,8 +39,8 @@ def get_content_path(content_title: str, content_type: str) -> Path:
     )
 
 
-def get_content_url_link(content_title: str) -> str:
-    cleaned_title = clean_note_title(content_title)
+def get_content_url_link(note_title: str) -> str:
+    cleaned_title = clean_note_title(note_title)
     title_query = urllib.parse.quote(cleaned_title)
     content_url = f"obsidian://open?vault={config.vault_path.name}&file={title_query}"
 
@@ -71,18 +71,19 @@ retrieve_topics_path = partial(retrieve_notes_path, config.topic_directory)
 retrieve_contents_path = partial(retrieve_notes_path, config.content_directory)
 
 
-def get_pdf_filepath(pdf_filename: str) -> Path:
-    return config.vault_path / config.artefact_directory / pdf_filename
-
-
 def clear_vault():
     topic_dir = config.vault_path / config.topic_directory
     content_dir = config.vault_path / config.content_directory
     artefact_dir = config.vault_path / config.artefact_directory
 
-    shutil.rmtree(topic_dir)
-    shutil.rmtree(content_dir)
-    shutil.rmtree(artefact_dir)
+    if topic_dir.exists():
+        shutil.rmtree(topic_dir)
+
+    if content_dir.exists():
+        shutil.rmtree(content_dir)
+
+    if artefact_dir.exists():
+        shutil.rmtree(artefact_dir)
 
     topic_dir.mkdir()
     content_dir.mkdir()

@@ -2,8 +2,38 @@
 
 Data science news monitoring management tools using LLM and graph representation in Obsidian
 
-#TODO switch to sessionmaker ?
-#TODO add testing of async endpoints for every provider
+#TODO Remove commits while extraction is not fully successful
+#TODO simplify extraction result management using relationships
+#TODO Update write_notes to use less info > IN PROGRESS
+
+
+Plan :
+- reactivate push on update  > how does it work right now (need for way more git updates)
+  - move it to streamlit interface
+- rebuild vault
+- check vault health
+- update deployment for marimo
+- deploy
+
+#TODO Fix query_labels
+
+#TODO compute missing distances or change representation for er comparison
+
+#TODO Fix titles extraction
+
+#TODO Fix labels database (all labels are false now, almost the same results with mistral-small than with gpt4omini) > remake ER labels then opt
+
+#TODO have some kind of quick documentation on the database (input content and labels should never be deleted, the rest is extraction results that can be recomputed )
+
+> For structured output Mistral require the structure to be available in the prompt, what is the behavior with Instructor ?
+
+
+#TODO distance between candidate topics and ER result
+
+#TODO test langfuse on Onyxia
+#TODO have some kind of auto evaluation to detect model drift > maybe using LangFuse
+
+
 
 Added tags and topic/content relation > implement ingestion + refacto obsidian
 
@@ -83,7 +113,7 @@ Next steps :
   - [ ] Fix issue with read medium
   - [ ] Relevance prediction
   - [ ] Switch to Mistral
-  - [ ] Better mlflow management (especially for selecting current parameters)
+  - [ ] Better mlflow management (especially for  ing current parameters)
 
 - Better management :
   - [ ] Better error notifications

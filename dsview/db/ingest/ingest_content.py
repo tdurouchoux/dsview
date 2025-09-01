@@ -20,7 +20,6 @@ def save_content(
         raise ContentAlreadyExists(content.link)
 
     session.add(content)
-    session.commit()
 
     return content
 
@@ -38,7 +37,6 @@ def save_failed_ingestion(
         error_message=str(error),
     )
     session.add(failed_ingestion)
-    session.commit()
 
 
 def update_content(

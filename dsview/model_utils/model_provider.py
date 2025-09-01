@@ -80,7 +80,9 @@ class ModelProvider(ABC):
     def _embed(self, input: str) -> np.ndarray:
         pass
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+    )
     def embed(self, input: str) -> np.ndarray:
         return self._embed(input)
 
@@ -88,7 +90,9 @@ class ModelProvider(ABC):
     async def _async_embed(self, input: str) -> np.ndarray:
         pass
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+    )
     async def async_embed(self, input: str) -> np.ndarray:
         return await self._async_embed(input)
 
@@ -100,7 +104,9 @@ class ModelProvider(ABC):
     ) -> Union[str, BaseModel]:
         pass
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+    )
     def send_messages(
         self,
         messages: list[dict[str, str]],
@@ -116,7 +122,9 @@ class ModelProvider(ABC):
     ) -> Union[str, BaseModel]:
         pass
 
-    @retry(wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(5))
+    @retry(
+        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+    )
     async def async_send_messages(
         self,
         messages: list[dict[str, str]],

@@ -3,15 +3,15 @@ import asyncio
 import streamlit as st
 from pydantic import HttpUrl
 
-from dsview.config import get_sqlite_url, load_model_config
+from dsview.config import load_model_config
+from dsview.db import engine
 from dsview.db.query import check_link_labelled
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import get_content_loader
-from dsview.interface.content_labelling_form import generate_labelling_form
-from dsview.interface.interface_utils import get_sidebar
+
+from dsview.interface.labelling.content_labelling_form import generate_labelling_form
 
 # Load config
-sqlite_url = get_sqlite_url()
 model_config = load_model_config()
 
 st.set_page_config(page_title="Content labelling", page_icon="small_icon.png")
@@ -45,8 +45,6 @@ def content_extraction(link: str):
 
 
 def main():
-    get_sidebar()
-
     if "labelling" not in st.session_state:
         st.session_state["labelling"] = False
 

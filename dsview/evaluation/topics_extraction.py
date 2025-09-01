@@ -5,9 +5,11 @@ import mlflow
 import nest_asyncio
 import pandas as pd
 from pydantic import BaseModel
+from sqlmodel import Session
 from tqdm import tqdm
 
 from dsview.config import ModelConfig, load_extraction_config
+from dsview.db import engine
 from dsview.db.query import get_labels_data
 from dsview.db.schemas import TopicsLabels
 from dsview.extraction.models.topics_extraction import (
@@ -37,7 +39,8 @@ class SimpleERModel(LLMModel):
 
 
 def get_topics_extraction_data(set_type: Literal["eval", "test"]) -> pd.DataFrame:
-    df_labels = get_labels_data([TopicsLabels], set_type)
+    with Session(engine) as session:
+        df_labels = get_labels_data([TopicsLabels], set_type, session)
 
     df_labels = (
         df_labels.dropna(subset=["name", "type"], how="any")
@@ -93,6 +96,8 @@ def find_close_topic(
 
     if True not in results:
         return None
+
+    print("ONE TOPIC MATCHED !!!")
     return relevant_topic_name_list[results.index(True)]
 
 
@@ -112,7 +117,9 @@ def eval_row(
         if topic.name in row["name"]:
             topic_match = topic.name
         else:
-            topic_match = find_close_topic(simple_er, topic, row["name"][:1], row["type"][:1])
+            topic_match = find_close_topic(
+                simple_er, topic, row["name"][:1], row["type"][:1]
+            )
 
         pred_topics_match.append(topic_match)
 
@@ -169,6 +176,9 @@ def evaluate(
         topics_extractor.log_params()
 
     df = get_topics_extraction_data(set_type)
+
+    df["content_len"] = df["content"].apply(len)
+    df = df.sort_values("content_len", ascending=False)
 
     df[
         [

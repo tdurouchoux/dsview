@@ -6,9 +6,9 @@ from pydantic import HttpUrl
 from rich.progress import track
 from sqlmodel import Session
 
-from dsview.config import load_model_config
 from dsview.db.ingest import save_content, save_failed_ingestion
 from dsview.db.schemas import InputContent
+from dsview.db.schemas.extraction_schema import ExtractionResult, ExtractionTopic
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import (
     ContentLoader,
@@ -18,7 +18,6 @@ from dsview.extraction.models.topics_extraction import DataScienceTopic
 from dsview.obsidian import write_notes
 
 logger = logging.getLogger(__name__)
-model_config = load_model_config()
 
 # TODO Add medium hosts as configuration
 MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com", "netflixtechblog.com"]
@@ -52,38 +51,34 @@ class IngestPipeline:
     def _load(self, content: InputContent) -> ContentLoader:
         logger.info("Loading input content")
 
-        content_loader = get_content_loader(content.link, model_config.token_limit)
+        content_loader = get_content_loader(content.link)
         content_loader.load()
 
         return content_loader
 
     async def _extract(
         self, content_loader: ContentLoader, content_id: int, session: Session
-    ) -> tuple[DataScienceTopic, int]:
+    ) -> ExtractionResult:
         logging.info("Launching content extraction")
 
-        (updated_topics, new_topic_ids) = await self.content_extractor.extract_content(
+        extraction_result = await self.content_extractor.extract_content(
             content_loader,
             session,
             content_id,
         )
 
-        return (updated_topics, new_topic_ids)
+        return extraction_result
 
     def _write(
         self,
         content: InputContent,
-        hyperlink: str,
-        updated_topics: list[DataScienceTopic],
-        new_topic_ids: list[int],
-        session: Session,
+        extraction_result: ExtractionResult,
     ):
         logger.info("Writing extraction to Obsidian notes")
 
         # must be done before
-        write_notes.write_content_note(content, hyperlink, session)
-        write_notes.update_topic_list_notes(updated_topics, session)
-        write_notes.write_topic_list_notes(new_topic_ids, session)
+        write_notes.write_content_note(content, extraction_result)
+        write_notes.write_and_update_topic_list_notes(extraction_result.topics)
 
     async def async_ingest_content(self, content: InputContent, session: Session):
         original_link = str(content.link)
@@ -93,29 +88,31 @@ class IngestPipeline:
 
         if not self.rebuild_mode:
             content = save_content(content, session)
+            session.commit()
 
         logger.info("Ingesting content : %s", content.link)
 
         try:
             content_loader = self._load(content)
 
-            (updated_topics, new_topic_ids) = await self._extract(
+            extraction_result = await self._extract(
                 content_loader, content.id, session
             )
 
             self._write(
                 content,
-                content_loader.get_hyperlink(),
-                updated_topics,
-                new_topic_ids,
-                session,
+                extraction_result,
             )
 
             logger.info("Ingestion successful.")
 
         except Exception as error:
             logger.exception("Failed to ingest content : %s", content.link)
+            session.rollback()
+
             save_failed_ingestion(content, original_link, error, session)
+
+        session.commit()
 
     def ingest_content(self, content: InputContent, session: Session):
         asyncio.run(self.async_ingest_content(content, session))

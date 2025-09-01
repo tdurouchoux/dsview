@@ -3,9 +3,12 @@ from typing import Literal
 import mlflow
 import pandas as pd
 from pydantic import HttpUrl
+from sqlmodel import Session
 from tqdm import tqdm
 
+
 from dsview.config import ModelConfig
+from dsview.db import engine
 from dsview.db.query import get_labels_data
 from dsview.db.schemas import LinksLabels
 from dsview.extraction.content_loader import UrlLoader
@@ -17,7 +20,9 @@ tqdm.pandas()
 
 
 def get_links_extraction_data(set_type: Literal["test", "eval"]) -> pd.DataFrame:
-    df_labels = get_labels_data([LinksLabels], set_type)
+
+    with Session(engine) as session:
+        df_labels = get_labels_data([LinksLabels], set_type, session)
 
     df_labels = (
         df_labels.dropna(subset=["hyperlink"])

@@ -1,10 +1,11 @@
+from sqlalchemy.sql.expression import label
 import streamlit as st
-from sqlmodel import Session, select
+from sqlmodel import Session, text
 
 from dsview.config import get_sqlite_engine
 from dsview.db.ingest import save_er_label
-from dsview.db.schemas import ERComparison, ERLabels
-from dsview.interface.interface_utils import get_sidebar
+from dsview.db.schemas import ERComparison
+from dsview.obsidian.sync_vault import label_sync_vault
 
 st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.png")
 
@@ -13,25 +14,24 @@ st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.p
 
 
 def get_missing_label_comparison(session: Session) -> ERComparison:
-    er_labels = session.exec(select(ERLabels)).all()
 
-    if len(er_labels) == 0:
-        max_comparison_id = 1
-    else:
-        max_comparison_id = max(er_label.er_comparison_id for er_label in er_labels) + 1
-
-    comparison = session.exec(
-        select(ERComparison).where(ERComparison.id == max_comparison_id)
+    result = session.exec(
+        text("""
+            SELECT * FROM ercomparison
+            WHERE (name_1, name_2) NOT IN (
+                SELECT name_1, name_2 FROM erlabels
+            ) ORDER BY RANDOM()"""
+        )
     ).first()
 
-    return comparison
+    return ERComparison(**result._asdict())
 
+@label_sync_vault("content", debug_mode=False)
+def save_and_sync_er_label(*args):
+    save_er_label(*args)
 
 def main():
-    get_sidebar()
-
     engine = get_sqlite_engine()
-
     st.title("ER comparison labelling")
 
     topic_display_template = (
@@ -63,7 +63,16 @@ def main():
         not_merge = col2.button("No", type="primary", use_container_width=True)
 
         if merge or not_merge:
-            save_er_label(session, comparison.id, merge)
+            save_er_label(
+                session,
+                comparison.name_1,
+                comparison.type_1,
+                comparison.description_1,
+                comparison.name_2,
+                comparison.type_2,
+                comparison.description_2,
+                merge
+            )
             st.rerun()
 
 

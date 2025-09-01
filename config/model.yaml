@@ -1,31 +1,10 @@
 configs:
   - model_type: DEFAULT
     model_config:
-      chat_model: gpt-4o-mini-2024-07-18
-      embedding_model: text-embedding-3-small
-      provider: OPENAI
-      token_limit: 128000
-  - model_type: DESCRIPTION_GENERATION
-    model_config:
       chat_model: mistral-small-latest
-      embedding_model: None
+      embedding_model: mistral-embed
       provider: MISTRAL
       token_limit: 100000
-  - model_type: LINKS_EXTRACTION
-    model_config:
-      chat_model: mistral-small-latest
-      embedding_model: None
-      provider: MISTRAL
-      token_limit: 100000
-
-  # - model_type: LINKS_EXTRACTION
-  #   model_config:
-  #     chat_model: claude-3-5-haiku-20241022
-  #     embedding_model: None
-  #     provider: ANTHROPIC
-  #     token_limit: 200_000
-  #     model_specific_config:
-  #       max_tokens: 2_048
   - model_type: SEMANTIC_SCORE
     model_config:
       chat_model: smollm2:1.7b

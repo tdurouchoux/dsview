@@ -1,14 +1,24 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
+#     "altair==5.5.0",
+#     "duckdb==1.3.2",
 #     "marimo",
+#     "numpy==2.2.6",
+#     "openai==1.99.9",
+#     "pandas==2.3.1",
 #     "python-frontmatter==1.1.0",
+#     "sqlglot==27.7.0",
+#     "sqlite-vec==0.1.6",
+#     "sqlmodel==0.0.24",
+#     "tqdm==4.67.1",
+#     "umap-learn==0.5.9.post2",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.13.2"
+__generated_with = "0.13.11"
 app = marimo.App(width="medium")
 
 
@@ -529,13 +539,13 @@ def _(engine, mo, search_topic):
 def _(mo):
     mo.md(
         r"""
-        -- If the database schema is:
-        CREATE TABLE t1 (a, b, c, d INTEGER PRIMARY KEY);
-        CREATE VIRTUAL TABLE ft USING fts5(a, c, content=t1, content_rowid=d);
+    -- If the database schema is:
+    CREATE TABLE t1 (a, b, c, d INTEGER PRIMARY KEY);
+    CREATE VIRTUAL TABLE ft USING fts5(a, c, content=t1, content_rowid=d);
 
-        -- Fts5 may issue queries such as:
-        SELECT d, a, c FROM t1 WHERE d = ?;
-        """
+    -- Fts5 may issue queries such as:
+    SELECT d, a, c FROM t1 WHERE d = ?;
+    """
     )
     return
 

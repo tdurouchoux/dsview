@@ -46,5 +46,5 @@ def update_instance(
         setattr(instance, attr, value)
 
     session.add(instance)
-    session.commit()
-    session.refresh(instance)
+
+    return instance

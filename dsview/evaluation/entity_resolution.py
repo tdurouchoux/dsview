@@ -1,10 +1,13 @@
 import mlflow
-from rich.progress import track
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sqlmodel import Session
+from tqdm import tqdm
 
 from dsview.config import ModelConfig
+from dsview.db import engine
 from dsview.db.query import get_er_labels
 from dsview.extraction.models import ERClassifier
+from dsview.extraction.models.topics_extraction import DataScienceTopic
 
 RANDOM_STATE = 42
 SPLIT_RATIOS = {
@@ -21,7 +24,8 @@ def evaluate(
     set_type: str = "eval",
     remove_descr=False,
 ):
-    er_data = get_er_labels(SPLIT_RATIOS, RANDOM_STATE)
+    with Session(engine) as session:
+        er_data = get_er_labels(SPLIT_RATIOS, RANDOM_STATE, session)
     run_data = er_data[er_data["row_type"] == set_type]
 
     er_classifier = ERClassifier(
@@ -37,17 +41,20 @@ def evaluate(
 
     merge_pred = []
 
-    for comparison in track(run_data.itertuples(index=False), total=run_data.shape[0]):
-        topic_comparison = {
-            "name_1": comparison.name_1,
-            "type_1": comparison.type_1,
-            "description_1": comparison.description_1,
-            "name_2": comparison.name_2,
-            "type_2": comparison.type_2,
-            "description_2": comparison.description_2,
-        }
+    for comparison in tqdm(run_data.itertuples(index=False), total=run_data.shape[0]):
+        topic_1 = DataScienceTopic(
+            name=comparison.name_1,
+            type=comparison.type_1,
+            description=comparison.description_1,
+        )
 
-        merge_pred.append(er_classifier.predict(topic_comparison).merge_topic)
+        topic_2 = DataScienceTopic(
+            name=comparison.name_2,
+            type=comparison.type_2,
+            description=comparison.description_2,
+        )
+
+        merge_pred.append(er_classifier.predict(topic_1, topic_2).merge_topic)
 
     run_data["merge_pred"] = merge_pred
 

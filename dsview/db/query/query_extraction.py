@@ -7,7 +7,22 @@ from ..schemas import (
     ExtractionTag,
     ExtractionTopic,
 )
+from .query_utils import DuckDBIndex
 
+EXTRACTION_FTS_FIELDS = ["title", "summary"]
+
+
+class ExtractionIndex(DuckDBIndex):
+    def __init__(self, embedding_size: int = 1024):
+        self.extraction_fields = list(ExtractionResult.model_fields.keys())
+
+        super().__init__(
+            ExtractionResult.__table__,
+            self.extraction_fields,
+            EXTRACTION_FTS_FIELDS,
+            id_column="content_id",
+            embedding_size=embedding_size,
+        )
 
 def get_content_extraction(
     content_id: int, session: Session
@@ -29,20 +44,6 @@ def get_content_linked_topics(
         ExtractionTopic.id.in_(
             select(ContentTopicRelation.topic_id).where(
                 ContentTopicRelation.content_id == content_id
-            )
-        )
-    )
-
-    return session.exec(statement).all()
-
-
-def get_topic_linked_contents(
-    topic_id: int, session: Session
-) -> list[ExtractionResult]:
-    statement = select(ExtractionResult).where(
-        ExtractionResult.content_id.in_(
-            select(ContentTopicRelation.content_id).where(
-                ContentTopicRelation.topic_id == topic_id
             )
         )
     )

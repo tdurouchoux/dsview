@@ -1,8 +1,6 @@
 import pandas as pd
 from sqlmodel import Session
 
-from dsview.config import get_sqlite_engine
-
 from ..schemas import (
     ContentTypeLabels,
     ERLabels,
@@ -14,10 +12,7 @@ from ..schemas import (
 )
 from .update import update_instance
 
-engine = get_sqlite_engine()
 
-
-# @label_sync_vault("content")
 def save_labels(
     link: str,
     content: str,
@@ -36,9 +31,7 @@ def save_labels(
     content_type_label = ContentTypeLabels(
         content_id=labelled_content.id, content_type=content_type
     )
-    tag_labels = [
-        TagLabels(content_id=labelled_content.id, tag=tag) for tag in tags
-    ]
+    tag_labels = [TagLabels(content_id=labelled_content.id, tag=tag) for tag in tags]
     topic_labels = [
         TopicsLabels(
             content_id=labelled_content.id,
@@ -72,10 +65,23 @@ def save_labels(
 # TODO Remove (or not) Session from arguments
 
 
-# @label_sync_vault("er")
-def save_er_label(session: Session, er_comparison_id: int, merge: bool):
+def save_er_label(
+    session: Session,
+    name_1: str,
+    type_1: str,
+    description_1: str,
+    name_2: str,
+    type_2: str,
+    description_2: str,
+    merge: bool,
+):
     er_label = ERLabels(
-        er_comparison_id=er_comparison_id,
+        name_1=name_1,
+        type_1=type_1,
+        description_1=description_1,
+        name_2=name_2,
+        type_2=type_2,
+        description_2=description_2,
         merge=merge,
     )
 
