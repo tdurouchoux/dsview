@@ -176,10 +176,10 @@ class DuckDBIndex:
         """
 
         result = self.conn.execute(fts_query).df()
-        if len(result) == 0 or pd.isna(result['fts_score'].iloc[0]):
+        if len(result) == 0 or pd.isna(result["fts_score"].iloc[0]):
             return 0.0
 
-        return float(result['fts_score'].iloc[0])
+        return float(result["fts_score"].iloc[0])
 
     def _query_vss_index(
         self, input: str, n_query: int, distance_threshold: float = 0.95
@@ -235,8 +235,7 @@ class DuckDBIndex:
         if len(result) == 0:
             raise ValueError(f"Could not find ID {row_id} in the index")
 
-        return float(result['vss_distance'].iloc[0])
-
+        return float(result["vss_distance"].iloc[0])
 
     def query(
         self, input: str, n_fts: int = 5, n_vss: int = 5
@@ -334,9 +333,11 @@ class DuckDBIndex:
             raise ValueError("WHERE clause cannot be empty")
 
         # Count rows before deletion for return value
-        count_query = f"SELECT COUNT(*) as count FROM {self.index_table} WHERE {where_clause};"
+        count_query = (
+            f"SELECT COUNT(*) as count FROM {self.index_table} WHERE {where_clause};"
+        )
         count_result = self.conn.execute(count_query).df()
-        rows_to_delete = int(count_result['count'].iloc[0])
+        rows_to_delete = int(count_result["count"].iloc[0])
 
         if rows_to_delete == 0:
             logger.info("No rows found matching the deletion criteria")

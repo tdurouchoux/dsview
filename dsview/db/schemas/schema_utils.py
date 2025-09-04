@@ -9,9 +9,7 @@ def drop_tables(
     reset: bool = False,
 ):
     table_list = [getattr(model, "__table__") for model in table_models]
-    SQLModel.metadata.drop_all(
-        engine, tables=table_list
-    )
+    SQLModel.metadata.drop_all(engine, tables=table_list)
 
     if reset:
         SQLModel.metadata.create_all(engine, tables=table_list)

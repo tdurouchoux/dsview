@@ -48,7 +48,7 @@ def _(content, engine, inputcontent, mo):
             content.inputcontent
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (min_date,)
 
@@ -166,7 +166,7 @@ def _(content, engine, failedingestion, inputcontent, mo):
             upload_date DESC
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (failed_ingestion,)
 
@@ -181,7 +181,7 @@ def _(engine, extraction, extractionresult, mo):
             extraction.extractionresult
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_success,)
 

@@ -19,7 +19,9 @@ tqdm.pandas()
 
 def get_description_generation_data(set_type: Literal["eval", "test"]) -> pd.DataFrame:
     with Session(engine) as session:
-        df_labels = get_labels_data([ContentTypeLabels, TagLabels, TitleLabels], set_type, session)
+        df_labels = get_labels_data(
+            [ContentTypeLabels, TagLabels, TitleLabels], set_type, session
+        )
 
     df_labels = df_labels.groupby("id").agg(
         {"content": "first", "title": "first", "content_type": "first", "tag": list}

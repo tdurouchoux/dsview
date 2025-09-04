@@ -20,7 +20,6 @@ tqdm.pandas()
 
 
 def get_links_extraction_data(set_type: Literal["test", "eval"]) -> pd.DataFrame:
-
     with Session(engine) as session:
         df_labels = get_labels_data([LinksLabels], set_type, session)
 

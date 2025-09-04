@@ -31,6 +31,7 @@ def _():
 
     from dsview.db import engine
     from dsview.interface.dashboard.marimo_sidebar import get_sidebar
+
     return HttpUrl, alt, engine, get_sidebar, mo, urlunparse
 
 
@@ -53,15 +54,21 @@ def _(engine, extraction, extractionresult, mo):
             content_type
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_content_type,)
 
 
 @app.cell
 def _(alt, count_content_type):
-    content_type_chart = alt.Chart(count_content_type.reset_index(), title="Content per type").mark_arc().encode(
-        theta="nb_content:Q", color="content_type:N", tooltip=["content_type", "nb_content"]
+    content_type_chart = (
+        alt.Chart(count_content_type.reset_index(), title="Content per type")
+        .mark_arc()
+        .encode(
+            theta="nb_content:Q",
+            color="content_type:N",
+            tooltip=["content_type", "nb_content"],
+        )
     )
     return (content_type_chart,)
 
@@ -80,17 +87,20 @@ def _(engine, extraction, extractiontag, mo):
         ORDER BY nb_content DESC
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_tags_name,)
 
 
 @app.cell
 def _(alt, count_tags_name):
-
-    top_tags_chart = alt.Chart(count_tags_name.head(10), title="Most common tags").mark_bar().encode(
-        x="nb_content:Q",
-        y=alt.Y("name:N", sort="-x"),
+    top_tags_chart = (
+        alt.Chart(count_tags_name.head(10), title="Most common tags")
+        .mark_bar()
+        .encode(
+            x="nb_content:Q",
+            y=alt.Y("name:N", sort="-x"),
+        )
     )
     return (top_tags_chart,)
 
@@ -107,18 +117,22 @@ def _(engine, extraction, extractiontag, mo):
             content_id
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_content_tag,)
 
 
 @app.cell
 def _(alt, count_content_tag):
-    content_tags_chart = alt.Chart(count_content_tag, title="Number of tags per content").mark_bar().encode(
-        y="count(nb_tags):Q",
-        x="nb_tags:O",
-        color=alt.Theta("nb_tags:N", title="Number"),
-        tooltip=["nb_tags:Q"],
+    content_tags_chart = (
+        alt.Chart(count_content_tag, title="Number of tags per content")
+        .mark_bar()
+        .encode(
+            y="count(nb_tags):Q",
+            x="nb_tags:O",
+            color=alt.Theta("nb_tags:N", title="Number"),
+            tooltip=["nb_tags:Q"],
+        )
     )
     return (content_tags_chart,)
 
@@ -133,16 +147,20 @@ def _(engine, extraction, extractionresult, mo):
             extraction.extractionresult
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (summary_size,)
 
 
 @app.cell
 def _(alt, summary_size):
-    summary_size_chart = alt.Chart(summary_size, title="Summary size distribution").mark_bar().encode(
-        alt.X("len_summary:Q", bin=True, title="Summary size"),
-        alt.Y("count()", title="Number of content")
+    summary_size_chart = (
+        alt.Chart(summary_size, title="Summary size distribution")
+        .mark_bar()
+        .encode(
+            alt.X("len_summary:Q", bin=True, title="Summary size"),
+            alt.Y("count()", title="Number of content"),
+        )
     )
     return (summary_size_chart,)
 
@@ -184,7 +202,7 @@ def _(engine, extraction, extractiontopic, mo):
             extraction.extractiontopic
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (topics,)
 
@@ -221,7 +239,7 @@ def _(contenttopicrelation, engine, extraction, mo):
             content_id
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (topic_per_content,)
 
@@ -241,10 +259,12 @@ def _(alt, topic_per_content):
 
 @app.cell
 def _(mo, selected_topic, topic_per_content_chart, topic_type_chart):
-    topic_layout = mo.vstack((
-        mo.hstack((topic_type_chart, selected_topic), justify="center"),
-        topic_per_content_chart
-    ))
+    topic_layout = mo.vstack(
+        (
+            mo.hstack((topic_type_chart, selected_topic), justify="center"),
+            topic_per_content_chart,
+        )
+    )
     return (topic_layout,)
 
 
@@ -265,7 +285,7 @@ def _(engine, ercomparison, extraction, mo):
             extraction.ercomparison
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (er_decision_stat,)
 
@@ -280,7 +300,7 @@ def _(engine, extraction, extractionresult, mo):
             extraction.extractionresult
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_content,)
 
@@ -293,10 +313,8 @@ def _(count_content, er_decision_stat, mo):
         bordered=True,
     )
 
-
     avg_comp_per_content = (
-        er_decision_stat.loc[0, "nb_comparison"]
-        / count_content.loc[0, "nb_content"]
+        er_decision_stat.loc[0, "nb_comparison"] / count_content.loc[0, "nb_content"]
     )
 
     avg_comp_stat = mo.stat(
@@ -306,8 +324,7 @@ def _(count_content, er_decision_stat, mo):
     )
 
     pos_rate = (
-        er_decision_stat.loc[0, "count_pos"]
-        / er_decision_stat.loc[0, "nb_comparison"]
+        er_decision_stat.loc[0, "count_pos"] / er_decision_stat.loc[0, "nb_comparison"]
     )
 
     pos_rate_stat = mo.stat(
@@ -332,7 +349,7 @@ def _(engine, ercomparison, extraction, mo):
             extraction.ercomparison
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (er_topic_distance,)
 
@@ -370,7 +387,7 @@ def _(engine, ercomparison, extraction, mo):
         ORDER BY nb_comparison DESC
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (count_er_name,)
 
@@ -399,9 +416,7 @@ def _(
 ):
     er_layout = mo.hstack(
         (
-            mo.vstack(
-                (nb_comp_stat, avg_comp_stat, pos_rate_stat), justify="center"
-            ),
+            mo.vstack((nb_comp_stat, avg_comp_stat, pos_rate_stat), justify="center"),
             mo.vstack((candidate_distance_chart, candidate_topic_chart)),
         ),
         widths=[0.2, 0.8],
@@ -428,7 +443,7 @@ def _(engine, extraction, extractionlink, mo):
             content_id
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (link_per_content,)
 
@@ -455,7 +470,7 @@ def _(engine, extraction, extractionlink, mo):
         FROM
             extraction.extractionlink
         """,
-        engine=engine
+        engine=engine,
     )
     return (links_url,)
 
@@ -465,9 +480,7 @@ def _(HttpUrl, links_url, urlunparse):
     links_url["url"] = links_url["url"].apply(lambda url: HttpUrl(url))
     links_url["host"] = links_url["url"].apply(lambda url: url.host)
     links_url["clean_url"] = links_url["url"].apply(
-        lambda url: HttpUrl(
-            urlunparse((url.scheme, url.host, url.path, "", "", ""))
-        )
+        lambda url: HttpUrl(urlunparse((url.scheme, url.host, url.path, "", "", "")))
     )
     return
 
@@ -494,14 +507,16 @@ def _(content, engine, inputcontent, mo):
         FROM content.inputcontent
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (input_content_link,)
 
 
 @app.cell
 def _(HttpUrl, input_content_link):
-    input_content_link["link"] = input_content_link["link"].apply(lambda link: HttpUrl(link))
+    input_content_link["link"] = input_content_link["link"].apply(
+        lambda link: HttpUrl(link)
+    )
     return
 
 
@@ -534,10 +549,14 @@ def _(
     most_common_host_chart,
     nb_link_stat,
 ):
-    content_links_layout = mo.hstack((
-        mo.vstack((nb_link_stat, existing_url_stat)),
-        mo.vstack((link_per_content_chart, most_common_host_chart))
-    ), widths=[0.2, 0.8], align="center")
+    content_links_layout = mo.hstack(
+        (
+            mo.vstack((nb_link_stat, existing_url_stat)),
+            mo.vstack((link_per_content_chart, most_common_host_chart)),
+        ),
+        widths=[0.2, 0.8],
+        align="center",
+    )
     return (content_links_layout,)
 
 
@@ -555,12 +574,14 @@ def _(mo):
 
 @app.cell
 def _(content_layout, content_links_layout, er_layout, mo, topic_layout):
-    mo.ui.tabs({
-        "Content extraction": content_layout,
-        "Content links": content_links_layout,
-        "Topics detection": topic_layout,
-        "ER comparisons": er_layout,
-    })
+    mo.ui.tabs(
+        {
+            "Content extraction": content_layout,
+            "Content links": content_links_layout,
+            "Topics detection": topic_layout,
+            "ER comparisons": er_layout,
+        }
+    )
 
     return
 

@@ -24,6 +24,7 @@ class ExtractionIndex(DuckDBIndex):
             embedding_size=embedding_size,
         )
 
+
 def get_content_extraction(
     content_id: int, session: Session
 ) -> list[list[ExtractionResult], list[ExtractionLink], list[ExtractionTag]]:

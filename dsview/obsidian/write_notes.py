@@ -44,9 +44,7 @@ def write_topic_note(topic: ExtractionTopic):
     write_note(note, topic_path)
 
 
-def update_topic_note(
-    topic: ExtractionTopic
-):
+def update_topic_note(topic: ExtractionTopic):
     topic_inspection = inspect(topic)
 
     old_topic_name = topic_inspection.attrs.name.history.non_added()[0]
@@ -62,7 +60,9 @@ def update_topic_note(
     if old_topic_path.exists():
         old_topic_path.unlink()
     else:
-        logger.error("Could not find topic note : %s. Continuing anyway", old_topic_name)
+        logger.error(
+            "Could not find topic note : %s. Continuing anyway", old_topic_name
+        )
 
     write_topic_note(topic)
 
@@ -82,9 +82,7 @@ def update_topic_note(
         write_note(content_note, content_path)
 
 
-def write_and_update_topic_list_notes(
-    topics: list[ExtractionTopic]
-):
+def write_and_update_topic_list_notes(topics: list[ExtractionTopic]):
     for topic in topics:
         topic_inspection = inspect(topic)
 
@@ -93,12 +91,11 @@ def write_and_update_topic_list_notes(
         else:
             write_topic_note(topic)
 
+
 # TODO finish updating write_notes to be cleaner
 
 
-def update_topic_list_notes(
-    updated_topics: list[ExtractionTopic], session: Session
-):
+def update_topic_list_notes(updated_topics: list[ExtractionTopic], session: Session):
     for topic_id, old_topic in updated_topics:
         new_topic = session.get(ExtractionTopic, topic_id)
         update_topic_note(old_topic, new_topic, session)
@@ -115,7 +112,7 @@ def write_content_note(content: InputContent, extraction_result: ExtractionResul
         note_content += f"- [{link.name}]({link.url}) : {link.description}\n"
 
     note_content += "\n## Topics\n\n"
-    for topic in extraction_result.topics   :
+    for topic in extraction_result.topics:
         note_content += f"{get_topic_link(topic.name, topic.type)}\n\n"
 
     note = frontmatter.Post(note_content, **content.get_str_dict())

@@ -12,6 +12,7 @@ def _():
     # Get table names from SQLModel metadata
     from dsview.db import engine
     from dsview.interface.dashboard.marimo_sidebar import get_sidebar
+
     return SQLModel, engine, get_sidebar, mo
 
 
@@ -49,7 +50,7 @@ def _(engine, mo, select_table):
         f"""
         SELECT * FROM {select_table.value}
         """,
-        engine=engine
+        engine=engine,
     )
     return
 

@@ -1,7 +1,11 @@
 import marimo
 
 __generated_with = "0.14.16"
-app = marimo.App(width="medium", layout_file="layouts/search_vault.grid.json", css_file="layouts/marimo_style.css")
+app = marimo.App(
+    width="medium",
+    layout_file="layouts/search_vault.grid.json",
+    css_file="layouts/marimo_style.css",
+)
 
 
 @app.cell
@@ -36,7 +40,9 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    n_topics = mo.ui.slider(start=5, stop=20, value=10, label="Number of topics", show_value=True)
+    n_topics = mo.ui.slider(
+        start=5, stop=20, value=10, label="Number of topics", show_value=True
+    )
     return (n_topics,)
 
 
@@ -47,25 +53,27 @@ def _(TopicsIndex, mo, n_topics, query):
     with TopicsIndex() as topics_index:
         topics = topics_index.query_with_rff(query.value, n_topics.value)
 
-
     display_topics = mo.ui.table(
         topics.drop(columns=["rff_score"]),
         selection="single",
         show_data_types=False,
     )
 
-
     mo.vstack(
-        (mo.md("## Related topics"), mo.center(n_topics),
-                display_topics if len(topics) > 0
-                else mo.callout("No topic found.", kind="warn"))
+        (
+            mo.md("## Related topics"),
+            mo.center(n_topics),
+            display_topics
+            if len(topics) > 0
+            else mo.callout("No topic found.", kind="warn"),
+        )
     )
     return (display_topics,)
 
 
 @app.cell
 def _(display_topics, get_content_url_link, mo):
-    mo.stop(len(display_topics.value)==0)
+    mo.stop(len(display_topics.value) == 0)
 
     topic_link = mo.center(
         mo.md(
@@ -78,7 +86,9 @@ def _(display_topics, get_content_url_link, mo):
 
 @app.cell
 def _(mo):
-    n_content = mo.ui.slider(start=5, stop=20, value=10, label="Number of content", show_value=True)
+    n_content = mo.ui.slider(
+        start=5, stop=20, value=10, label="Number of content", show_value=True
+    )
 
     return (n_content,)
 
@@ -112,7 +122,7 @@ def _(ExtractionIndex, mo, n_content, query):
 
 @app.cell
 def _(display_extraction, get_content_url_link, mo):
-    mo.stop(len(display_extraction.value)==0)
+    mo.stop(len(display_extraction.value) == 0)
 
     content_link = mo.center(
         mo.md(

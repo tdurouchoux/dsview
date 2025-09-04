@@ -6,7 +6,7 @@ from dsview.extraction.models.topics_extraction import DataScienceTopic
 from ..schemas import ExtractionTopic
 from .query_utils import DuckDBIndex
 
-TOPICS_FTS_FIELDS = ["name"] # "description"
+TOPICS_FTS_FIELDS = ["name"]  # "description"
 N_TOPICS_FTS = 3
 N_TOPICS_VSS = 1
 
@@ -28,7 +28,6 @@ class TopicsIndex(DuckDBIndex):
         self,
         topic: DataScienceTopic,
     ) -> dict[int, dict[str, DataScienceTopic | float]]:
-
         result_topics = {}
 
         fts_query_result = self._query_fts_index(topic.name, N_TOPICS_FTS)

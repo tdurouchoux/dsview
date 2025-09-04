@@ -8,6 +8,7 @@ from sqlmodel import Field, SQLModel
 
 INPUT_CONTENT_SCHEMA = "content"
 
+
 class LinkType(TypeDecorator):
     impl = String(2083)
 
@@ -53,7 +54,9 @@ class FailedIngestion(SQLModel, table=True):
     __table_args__ = {"schema": INPUT_CONTENT_SCHEMA}
 
     id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(unique=True, foreign_key=f"{INPUT_CONTENT_SCHEMA}.inputcontent.id")
+    content_id: int = Field(
+        unique=True, foreign_key=f"{INPUT_CONTENT_SCHEMA}.inputcontent.id"
+    )
     original_link: str
     error_type: str
     error_message: str

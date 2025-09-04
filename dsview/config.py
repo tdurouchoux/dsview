@@ -6,12 +6,9 @@ from functools import cache, partial
 from pathlib import Path
 from typing import Callable, Optional, Union
 
-from pandas.compat.pickle_compat import load
-from sqlalchemy.orm.base import LOAD_AGAINST_COMMITTED
 import yaml
 from dotenv import load_dotenv
 from omegaconf import MISSING, OmegaConf
-from sqlmodel import create_engine
 
 load_dotenv()
 
@@ -126,9 +123,10 @@ class ObsidianConfig:
     artefact_directory: str = "artefacts"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
+
 @dataclass
 class PostgresConfig:
-    host: str = "localhost"
+    host: str = "${oc.env:POSTGRES_PASSWORD}"
     port: int = 5432
     database: str = "dsview_db"
     user: str = "postgres"
@@ -136,25 +134,31 @@ class PostgresConfig:
 
     def db_uri(self, sqlalchemy: bool = True) -> str:
         return (
-            "postgresql" + ("+psycopg" if sqlalchemy else "") +
-            f"://{self.user}:{self.password}" +
-            f"@{self.host}:{self.port}/{self.database}"
+            "postgresql"
+            + ("+psycopg" if sqlalchemy else "")
+            + f"://{self.user}:{self.password}"
+            + f"@{self.host}:{self.port}/{self.database}"
         )
+
 
 @dataclass
 class StorageConfig:
     obsidian: ObsidianConfig = field(default_factory=ObsidianConfig)
     postgres: PostgresConfig = field(default_factory=PostgresConfig)
 
+
 load_storage_config: Callable[[], StorageConfig] = partial(
     load_config, StorageConfig, "storage.yaml"
 )
 
+
 def load_obsidian_config() -> ObsidianConfig:
     return load_storage_config().obsidian
 
+
 def load_postgres_config() -> PostgresConfig:
     return load_storage_config().postgres
+
 
 def setup_logger():
     with open(Path(os.getenv("CONF_DIR")) / "logging.yaml") as config_file:

@@ -4,7 +4,7 @@ __generated_with = "0.14.16"
 app = marimo.App(
     width="medium",
     layout_file="layouts/content_dashboard.grid.json",
-    css_file="layouts/marimo_style.css"
+    css_file="layouts/marimo_style.css",
 )
 
 
@@ -184,7 +184,9 @@ def _(filtered_sources, mo):
 
 @app.cell
 def _(mo, sources_table):
-    mo.stop(len(sources_table.value) == 0, mo.callout("No content selected", kind="warn"))
+    mo.stop(
+        len(sources_table.value) == 0, mo.callout("No content selected", kind="warn")
+    )
 
     selected_content = sources_table.value.to_dict("records")[0]
     return (selected_content,)
@@ -201,7 +203,7 @@ def fetch_note_summary(engine, extractionresult, mo, selected_content):
         WHERE content_id = {selected_content["id"]}
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (note_summary,)
 

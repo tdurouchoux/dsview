@@ -42,6 +42,8 @@ app.mount("", server.build())
 
 def main():
     uvicorn.run(app, host="localhost", port=8000, log_level="info")
+
+
 # Run the server
 if __name__ == "__main__":
     main()

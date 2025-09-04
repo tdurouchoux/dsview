@@ -10,14 +10,23 @@ __version__ = importlib.metadata.version("dsview")
 
 EXTRACTION_SCHEMA = "extraction"
 
-#TODO Change types as enum ?
+# TODO Change types as enum ?
+
 
 class ContentTopicRelation(SQLModel, table=True):
     __tablename__ = "contenttopicrelation"
     __table_args__ = {"schema": EXTRACTION_SCHEMA}
 
-    content_id: int = Field(foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id", primary_key=True, ondelete="CASCADE")
-    topic_id: int = Field(foreign_key=f"{EXTRACTION_SCHEMA}.extractiontopic.id", primary_key=True, ondelete="CASCADE")
+    content_id: int = Field(
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+    topic_id: int = Field(
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractiontopic.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
 
 
 class ExtractionTag(SQLModel, table=True):
@@ -25,17 +34,22 @@ class ExtractionTag(SQLModel, table=True):
     __table_args__ = {"schema": EXTRACTION_SCHEMA}
 
     id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id")
+    content_id: int = Field(
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id"
+    )
     name: str
 
     extraction: "ExtractionResult" = Relationship(back_populates="tags")
+
 
 class ExtractionLink(SQLModel, table=True):
     __tablename__ = "extractionlink"
     __table_args__ = {"schema": EXTRACTION_SCHEMA}
 
     id: int | None = Field(default=None, primary_key=True)
-    content_id: int = Field(foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id")
+    content_id: int = Field(
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id"
+    )
     name: str
     url: str
     description: str
@@ -53,7 +67,10 @@ class ExtractionTopic(SQLModel, table=True):
     description: str
     embedding: list[float] = Field(sa_column=Column(ARRAY(Float)))
 
-    extractions: list["ExtractionResult"] = Relationship(back_populates="topics", link_model=ContentTopicRelation)
+    extractions: list["ExtractionResult"] = Relationship(
+        back_populates="topics", link_model=ContentTopicRelation
+    )
+
 
 class ExtractionResult(SQLModel, table=True):
     __tablename__ = "extractionresult"
@@ -68,7 +85,9 @@ class ExtractionResult(SQLModel, table=True):
 
     tags: list[ExtractionTag] = Relationship(back_populates="extraction")
     links: list[ExtractionLink] = Relationship(back_populates="extraction")
-    topics: list[ExtractionTopic] = Relationship(back_populates="extractions", link_model=ContentTopicRelation)
+    topics: list[ExtractionTopic] = Relationship(
+        back_populates="extractions", link_model=ContentTopicRelation
+    )
 
 
 class ERComparison(SQLModel, table=True):

@@ -16,54 +16,65 @@ spec:
     spec:
       serviceAccountName: dsview-sa
       containers:
-      - name: dsview-deploy
-        image: ghcr.io/tdurouchoux/dsview:latest
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8000
-        - containerPort: 8501
-        livenessProbe:
-          httpGet:
-            path: /_stcore/health
-            port: 8501
-            scheme: HTTP
-          timeoutSeconds: 1
-        readinessProbe:
-          httpGet:
-            path: /_stcore/health
-            port: 8501
-            scheme: HTTP
-          timeoutSeconds: 1
-        resources:
-          requests:
-            memory: "1000Mi"
-            cpu: "1000m"
-          limits:
-            memory: "8000Mi"
-            cpu: "4000m"
-        env:
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: OPENAI_API_KEY
-        - name: VAULT_REPOSITORY
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: VAULT_REPOSITORY
-        - name: GITHUB_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: GITHUB_USERNAME
-        - name: GITHUB_USER_EMAIL
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: GITHUB_USER_EMAIL
-        - name: GITHUB_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: dsview-secret
-              key: GITHUB_TOKEN
+        - name: dsview-deploy
+          image: ghcr.io/tdurouchoux/dsview:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+            - containerPort: 8501
+            - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          resources:
+            requests:
+              memory: "1000Mi"
+              cpu: "1000m"
+            limits:
+              memory: "8000Mi"
+              cpu: "4000m"
+          env:
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: OPENAI_API_KEY
+            - name: VAULT_REPOSITORY
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: VAULT_REPOSITORY
+            - name: GITHUB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: GITHUB_USERNAME
+            - name: GITHUB_USER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: GITHUB_USER_EMAIL
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: GITHUB_TOKEN
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_PASSWORD

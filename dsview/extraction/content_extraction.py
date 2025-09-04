@@ -9,7 +9,7 @@ from dsview.db.ingest import (
     embed_and_save_topic,
     embed_and_update_topic,
     save_er_comparison,
-    embed_and_format_extraction_results
+    embed_and_format_extraction_results,
 )
 from dsview.db.query import TopicsIndex, get_topic_by_name
 from dsview.db.schemas import ExtractionTopic, ExtractionResult
@@ -119,7 +119,6 @@ class ContentExtractor:
 
         return extraction_result
 
-
     async def _single_topic_er(
         self,
         topic: DataScienceTopic,
@@ -129,14 +128,15 @@ class ContentExtractor:
         candidate_topics = topics_index.query_topic(topic)
 
         for candidate_id, candidate_topic_dict in candidate_topics.items():
-
             candidate_topic = candidate_topic_dict["topic"]
             fts_score = candidate_topic_dict.get("fts_score")
             vss_distance = candidate_topic_dict.get("vss_distance")
 
             result = await self.er_classifier.async_predict(topic, candidate_topic)
 
-            save_er_comparison(topic, candidate_topic, fts_score, vss_distance, result, session)
+            save_er_comparison(
+                topic, candidate_topic, fts_score, vss_distance, result, session
+            )
 
             if result.merge_topic:
                 # This means I don't have to update older links
@@ -147,7 +147,9 @@ class ContentExtractor:
                     result.topic.name,
                 )
 
-                extraction_topic = await embed_and_update_topic(candidate_id, result.topic, session)
+                extraction_topic = await embed_and_update_topic(
+                    candidate_id, result.topic, session
+                )
 
                 # Avoid the same candidate topic being merged multiple time
                 topics_index.delete_rows(f"id={extraction_topic.id}")

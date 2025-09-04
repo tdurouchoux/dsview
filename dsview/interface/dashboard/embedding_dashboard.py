@@ -21,6 +21,7 @@ def _():
     from dsview.db import engine
     from dsview.interface.dashboard.marimo_sidebar import get_sidebar
     from dsview.obsidian.obsidian_utils import get_content_url_link
+
     return alt, engine, get_content_url_link, get_sidebar, mo, pd, umap
 
 
@@ -48,14 +49,16 @@ def _(alt, mo, pd, umap):
         data["reduced_embedding_x"] = projection[:, 0]
         data["reduced_embedding_y"] = projection[:, 1]
 
-        chart = (alt.Chart(
-            data
-        ).mark_point()
-        .encode(
-            x="reduced_embedding_x:Q",
-            y="reduced_embedding_y:Q",
-            color=color_col,
-            tooltip=tooltip_cols,))
+        chart = (
+            alt.Chart(data)
+            .mark_point()
+            .encode(
+                x="reduced_embedding_x:Q",
+                y="reduced_embedding_y:Q",
+                color=color_col,
+                tooltip=tooltip_cols,
+            )
+        )
 
         return mo.ui.altair_chart(chart)
 
@@ -80,7 +83,7 @@ def _(engine, extraction, extractionresult, mo):
             extraction.extractionresult
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (extracted_content,)
 
@@ -100,13 +103,12 @@ def _(mo):
 
 @app.cell
 def _(extracted_content, n_neighbors_content, reduce_and_display_embeddings):
-
     umap_content_mo_chart = reduce_and_display_embeddings(
         extracted_content,
         "embedding",
         n_neighbors=n_neighbors_content.value,
         tooltip_cols=["title"],
-        color_col="content_type"
+        color_col="content_type",
     )
     umap_content_mo_chart
     return (umap_content_mo_chart,)
@@ -114,9 +116,8 @@ def _(extracted_content, n_neighbors_content, reduce_and_display_embeddings):
 
 @app.cell
 def _(get_content_url_link, mo, umap_content_mo_chart):
-    mo.stop(len(umap_content_mo_chart.value)==0)
+    mo.stop(len(umap_content_mo_chart.value) == 0)
     selected_content = umap_content_mo_chart.value.to_dict("records")[0]
-
 
     mo.center(
         mo.md(
@@ -145,7 +146,7 @@ def _(engine, extraction, extractiontopic, mo):
             extraction.extractiontopic
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (topics,)
 
@@ -165,7 +166,6 @@ def _(mo):
 
 @app.cell
 def _(n_neighbors_topics, reduce_and_display_embeddings, topics):
-
     umap_topic_mo_chart = reduce_and_display_embeddings(
         topics,
         "embedding",

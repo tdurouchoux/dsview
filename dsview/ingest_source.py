@@ -95,9 +95,7 @@ class IngestPipeline:
         try:
             content_loader = self._load(content)
 
-            extraction_result = await self._extract(
-                content_loader, content.id, session
-            )
+            extraction_result = await self._extract(content_loader, content.id, session)
 
             self._write(
                 content,

@@ -14,21 +14,21 @@ st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.p
 
 
 def get_missing_label_comparison(session: Session) -> ERComparison:
-
     result = session.exec(
         text("""
             SELECT * FROM ercomparison
             WHERE (name_1, name_2) NOT IN (
                 SELECT name_1, name_2 FROM erlabels
-            ) ORDER BY RANDOM()"""
-        )
+            ) ORDER BY RANDOM()""")
     ).first()
 
     return ERComparison(**result._asdict())
 
+
 @label_sync_vault("content", debug_mode=False)
 def save_and_sync_er_label(*args):
     save_er_label(*args)
+
 
 def main():
     engine = get_sqlite_engine()
@@ -71,7 +71,7 @@ def main():
                 comparison.name_2,
                 comparison.type_2,
                 comparison.description_2,
-                merge
+                merge,
             )
             st.rerun()
 

@@ -46,7 +46,6 @@ async def embed_and_format_extraction_results(
         for tag in content_description.tags
     ]
 
-
     if content_links is not None:
         extraction_result.links = [
             ExtractionLink(
@@ -60,13 +59,15 @@ async def embed_and_format_extraction_results(
 
     return extraction_result
 
-# Need to add async
 
+# Need to add async
 
 
 # This is kinda dangerous will see what happens
 # Async function that write to db has unknown behavior
-async def embed_and_save_topic(topic: DataScienceTopic, session: Session) -> ExtractionTopic:
+async def embed_and_save_topic(
+    topic: DataScienceTopic, session: Session
+) -> ExtractionTopic:
     embedding = await model_provider.async_embed(topic.description)
 
     extraction_topic = ExtractionTopic(
@@ -98,8 +99,8 @@ async def embed_and_update_topic(
         **update_dict,
     )
 
-
     return session.get(ExtractionTopic, topic_id)
+
 
 def save_er_comparison(
     topic_1: DataScienceTopic,

@@ -8,6 +8,7 @@ from .content_schema import LinkType
 
 LABELS_SCHEMA = "labels"
 
+
 class LabelledContent(SQLModel, table=True):
     __tablename__ = "labelledcontent"
     __table_args__ = {"schema": LABELS_SCHEMA}

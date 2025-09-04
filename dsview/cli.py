@@ -40,6 +40,7 @@ BACKUP_TABLES = [
     schemas.ERLabels,
 ]
 
+
 @app.command(help="Backup database tables to parquet files in the backup directory")
 def backup():
     """
@@ -59,12 +60,17 @@ def backup():
 
         df.to_parquet(backup_path / f"{table.__tablename__}.parquet")
 
+
 @app.command(help="Ingest a single piece of content from a URL or link")
 def ingest(
     link: str = typer.Argument(..., help="URL or link to the content to ingest"),
     already_read: bool = typer.Option(False, help="Mark content as already read"),
-    upload_date: datetime = typer.Option(datetime.now(), help="Date when content was uploaded"),
-    read_priority: int = typer.Option(0, help="Reading priority (higher numbers = higher priority)"),
+    upload_date: datetime = typer.Option(
+        datetime.now(), help="Date when content was uploaded"
+    ),
+    read_priority: int = typer.Option(
+        0, help="Reading priority (higher numbers = higher priority)"
+    ),
     relevance: int = typer.Option(0, help="Content relevance score"),
     source: str = typer.Option(None, help="Source identifier for the content"),
 ):
@@ -117,7 +123,9 @@ def retry_failed(
 @app.command(help="Rebuild content processing for a range of content IDs")
 def rebuild(
     start: int = typer.Option(0, help="Starting content ID (inclusive)"),
-    end: int = typer.Option(None, help="Ending content ID (inclusive, None for all remaining)")
+    end: int = typer.Option(
+        None, help="Ending content ID (inclusive, None for all remaining)"
+    ),
 ):
     """
     Rebuild content processing for a specified range of content.
@@ -257,11 +265,13 @@ def reset_labelling():
         logger.info("Clearing ER labels")
         schemas.drop_tables([schemas.ERLabels], engine)
 
+
 class MissingBackupDirectory(Exception):
     """Exception raised when backup directory is not found."""
 
     def __init__(self, path: Path) -> None:
         super().__init__(f"No backup directory found at {path}")
+
 
 def restore_one_table(
     backup_path: Path,
@@ -280,15 +290,14 @@ def restore_one_table(
 
     instances = []
     for _, row in df.iterrows():
-        instances.append(
-            table(**row)
-        )
+        instances.append(table(**row))
     session.add_all(instances)
     session.commit()
 
+
 @app.command(help="Restore database tables from parquet backup files")
 def restore_db(
-    backup_dir: str = typer.Option("backup", help="Directory containing backup files")
+    backup_dir: str = typer.Option("backup", help="Directory containing backup files"),
 ):
     """
     Restore database tables from parquet backup files.

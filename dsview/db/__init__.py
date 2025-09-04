@@ -1,4 +1,3 @@
-
 from sqlmodel import SQLModel, create_engine
 
 from dsview.config import load_postgres_config

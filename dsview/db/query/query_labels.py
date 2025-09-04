@@ -42,7 +42,9 @@ def get_labeled_content(
 
 
 def get_labels_data(
-    labels_tables: list[Type[SQLModel]], set_type: Literal["eval", "test"], session: Session,
+    labels_tables: list[Type[SQLModel]],
+    set_type: Literal["eval", "test"],
+    session: Session,
 ) -> pd.DataFrame:
     df_labeled = get_labeled_content(set_type, session)
 
@@ -70,7 +72,6 @@ def get_er_labels(
     random_state: int,
     session: Session,
 ) -> pd.DataFrame:
-
     query = """
         SELECT
            	erlabels.id,
