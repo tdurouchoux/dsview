@@ -14,7 +14,7 @@ def init_vault():
     logger.info("Initializing vault...")
     if obsidian_config.github_vault.repository is not None:
         logger.info("Github vault enabled, cloning repository ...")
-        run(["git", "clone", obsidian_config.github_vault.repository])
+        run(["git", "clone", obsidian_config.github_vault.url])
 
         directory_name = obsidian_config.github_vault.repository.split("/")[-1].replace(
             ".git", ""

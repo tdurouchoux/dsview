@@ -14,11 +14,7 @@ def upload_changes(commit_message: str):
     run(["git", "add", "."], cwd=config.vault_path)
     run(["git", "commit", "-am", commit_message], cwd=config.vault_path)
 
-    remote = (
-        f"https://{config.github_vault.username}:{config.github_vault.token}"
-        f"@{config.github_vault.repository.replace('https://', '')}"
-    )
-    run(["git", "push", remote, "main"], cwd=config.vault_path)
+    run(["git", "push", config.github_vault.url, "main"], cwd=config.vault_path)
 
 
 def api_sync_vault(function: callable) -> callable:

@@ -114,7 +114,13 @@ class GithubVault:
     username: str | None = "${oc.env:GITHUB_USERNAME,null}"
     email: str | None = "${oc.env:GITHUB_USER_EMAIL,null}"
     token: str | None = "${oc.env:GITHUB_TOKEN,null}"
-
+        
+    @property
+    def url(self) -> str:
+        return (
+            f"https://{self.username}:{self.token}"
+            f"@{self.repository.replace('https://', '')}"
+        )
 
 @dataclass
 class ObsidianConfig:
