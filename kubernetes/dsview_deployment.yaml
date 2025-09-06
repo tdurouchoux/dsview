@@ -20,7 +20,7 @@ spec:
           image: ghcr.io/tdurouchoux/dsview:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8000
+            - containerPort: 8000s
             - containerPort: 8501
             - containerPort: 8080
           livenessProbe:
@@ -47,7 +47,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: dsview-secret
-                  key: OPENAI_API_KEY
+                  key: MISTRAL_API_KEY
             - name: VAULT_REPOSITORY
               valueFrom:
                 secretKeyRef:

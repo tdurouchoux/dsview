@@ -51,7 +51,7 @@ Header should like : `Authorization: Basic <base64_encoded_auth>`
 
 ```
 kubectl apply -f dsview_deployment.yaml
-kubectl apply -f dsview_ingress.md
+kubectl apply -f dsview_ingress.yaml
 ```
 
 ## Deployment removal :
@@ -61,6 +61,7 @@ kubectl delete deployment dsview
 kubectl delete svc dsview-service
 kubectl delete ingress dsview-ingest-ingress
 kubectl delete ingress dsview-dashboard-ingress
+kubectl delete ingress dsview-labels-ingress
 ```
 
 
