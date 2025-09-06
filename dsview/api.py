@@ -7,8 +7,9 @@ from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
 
 from dsview.config import load_model_config, setup_logger
+from dsview.db import engine
 from dsview.db.ingest import update_content
-from dsview.db.schemas import InputContent, engine
+from dsview.db.schemas import InputContent
 from dsview.ingest_source import IngestPipeline
 from dsview.obsidian.sync_vault import api_sync_vault
 
