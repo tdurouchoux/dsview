@@ -20,7 +20,7 @@ spec:
           image: ghcr.io/tdurouchoux/dsview:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8000s
+            - containerPort: 8000
             - containerPort: 8501
             - containerPort: 8080
           livenessProbe:
