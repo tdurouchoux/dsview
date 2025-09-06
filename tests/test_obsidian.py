@@ -1,12 +1,10 @@
 from pathlib import Path
-import os
 
 import pytest
 from dotenv import load_dotenv
 
 from dsview.config import ObsidianConfig
 from dsview.obsidian.obsidian_utils import clean_note_title, get_topic_link
-
 
 load_dotenv()
 config = ObsidianConfig(vault_path=Path("test_vault"))

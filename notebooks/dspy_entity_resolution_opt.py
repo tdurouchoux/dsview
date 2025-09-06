@@ -1,21 +1,17 @@
 import marimo
 
-__generated_with = "0.11.20"
+__generated_with = "0.13.11"
 app = marimo.App(width="medium")
 
 
 @app.cell
 def _():
     import marimo as mo
-    return (mo,)
-
-
-@app.cell
-def _():
     import mlflow
 
-    from dsview.evaluation.entity_resolution import evaluate, get_er_data
-    return evaluate, get_er_data, mlflow
+    from dsview.config import ModelConfig, LLMProvider
+    from dsview.evaluation.entity_resolution import evaluate, get_er_labels
+    return LLMProvider, ModelConfig, evaluate, mlflow, mo
 
 
 @app.cell
@@ -40,20 +36,21 @@ def _(evaluate, experiment, mlflow):
 
 
 @app.cell
-def _():
-    from dsview.config import ModelConfig, LLMProvider
-    return LLMProvider, ModelConfig
-
-
-@app.cell
 def _(LLMProvider, ModelConfig):
     ollama_model_config = ModelConfig(
-        chat_model="gemma3:1b",
+        chat_model="gemma3:4b",
         embedding_model="all-minilm:latest",
         provider=LLMProvider.OLLAMA,
         token_limit=32_000,
     )
     return (ollama_model_config,)
+
+
+@app.cell
+def _():
+    from tqdm import tqdm 
+    import time
+    return
 
 
 @app.cell
@@ -123,7 +120,7 @@ def _(get_er_data, get_example_set):
     er_data = get_er_data()
     train_set = get_example_set(er_data[er_data["row_type"] == "example"])
     eval_set = get_example_set(er_data[er_data["row_type"] == "eval"])
-    return er_data, eval_set, train_set
+    return eval_set, train_set
 
 
 @app.cell
@@ -138,18 +135,16 @@ def _(dspy, er_classifier, train_set):
         test_result = er_classifier(**train_set[0].inputs())
 
     test_result
-    return (test_result,)
+    return
 
 
-@app.cell
-def equality_metric():
-    def equality_metric(example, pred, trace=None):
-        return example.merge_topic == pred.merge_topic
-    return (equality_metric,)
+@app.function
+def equality_metric(example, pred, trace=None):
+    return example.merge_topic == pred.merge_topic
 
 
 @app.cell(disabled=True)
-def _(dspy, equality_metric, er_classifier, train_set):
+def _(dspy, er_classifier, train_set):
     from dspy.teleprompt import BootstrapFewShotWithRandomSearch
 
     optimizer_1 = BootstrapFewShotWithRandomSearch(
@@ -162,11 +157,11 @@ def _(dspy, equality_metric, er_classifier, train_set):
         er_classifier_opt_1 = optimizer_1.compile(
             er_classifier, trainset=train_set
         )
-    return BootstrapFewShotWithRandomSearch, er_classifier_opt_1, optimizer_1
+    return (er_classifier_opt_1,)
 
 
 @app.cell
-def _(equality_metric, mlflow):
+def _(mlflow):
     from sklearn.metrics import (
         accuracy_score,
         f1_score,
@@ -195,14 +190,7 @@ def _(equality_metric, mlflow):
         print(metrics)
 
         mlflow.log_metrics(metrics)
-    return (
-        accuracy_score,
-        evaluate_dspy,
-        f1_score,
-        precision_score,
-        recall_score,
-        tqdm,
-    )
+    return (evaluate_dspy,)
 
 
 @app.cell
@@ -220,7 +208,7 @@ def _(er_classifier_opt_1):
 
 
 @app.cell(disabled=True)
-def _(dspy, equality_metric, er_classifier, train_set):
+def _(dspy, er_classifier, train_set):
     from dspy.teleprompt import MIPROv2
 
     optimizer_2 = MIPROv2(
@@ -234,7 +222,7 @@ def _(dspy, equality_metric, er_classifier, train_set):
         er_classifier_opt_2 = optimizer_2.compile(
             er_classifier, trainset=train_set
         )
-    return MIPROv2, er_classifier_opt_2, optimizer_2
+    return (er_classifier_opt_2,)
 
 
 @app.cell

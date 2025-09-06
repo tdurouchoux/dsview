@@ -1,12 +1,13 @@
 import mlflow
-import numpy as np
-import pandas as pd
-from rich.progress import track
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from sqlmodel import Session, create_engine
+from sqlmodel import Session
+from tqdm import tqdm
 
-from dsview.config import ModelConfig, get_sqlite_url
-from dsview.models.llm_models import ERClassifier
+from dsview.config import ModelConfig
+from dsview.db import engine
+from dsview.db.query import get_er_labels
+from dsview.extraction.models import ERClassifier
+from dsview.extraction.models.topics_extraction import DataScienceTopic
 
 RANDOM_STATE = 42
 SPLIT_RATIOS = {
@@ -14,43 +15,6 @@ SPLIT_RATIOS = {
     "eval": 0.5,
     "test": 0.1,
 }
-
-engine = create_engine(get_sqlite_url())
-
-
-def get_er_data() -> pd.DataFrame:
-    with Session(engine) as session:
-        conn = session.connection()
-
-        query = """
-            SELECT
-            	erlabels.id,
-                erlabels.merge,
-                ercomparison.name_1,
-                ercomparison.description_1,
-                ercomparison.type_1,
-                ercomparison.name_2,
-                ercomparison.description_2,
-                ercomparison.type_2
-            FROM erlabels
-            JOIN ercomparison
-            ON erlabels.er_comparison_id = ercomparison.id
-        """
-
-        # Use the connection with pandas read_sql
-        df = pd.read_sql(
-            query,
-            conn,
-            index_col="id",
-        )
-
-    df["row_type"] = np.random.RandomState(RANDOM_STATE).choice(
-        list(SPLIT_RATIOS.keys()),
-        size=df.shape[0],
-        p=list(SPLIT_RATIOS.values()),
-    )
-
-    return df
 
 
 def evaluate(
@@ -60,7 +24,8 @@ def evaluate(
     set_type: str = "eval",
     remove_descr=False,
 ):
-    er_data = get_er_data()
+    with Session(engine) as session:
+        er_data = get_er_labels(SPLIT_RATIOS, RANDOM_STATE, session)
     run_data = er_data[er_data["row_type"] == set_type]
 
     er_classifier = ERClassifier(
@@ -76,17 +41,20 @@ def evaluate(
 
     merge_pred = []
 
-    for comparison in track(run_data.itertuples(index=False), total=run_data.shape[0]):
-        topic_comparison = {
-            "name_1": comparison.name_1,
-            "type_1": comparison.type_1,
-            "description_1": comparison.description_1,
-            "name_2": comparison.name_2,
-            "type_2": comparison.type_2,
-            "description_2": comparison.description_2,
-        }
+    for comparison in tqdm(run_data.itertuples(index=False), total=run_data.shape[0]):
+        topic_1 = DataScienceTopic(
+            name=comparison.name_1,
+            type=comparison.type_1,
+            description=comparison.description_1,
+        )
 
-        merge_pred.append(er_classifier.predict(topic_comparison).merge_topic)
+        topic_2 = DataScienceTopic(
+            name=comparison.name_2,
+            type=comparison.type_2,
+            description=comparison.description_2,
+        )
+
+        merge_pred.append(er_classifier.predict(topic_1, topic_2).merge_topic)
 
     run_data["merge_pred"] = merge_pred
 

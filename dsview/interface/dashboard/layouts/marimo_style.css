@@ -1,0 +1,6 @@
+:root {
+    --monospace-font: "JetBrains Mono", monospace;
+    --text-font: "Space Grotesk", sans-serif;
+    --heading-font: "Space Grotesk", sans-serif;
+    --radius: 10px; /* Rounded but crisp */
+}

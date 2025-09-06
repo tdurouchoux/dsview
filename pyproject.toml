@@ -31,13 +31,19 @@ dependencies = [
     "nltk>=3.9.1",
     "instructor[anthropic]>=1.7.2",
     "pytest>=8.3.4",
-    "altair>=5.5.0",
     "wat>=0.5.1",
     "ollama>=0.4.7",
     "openai>=1.63.0",
     "anthropic>=0.42.0",
     "mistralai>=1.5.0",
     "tenacity>=9.0.0",
+    "altair>=5.5.0",
+    "marimo>=0.13.11",
+    "dayplot>=0.3.3",
+    "networkx>=3.4.2",
+    "numba>=0.61.2",
+    "umap-learn>=0.5.9.post2",
+    "psycopg[binary]>=3.2.9",
 ]
 
 [build-system]
@@ -46,6 +52,17 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 dsview = "dsview.cli:main"
+dsview-ui = "dsview.interface.run_dashboard:main"
 
 [dependency-groups]
-dev = ["jupyter>=1.1.1", "marimo>=0.13.2"]
+dev = [
+    "duckdb>=1.2.2",
+    "jupyter>=1.1.1",
+    "marimo>=0.13.2",
+    "nest-asyncio>=1.6.0",
+    "networkx>=3.4.2",
+    "openai>=1.65.2",
+    "python-lsp-server>=1.12.2",
+    "sqlglot>=26.16.4",
+    "sqlite-vec>=0.1.6",
+]

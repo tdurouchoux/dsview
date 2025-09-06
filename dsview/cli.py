@@ -1,53 +1,88 @@
 import logging
-from datetime import date, datetime
+from datetime import datetime
+from pathlib import Path
+from typing import Type
 
-import frontmatter
 import mlflow
 import typer
 from dotenv import load_dotenv
-from rich.progress import track
-from sqlmodel import Session, SQLModel, create_engine, select
+import pandas as pd
+from sqlmodel import Session, SQLModel
 
-from dsview.config import get_sqlite_url, setup_logger
-from dsview.content.content_db_schema import InputContent
-from dsview.extraction.extraction_db_schema import (
-    ERComparison,
-    ERDecision,
-    ExtractionResult,
-    InvalidTag,
-    InvalidTopic,
+from dsview.config import setup_logger
+from dsview.db.query import get_content_list, get_failed_ingestions, get_topic_list
+from dsview.db import schemas, engine
+from dsview.db.schemas.extraction_schema import ExtractionResult
+from dsview.obsidian.write_notes import (
+    write_content_note,
+    write_topic_note,
 )
-
-from .ingest_source import FailedIngestion
 
 load_dotenv()
 setup_logger()
 
 logger = logging.getLogger(__name__)
 
-engine = create_engine(get_sqlite_url())
-SQLModel.metadata.create_all(engine)
-
-app = typer.Typer()
+app = typer.Typer(
+    help="DSView CLI - A tool for content ingestion, processing, and knowledge base management"
+)
 
 # TODO Implement evaluation cli
 # app.add_typer(evaluate_app, name="evaluate")
+BACKUP_TABLES = [
+    schemas.InputContent,
+    schemas.LabelledContent,
+    schemas.TitleLabels,
+    schemas.ContentTypeLabels,
+    schemas.TagLabels,
+    schemas.TopicsLabels,
+    schemas.LinksLabels,
+    schemas.ERLabels,
+]
 
 
-@app.command()
+@app.command(help="Backup database tables to parquet files in the backup directory")
+def backup():
+    """
+    Create backup files for all important database tables.
+    Saves data as parquet files in a 'backup' directory.
+    """
+    backup_path = Path("backup")
+
+    if not backup_path.exists():
+        backup_path.mkdir()
+
+    for table in BACKUP_TABLES:
+        df = pd.read_sql(
+            f"SELECT * FROM {table.__table__}",
+            con=engine,
+        )
+
+        df.to_parquet(backup_path / f"{table.__tablename__}.parquet")
+
+
+@app.command(help="Ingest a single piece of content from a URL or link")
 def ingest(
-    link: str,
-    already_read: bool = False,
-    upload_date: datetime = datetime.now(),
-    read_priority: int = 0,
-    relevance: int = 0,
-    source: str = None,
+    link: str = typer.Argument(..., help="URL or link to the content to ingest"),
+    already_read: bool = typer.Option(False, help="Mark content as already read"),
+    upload_date: datetime = typer.Option(
+        datetime.now(), help="Date when content was uploaded"
+    ),
+    read_priority: int = typer.Option(
+        0, help="Reading priority (higher numbers = higher priority)"
+    ),
+    relevance: int = typer.Option(0, help="Content relevance score"),
+    source: str = typer.Option(None, help="Source identifier for the content"),
 ):
+    """
+    Ingest a single piece of content into the system.
+    This will download, process, and extract information from the provided link.
+    """
     from .ingest_source import IngestPipeline
 
     ingest_pipeline = IngestPipeline()
 
-    content = InputContent(
+    content = schemas.InputContent(
         link=link,
         upload_date=upload_date.date(),
         already_read=already_read,
@@ -59,67 +94,43 @@ def ingest(
         ingest_pipeline.ingest_content(content, session)
 
 
-@app.command()
-def save():
-    from dsview.obsidian.obsidian_utils import retrieve_contents_path
+@app.command(help="Retry processing of previously failed ingestions")
+def retry_failed(
+    ignore: list[str] = ["WebRequestFailure"],
+):
+    """
+    Retry ingestion of content that previously failed to process.
+    This clears the failed ingestion records and attempts to process them again.
+    """
+    from .ingest_source import IngestPipeline
 
-    with Session(engine) as session:
-        logger.info("Starting dsview snapshot creation.")
-        content_notes_path = retrieve_contents_path()
-
-        for note_path in track(content_notes_path):
-            note = frontmatter.load(note_path)
-            note_dict = dict(note)
-
-            upload_date = (
-                date.fromisoformat(note_dict["upload_date"])
-                if isinstance(note_dict["upload_date"], str)
-                else note_dict["upload_date"]
-            )
-
-            relevance = note_dict["relevance"] if "relevance" in note_dict else 0
-
-            source = (
-                note_dict["source"]
-                if "source" in note_dict
-                and note_dict["source"] not in ["None", "Aucune"]
-                else None
-            )
-
-            input_content = InputContent(
-                link=note_dict["link"],
-                upload_date=upload_date,
-                already_read=note_dict["already_read"],
-                read_priority=note_dict["read_priority"],
-                relevance=relevance,
-                source=source,
-            )
-
-            session.add(input_content)
-            session.commit()
-
-
-@app.command()
-def retry_failed():
-    from .ingest_source import FailedIngestion, IngestPipeline
+    logger.info("Retrying failed ingestions ...")
 
     with Session(engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
-        failed_ingestions = session.exec(select(FailedIngestion)).all()
-        SQLModel.metadata.drop_all(engine, tables=[FailedIngestion.__table__])
+        content_list = get_failed_ingestions(session, ignore_errors=ignore)
 
-        for failed_ingestion in failed_ingestions:
-            statement = select(InputContent).where(
-                InputContent.id == failed_ingestion.content_id
-            )
-            content = session.exec(statement).first()
+        logger.info("Found %s failed ingestions", len(content_list))
 
-            ingest_pipeline.ingest_content(content, session)
+    schemas.drop_tables([schemas.FailedIngestion], engine, reset=True)
+
+    with Session(engine) as session:
+        logger.info("Starting ingestions ...")
+        ingest_pipeline.ingest_content_list(content_list, session)
 
 
-@app.command()
-def rebuild(start: int = 0, end: int = None):
+@app.command(help="Rebuild content processing for a range of content IDs")
+def rebuild(
+    start: int = typer.Option(0, help="Starting content ID (inclusive)"),
+    end: int = typer.Option(
+        None, help="Ending content ID (inclusive, None for all remaining)"
+    ),
+):
+    """
+    Rebuild content processing for a specified range of content.
+    This will reprocess existing content using the current extraction pipeline.
+    """
     from .ingest_source import IngestPipeline
 
     mlflow.set_experiment(experiment_name="rebuild")
@@ -127,48 +138,96 @@ def rebuild(start: int = 0, end: int = None):
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
     with Session(engine) as session:
-        statement = select(InputContent).order_by(InputContent.upload_date.asc())
-        content_list = session.exec(statement).all()
-        if end is not None:
-            content_list = content_list[start:end]
-        else:
-            content_list = content_list[start:]
+        content_list = get_content_list(
+            session,
+            start_id=start,
+            end_id=end,
+        )
 
         ingest_pipeline.ingest_content_list(content_list, session)
 
 
-@app.command()
+def regen_content_notes(content_list: list[schemas.InputContent], session: Session):
+    """
+    Regenerate Obsidian notes for a list of content items.
+
+    Args:
+        content_list: List of InputContent items to process
+        session: Database session
+
+    Returns:
+        int: Number of content items with missing extractions
+    """
+    missing_extraction_count = 0
+
+    for content in content_list:
+        extraction = session.get(ExtractionResult, content.id)
+
+        if extraction is None:
+            missing_extraction_count += 1
+            continue
+        write_content_note(content, extraction)
+
+    return missing_extraction_count
+
+
+@app.command(help="Regenerate all Obsidian vault content notes and topic pages")
+def regen_vault():
+    """
+    Regenerate the entire Obsidian vault from the database.
+    This creates fresh notes for all content and topic pages.
+    """
+    with Session(engine) as session:
+        content_list = get_content_list(session)
+        missing_extraction_count = regen_content_notes(content_list, session)
+
+        logger.info(
+            "Missing %s extraction out of %s input content",
+            missing_extraction_count,
+            len(content_list),
+        )
+
+        topic_list = get_topic_list(session)
+
+        for topic in topic_list:
+            write_topic_note(topic)
+
+
+@app.command(help="Reset database tables (with confirmation prompts)")
 def reset_db():
-    delete_input_content = typer.confirm("Clear input content?")
-
-    if delete_input_content:
-        logger.info("Deleting input content")
-        SQLModel.metadata.drop_all(engine, tables=[InputContent.__table__])
-
+    """
+    Reset database tables by dropping extraction results and related data.
+    User will be prompted to confirm deletion of extraction results.
+    """
     delete_extraction = typer.confirm("Clear extraction results ? ")
 
     if delete_extraction:
         logger.info("Deleting extraction results")
-        SQLModel.metadata.drop_all(
-            engine,
-            tables=[
-                FailedIngestion.__table__,
-                ERComparison.__table__,
-                ERDecision.__table__,
-                InvalidTag.__table__,
-                InvalidTopic.__table__,
-                ExtractionResult.__table__,
+        schemas.drop_tables(
+            [
+                schemas.ExtractionResult,
+                schemas.FailedIngestion,
+                schemas.ExtractionTopic,
+                schemas.ContentTopicRelation,
+                schemas.ERComparison,
+                schemas.ExtractionLink,
+                schemas.ExtractionTag,
             ],
+            engine,
         )
 
 
-@app.command()
+@app.command(help="Clear the entire Obsidian vault (DESTRUCTIVE)")
 def reset_vault():
+    """
+    Clear the entire Obsidian vault directory.
+    WARNING: This is a destructive operation that cannot be undone.
+    """
     from dsview.obsidian.obsidian_utils import clear_vault
 
     delete = typer.confirm(
         "This action will clear the entire obsidian vault. "
-        "Are you sur you want to reset the vault ?"
+        "Are you sure you want to reset the vault ?"
     )
     if not delete:
         logger.info("Aborting reset")
@@ -179,22 +238,79 @@ def reset_vault():
     logger.info("Reset completed")
 
 
-@app.command()
+@app.command(help="Reset labelling data (content and extraction result labels)")
 def reset_labelling():
-    from dsview.evaluation.labels_schema import (
-        clear_content_labelling,
-        clear_er_labelling,
-    )
+    """
+    Reset labelling data with separate confirmations for content and ER labelling.
+    This allows selective clearing of different types of label data.
+    """
 
     delete_content_labelling = typer.confirm("Clear content labelling ?")
     if delete_content_labelling:
         logger.info("Clearing content labels")
-        clear_content_labelling(engine)
+        schemas.drop_tables(
+            [
+                schemas.LabelledContent,
+                schemas.TitleLabels,
+                schemas.ContentTypeLabels,
+                schemas.TagLabels,
+                schemas.TopicsLabels,
+                schemas.LinksLabels,
+            ],
+            engine,
+        )
 
     delete_er_labelling = typer.confirm("Clear ER labelling ?")
     if delete_er_labelling:
         logger.info("Clearing ER labels")
-        clear_er_labelling(engine)
+        schemas.drop_tables([schemas.ERLabels], engine)
+
+
+class MissingBackupDirectory(Exception):
+    """Exception raised when backup directory is not found."""
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"No backup directory found at {path}")
+
+
+def restore_one_table(
+    backup_path: Path,
+    table: Type[SQLModel],
+    session,
+):
+    """
+    Restore a single table from a parquet backup file.
+
+    Args:
+        backup_path: Path to the backup directory
+        table: SQLModel table class to restore
+        session: Database session
+    """
+    df = pd.read_parquet(backup_path / f"{table.__tablename__}.parquet")
+
+    instances = []
+    for _, row in df.iterrows():
+        instances.append(table(**row))
+    session.add_all(instances)
+    session.commit()
+
+
+@app.command(help="Restore database tables from parquet backup files")
+def restore_db(
+    backup_dir: str = typer.Option("backup", help="Directory containing backup files"),
+):
+    """
+    Restore database tables from parquet backup files.
+    This will restore all tables listed in BACKUP_TABLES from the specified directory.
+    """
+    backup_path = Path(backup_dir)
+
+    if not backup_path.exists():
+        raise MissingBackupDirectory(backup_path)
+
+    with Session(engine) as session:
+        for table in BACKUP_TABLES:
+            restore_one_table(backup_path, table, session)
 
 
 def main():

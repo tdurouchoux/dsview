@@ -3,12 +3,14 @@ from typing import Literal
 import mlflow
 import pandas as pd
 from rouge import Rouge
+from sqlmodel import Session
 from tqdm import tqdm
 
 from dsview.config import ModelConfig
-from dsview.evaluation.evaluation_extraction_utils import get_labels_data
-from dsview.evaluation.labels_schema import ContentTypeLabels, TagLabels, TitleLabels
-from dsview.models.llm_models import DescriptionGenerator
+from dsview.db import engine
+from dsview.db.query import get_labels_data
+from dsview.db.schemas import ContentTypeLabels, TagLabels, TitleLabels
+from dsview.extraction.models import DescriptionGenerator
 
 from .semantic_score import semantic_score
 
@@ -16,7 +18,10 @@ tqdm.pandas()
 
 
 def get_description_generation_data(set_type: Literal["eval", "test"]) -> pd.DataFrame:
-    df_labels = get_labels_data([ContentTypeLabels, TagLabels, TitleLabels], set_type)
+    with Session(engine) as session:
+        df_labels = get_labels_data(
+            [ContentTypeLabels, TagLabels, TitleLabels], set_type, session
+        )
 
     df_labels = df_labels.groupby("id").agg(
         {"content": "first", "title": "first", "content_type": "first", "tag": list}

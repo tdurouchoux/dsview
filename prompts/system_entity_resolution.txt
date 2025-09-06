@@ -41,8 +41,8 @@ The output should take the following format :
 <output>
     merge_topic (bool): Wether or not the two provided topics should be merged.
     topic : Result of the merge between the two topics, only provided if topics should be merged (None if merge_topic is False)
-        type : Merged topic type from topic_tags
         name : Merge topic name
+        type : Merged topic type from topic_tags
         description : Merged topic description
 </output>
 

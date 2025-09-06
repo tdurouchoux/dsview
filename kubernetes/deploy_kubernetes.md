@@ -62,3 +62,9 @@ kubectl delete svc dsview-service
 kubectl delete ingress dsview-ingest-ingress
 kubectl delete ingress dsview-dashboard-ingress
 ```
+
+
+## Postgres 
+
+- initialize database 
+- Create schemas

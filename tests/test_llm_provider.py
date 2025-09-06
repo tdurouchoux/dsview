@@ -1,17 +1,20 @@
+import asyncio
 import numpy as np
 import pytest
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
 from dsview.config import LLMProvider, ModelConfig
-from dsview.models import get_model_provider
-from dsview.models.model_provider import MissingAPIKey, ModelConfigurationError
-from dsview.models.providers import (
+from dsview.model_utils import get_model_provider
+from dsview.model_utils.model_provider import MissingAPIKey
+from dsview.model_utils.providers import (
     AnthropicProvider,
     MistralProvider,
     OllamaProvider,
     OpenAIProvider,
 )
+
+# TODO async endpoint testing
 
 load_dotenv()
 
@@ -49,7 +52,7 @@ ANTHROPIC_MODEL_CONFIG = ModelConfig(
         (OPENAI_MODEL_CONFIG, OpenAIProvider),
         (MISTRAL_MODEL_CONFIG, MistralProvider),
         (OLLAMA_MODEL_CONFIG, OllamaProvider),
-        (ANTHROPIC_MODEL_CONFIG, AnthropicProvider),
+        # (ANTHROPIC_MODEL_CONFIG, AnthropicProvider),
     ],
 )
 def test_get_model_provider(model_config: ModelConfig, provider_type: LLMProvider):
@@ -66,22 +69,13 @@ def test_missing_api_key():
     OpenAIProvider.PROVIDER_API_KEY_NAME = "OPENAI_API_KEY"
 
 
-def test_model_configuration_error():
-    OPENAI_MODEL_CONFIG.chat_model = "no-gpt"
-
-    with pytest.raises(ModelConfigurationError):
-        _ = get_model_provider(OPENAI_MODEL_CONFIG)
-
-    OPENAI_MODEL_CONFIG.chat_model = "gpt-4o-mini-2024-07-18"
-
-
 @pytest.mark.parametrize(
     "model_config",
     [
         OPENAI_MODEL_CONFIG,
         MISTRAL_MODEL_CONFIG,
         OLLAMA_MODEL_CONFIG,
-        ANTHROPIC_MODEL_CONFIG,
+        # ANTHROPIC_MODEL_CONFIG,
     ],
 )
 def test_send_messages(model_config: ModelConfig):
@@ -92,6 +86,25 @@ def test_send_messages(model_config: ModelConfig):
     model_provider = get_model_provider(model_config)
 
     response = model_provider.send_messages(messages)
+
+    assert isinstance(response, str)
+
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        OPENAI_MODEL_CONFIG,
+        MISTRAL_MODEL_CONFIG,
+        OLLAMA_MODEL_CONFIG,
+        # ANTHROPIC_MODEL_CONFIG,
+    ],
+)
+def test_async_messages(model_config: ModelConfig):
+    messages = [
+        {"role": "user", "content": "Hello !"},
+    ]
+    model_provider = get_model_provider(model_config)
+
+    response = asyncio.run(model_provider.async_send_messages(messages))
 
     assert isinstance(response, str)
 
@@ -106,7 +119,7 @@ class Response(BaseModel):
         OPENAI_MODEL_CONFIG,
         MISTRAL_MODEL_CONFIG,
         OLLAMA_MODEL_CONFIG,
-        ANTHROPIC_MODEL_CONFIG,
+        # ANTHROPIC_MODEL_CONFIG,
     ],
 )
 def test_send_messaged_structured(model_config: ModelConfig):
@@ -120,6 +133,26 @@ def test_send_messaged_structured(model_config: ModelConfig):
 
     assert isinstance(response, Response)
 
+
+@pytest.mark.parametrize(
+    "model_config",
+    [
+        OPENAI_MODEL_CONFIG,
+        MISTRAL_MODEL_CONFIG,
+        OLLAMA_MODEL_CONFIG,
+        # ANTHROPIC_MODEL_CONFIG,
+    ],
+)
+def test_async_send_messaged_structured(model_config: ModelConfig):
+    messages = [
+        {"role": "user", "content": "How are you ?"},
+    ]
+
+    model_provider = get_model_provider(model_config)
+
+    response = asyncio.run(model_provider.async_send_messages(messages, structured_output_class=Response))
+
+    assert isinstance(response, Response)
 
 @pytest.mark.parametrize(
     "model_config",

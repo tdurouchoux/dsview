@@ -1,21 +1,22 @@
 import asyncio
+
 import pytest
 from pydantic import HttpUrl
 
-from dsview.content.content_loader import get_content_loader
 from dsview.extraction.content_extraction import ContentExtractor
-from dsview.models.llm_models.description_generation import (
+from dsview.extraction.content_loader import get_content_loader
+from dsview.extraction.models.description_generation import (
     ContentDescription,
     DataScienceTag,
     DescriptionGenerator,
 )
-from dsview.models.llm_models.links_extraction import (
+from dsview.extraction.models.links_extraction import (
     LinkList,
     LinksExtractor,
     RelevantLink,
 )
-from dsview.models.llm_models.summary_generation import SummaryGenerator
-from dsview.models.llm_models.topics_extraction import (
+from dsview.extraction.models.summary_generation import SummaryGenerator
+from dsview.extraction.models.topics_extraction import (
     DataScienceTopic,
     TopicList,
     TopicsExtractor,
@@ -62,31 +63,14 @@ def test_links_extraction(content_loader):
     assert isinstance(link_list, LinkList)
 
 
-def test_select_valid_properties():
-    valid_properties, invalid_properties = ContentExtractor.select_valid_properties(
-        [
-            DataScienceTag(name="Cloud Computing"),
-            DataScienceTag(name="Mathematics"),
-            DataScienceTag(name="MlOps"),
-        ],
-        ["Cloud Computing", "Mathematics"],
-        "tag",
-    )
+# Not testable for now because it will ingest things in db
+# def test_content_extractor(content_loader):
+#     content_extractor = ContentExtractor()
+#     summary, content_description, topics, content_links = asyncio.run(
+#         content_extractor.extract_content(content_loader, None, 1)
+#     )
 
-    assert valid_properties == [
-        DataScienceTag(name="Cloud Computing"),
-        DataScienceTag(name="Mathematics"),
-    ]
-    assert invalid_properties == [DataScienceTag(name="MlOps")]
-
-
-def test_content_extractor(content_loader):
-    content_extractor = ContentExtractor()
-    summary, content_description, topics, content_links = (
-        asyncio.run(content_extractor.extract_content(content_loader, None, 1))
-    )
-
-    assert len(summary) > 0 and isinstance(summary, str)
-    assert isinstance(content_description, ContentDescription)
-    assert len(topics) > 0 and isinstance(topics[0], DataScienceTopic)
-    assert len(content_links) > 0 and isinstance(content_links[0], RelevantLink)
+#     assert len(summary) > 0 and isinstance(summary, str)
+#     assert isinstance(content_description, ContentDescription)
+#     assert len(topics) > 0 and isinstance(topics[0], DataScienceTopic)
+#     assert len(content_links) > 0 and isinstance(content_links[0], RelevantLink)

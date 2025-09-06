@@ -37,10 +37,12 @@ class ModelType(Enum):
     SUMMARY_GENERATION = 4
     TOPICS_EXTRACTION = 5
     SEMANTIC_SCORE = 6
+    INDEX = 7
 
 
 @dataclass
 class ModelConfig:
+    host: Optional[str] = None
     chat_model: str = MISSING
     embedding_model: Optional[str] = None
     provider: LLMProvider = LLMProvider.OPENAI
@@ -76,21 +78,21 @@ def load_model_config(model_type: ModelType = None) -> ModelConfig:
 
     config_list = load_config(GlobalModelConfig, "model.yaml").configs
 
-    default_model_config = None
+    model_config = None
 
     for model_specific_config in config_list:
         if (
             model_type != ModelType.DEFAULT
             and model_specific_config.model_type == ModelType.DEFAULT
         ):
-            default_model_config = model_specific_config.model_config
+            model_config = model_specific_config.model_config
 
         if model_specific_config.model_type.value == model_type.value:
             return model_specific_config.model_config
 
-    if default_model_config is None:
+    if model_config is None:
         raise ModelConfigurationError(model_type)
-    return default_model_config
+    return model_config
 
 
 @dataclass
@@ -117,21 +119,45 @@ class GithubVault:
 @dataclass
 class ObsidianConfig:
     vault_path: Path = MISSING
-    db_file: str = "vault.db"
     content_directory: str = "contents"
     topic_directory: str = "topics"
-    artefact_directory: str = "artefacts"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
 
-load_obsidian_config: Callable[[], ObsidianConfig] = partial(
-    load_config, ObsidianConfig, "obsidian.yaml"
+@dataclass
+class PostgresConfig:
+    host: str = "${oc.env:POSTGRES_HOST}"
+    port: int = 5432
+    database: str = "dsview_db"
+    user: str = "postgres"
+    password: str = "${oc.env:POSTGRES_PASSWORD}"
+
+    def db_uri(self, sqlalchemy: bool = True) -> str:
+        return (
+            "postgresql"
+            + ("+psycopg" if sqlalchemy else "")
+            + f"://{self.user}:{self.password}"
+            + f"@{self.host}:{self.port}/{self.database}"
+        )
+
+
+@dataclass
+class StorageConfig:
+    obsidian: ObsidianConfig = field(default_factory=ObsidianConfig)
+    postgres: PostgresConfig = field(default_factory=PostgresConfig)
+
+
+load_storage_config: Callable[[], StorageConfig] = partial(
+    load_config, StorageConfig, "storage.yaml"
 )
 
 
-def get_sqlite_url() -> str:
-    obsidian_config = load_obsidian_config()
-    return f"sqlite:///{obsidian_config.vault_path}/{obsidian_config.db_file}"
+def load_obsidian_config() -> ObsidianConfig:
+    return load_storage_config().obsidian
+
+
+def load_postgres_config() -> PostgresConfig:
+    return load_storage_config().postgres
 
 
 def setup_logger():

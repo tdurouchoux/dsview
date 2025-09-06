@@ -13,10 +13,15 @@ spec:
       protocol: TCP
       port: 8000
       targetPort: 8000
-    - name: dsview-dashboard
+    - name: dsview-labels
       protocol: TCP
       port: 8501
       targetPort: 8501
+    - name: dsview-dashboard
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+
   type: ClusterIP
 ---
 apiVersion: networking.k8s.io/v1
@@ -70,7 +75,35 @@ spec:
               service:
                 name: dsview-service
                 port:
-                  number: 8501
+                  number: 8080
   tls:
     - hosts:
         - dsview-dashboard.lab.sspcloud.fr
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsview-labels-ingress
+  namespace: user-tdurouchoux
+  labels:
+    app: dsview
+  annotations:
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-dashboard
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: dsview-labels.lab.sspcloud.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dsview-service
+                port:
+                  number: 8501
+  tls:
+    - hosts:
+        - dsview-labels.lab.sspcloud.fr

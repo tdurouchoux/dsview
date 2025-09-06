@@ -9,7 +9,8 @@ You will be presented with two Data Science topics, each defined by a name and a
 
 1. Topics should represent the same generic theme or tool to qualify for merging.
 2. Topics do not need to match exactly, spelling variations or slight rephrasing should be merged regardless of other differences.
-3. If one topic encompasses or intersects with the other, they should be merged.
+3. If one topic encompasses or significantly intersects with the other, they should be merged.
+4. If the two topics share the same root (e.g., the same library) but describe distinct concepts within this subject, they should NOT be merged.
 
 When analyzing the topics, complete your analysis inside <topic_comparison> tags using the following structure:
 
@@ -17,27 +18,30 @@ When analyzing the topics, complete your analysis inside <topic_comparison> tags
 1. Name Comparison:
    [Check if the names are close]
 
-2. Define topics
-   [Define each topics]
-   
-3. Key Concepts :
-   [List key concepts from each description]
-
-4. Concept Overlap:
+2. Concept Overlap:
    [Identify overlapping concepts between the two topics]
 
-5. Significant Differences:
+4. Significant Differences:
    [Note any significant differences between the topics]
 
-6. Similarity Assessment:
+5. Similarity Assessment:
    [Evaluate how similar the topics are, considering their theme, tool, or concept]
 
-7. Confidence Level:
+6. Confidence Level:
    [Assess your confidence in the similarity of the topics on a scale of 1-10]
 
-8. Merging Decision:
+7. Merging Decision:
     [Based on the above analysis, decide whether to merge the topics or not]
 </topic_comparison>
+
+The output should take the following format :
+<output>
+    merge_topic (bool): Wether or not the two provided topics should be merged.
+    topic : Result of the merge between the two topics, only provided if topics should be merged (None if merge_topic is False)
+        name : Merge topic name
+        type : Merged topic type from topic_tags
+</output>
+
 
 Here are some examples :
 <examples>
@@ -58,8 +62,11 @@ Example 2 :
 	- Topic 2 :
 		- name : Data Transformation
 		- type : Concept
-    - Result : 
+    - Result :
         - merge_topic : True
+        - topic :
+            - name : Data Transformation
+            - type : Concept
 
 Example 3 :
 	- Topic 1 :
@@ -68,8 +75,11 @@ Example 3 :
 	- Topic 2 :
 		- name : vLLM
 		- type : Library
-	- Result : 
+	- Result :
         - merge_topic : True
+        - topic :
+            - name : vLLM
+            - type : Library
 
 Example 4 :
 	- Topic 1 :
@@ -78,7 +88,7 @@ Example 4 :
 	- Topic 2 :
 		- name : Machine Learning Pipeline
 		- type : Concept
-	- Result : 
+	- Result :
         - merge_topic : False
 
 Example 5 :
@@ -88,7 +98,7 @@ Example 5 :
 	- Topic 2 :
 		- name : TensorFlow
 		- type : Library
-	- Result : 
+	- Result :
         - merge_topic : False
-        
+
 </examples>

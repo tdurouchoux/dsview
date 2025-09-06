@@ -21,26 +21,6 @@ def upload_changes(commit_message: str):
     run(["git", "push", remote, "main"], cwd=config.vault_path)
 
 
-def label_sync_vault(label_type: str):
-    def sync_vault(function: callable) -> callable:
-        @wraps(function)
-        def function_with_sync(*args, **kwargs):
-            if config.github_vault.repository is None:
-                function(*args, **kwargs)
-
-            pull_changes()
-
-            result = function(*args, **kwargs)
-
-            upload_changes(f"Adding one {label_type} label")
-
-            return result
-
-        return function_with_sync
-
-    return sync_vault
-
-
 def api_sync_vault(function: callable) -> callable:
     @wraps(function)
     async def function_with_sync(*args, **kwargs):

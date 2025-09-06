@@ -1,5 +1,35 @@
-Data Science source extracted from url {url}:
-{content}
+Your task is to extract the most relevant links within a website content. The content will be related to Data Science, and I am looking for the links that will provide the most value for my knowledge management system.
 
-Links within this source : 
+Here is the content url :
+<content_url>
+{url}
+</content_url>
+
+Here is the content :
+<content>
+{content}
+</content>
+
+Here is the links within this source (to select from) :
+<links>
 {content_links}
+</links>
+
+Instructions:
+1. Read and analyze the provided text (within <content>) carefully.
+2. For each link (provided in <links>), describe the related content and identify what they are pointing to
+3. Exclude any internal links or self referencing link (compared to <content_url>)
+4. Exclude any social networks links
+5. Select the most relevant links, at most 5 but you should aim for the lowest amount possible
+
+Provide a list of links with additionnal information, following this format :
+<output>
+- name: Name describing the content of the first link.
+  url : Url to the first link
+  description : Short description of the first link content.
+- name: Name describing the content of the second link.
+  url : Url to the second link
+  description : Short description of the first second content.
+</output>
+
+Please select the most relevant links regarding the provided content

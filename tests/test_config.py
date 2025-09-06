@@ -13,7 +13,7 @@ from dsview.config import (
     ModelConfigurationError,
     ModelType,
     ObsidianConfig,
-    get_sqlite_url,
+    get_db_path,
     load_config,
     load_extraction_config,
     load_model_config,
@@ -27,7 +27,7 @@ configs:
       chat_model: gpt-4o-mini-2024-07-18
       embedding_model: text-embedding-3-small
       provider: OPENAI
-      token_limit: 128000
+      token_limit: 128001
   - model_type: LINKS_EXTRACTION
     model_config:
       chat_model: mistral
@@ -73,11 +73,12 @@ os.environ["GITHUB_TOKEN"] = "some_token"
 
 @contextmanager
 def generate_config(filename: str, conf_content: str):
-
     curr_conf_dir = os.getenv("CONF_DIR")
 
     os.environ["CONF_DIR"] = str(CONF_DIR)
     CONF_DIR.mkdir(exist_ok=True)
+
+    load_config.cache_clear()
 
     tmp_filepath = CONF_DIR / filename
 
@@ -106,7 +107,7 @@ def test_model_config_1():
             chat_model="gpt-4o-mini-2024-07-18",
             embedding_model="text-embedding-3-small",
             provider=LLMProvider.OPENAI,
-            token_limit=128000,
+            token_limit=128001,
         )
 
         model_config = load_model_config()
@@ -154,7 +155,6 @@ def test_obsidian_config():
             db_file="vault.db",
             content_directory="contents",
             topic_directory="topics",
-            artefact_directory="artefacts",
             github_vault=GithubVault(
                 repository="repo_url",
                 username="me",
@@ -169,8 +169,8 @@ def test_obsidian_config():
         assert obsidian_config == expected_config
 
 
-def test_sqlite_url():
+def test_db_path():
     with generate_config("obsidian.yaml", OBSIDIAN_CONFIG_TEST):
-        sqlite_url = get_sqlite_url()
+        db_path = get_db_path()
 
-        assert sqlite_url == "sqlite:///dsview_vault/vault.db"
+        assert db_path == Path("dsview_vault/vault.db")
