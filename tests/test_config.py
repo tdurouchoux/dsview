@@ -155,7 +155,6 @@ def test_obsidian_config():
             db_file="vault.db",
             content_directory="contents",
             topic_directory="topics",
-            artefact_directory="artefacts",
             github_vault=GithubVault(
                 repository="repo_url",
                 username="me",

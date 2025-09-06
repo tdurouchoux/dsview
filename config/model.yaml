@@ -1,8 +1,11 @@
 configs:
   - model_type: DEFAULT
     model_config:
+      # host: https://llm.lab.sspcloud.fr/api
+      # chat_model: mistral-small3.2:latest
       chat_model: mistral-small-latest
       embedding_model: mistral-embed
+      # provider: OPENAI
       provider: MISTRAL
       token_limit: 100000
   - model_type: SEMANTIC_SCORE

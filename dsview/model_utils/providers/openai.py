@@ -1,3 +1,4 @@
+import os
 from typing import Union
 
 import numpy as np
@@ -13,8 +14,18 @@ class OpenAIProvider(ModelProvider):
     PROVIDER_API_KEY_NAME = "OPENAI_API_KEY"
 
     def __init__(self, model_config: ModelConfig):
-        self.client = OpenAI()
-        self.async_client = AsyncOpenAI()
+        if model_config.host is None:
+            self.client = OpenAI()
+            self.async_client = AsyncOpenAI()
+        else:
+            self.client = OpenAI(
+                base_url=model_config.host,
+                api_key=os.environ[self.PROVIDER_API_KEY_NAME],
+            )
+            self.async_client = AsyncOpenAI(
+                base_url=model_config.host,
+                api_key=os.environ[self.PROVIDER_API_KEY_NAME],
+            )
 
         super().__init__(model_config)
 

@@ -86,19 +86,10 @@ def write_and_update_topic_list_notes(topics: list[ExtractionTopic]):
     for topic in topics:
         topic_inspection = inspect(topic)
 
-        if topic_inspection.modified and not topic_inspection.pending:
+        if topic_inspection.modified and topic_inspection.has_identity:
             update_topic_note(topic)
         else:
             write_topic_note(topic)
-
-
-# TODO finish updating write_notes to be cleaner
-
-
-def update_topic_list_notes(updated_topics: list[ExtractionTopic], session: Session):
-    for topic_id, old_topic in updated_topics:
-        new_topic = session.get(ExtractionTopic, topic_id)
-        update_topic_note(old_topic, new_topic, session)
 
 
 # ? What about jinja template for this

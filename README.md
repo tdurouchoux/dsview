@@ -2,6 +2,8 @@
 
 Data science news monitoring management tools using LLM and graph representation in Obsidian
 
+#TODO add try to session rollback ? 
+
 #TODO Remove commits while extraction is not fully successful
 #TODO simplify extraction result management using relationships
 #TODO Update write_notes to use less info > IN PROGRESS

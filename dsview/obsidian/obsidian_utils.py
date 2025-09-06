@@ -74,7 +74,6 @@ retrieve_contents_path = partial(retrieve_notes_path, config.content_directory)
 def clear_vault():
     topic_dir = config.vault_path / config.topic_directory
     content_dir = config.vault_path / config.content_directory
-    artefact_dir = config.vault_path / config.artefact_directory
 
     if topic_dir.exists():
         shutil.rmtree(topic_dir)
@@ -82,9 +81,5 @@ def clear_vault():
     if content_dir.exists():
         shutil.rmtree(content_dir)
 
-    if artefact_dir.exists():
-        shutil.rmtree(artefact_dir)
-
     topic_dir.mkdir()
     content_dir.mkdir()
-    artefact_dir.mkdir()

@@ -116,5 +116,10 @@ class IngestPipeline:
         asyncio.run(self.async_ingest_content(content, session))
 
     def ingest_content_list(self, content_list: list[InputContent], session: Session):
+        logger.info("Total number of content to ingest : %s", len(content_list))
+        i = 1
+
         for content in track(content_list):
+            logger.info("Content number : %s", i)
             self.ingest_content(content, session)
+            i+=1

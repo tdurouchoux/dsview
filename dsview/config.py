@@ -42,6 +42,7 @@ class ModelType(Enum):
 
 @dataclass
 class ModelConfig:
+    host: Optional[str] = None
     chat_model: str = MISSING
     embedding_model: Optional[str] = None
     provider: LLMProvider = LLMProvider.OPENAI
@@ -120,13 +121,12 @@ class ObsidianConfig:
     vault_path: Path = MISSING
     content_directory: str = "contents"
     topic_directory: str = "topics"
-    artefact_directory: str = "artefacts"
     github_vault: GithubVault = field(default_factory=GithubVault)
 
 
 @dataclass
 class PostgresConfig:
-    host: str = "${oc.env:POSTGRES_PASSWORD}"
+    host: str = "${oc.env:POSTGRES_HOST}"
     port: int = 5432
     database: str = "dsview_db"
     user: str = "postgres"
