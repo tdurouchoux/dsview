@@ -5,6 +5,9 @@ from fastapi import FastAPI
 import uvicorn
 
 INTERFACE_DIR = Path("dsview/interface/")
+HOST = "0.0.0.0"
+HOST = "localhost"
+PORT = 8080
 
 # Create a marimo ASGI app
 server = (
@@ -41,7 +44,7 @@ app.mount("", server.build())
 
 
 def main():
-    uvicorn.run(app, host="localhost", port=8000, log_level="info")
+    uvicorn.run(app, host=HOST, port=PORT, log_level="info")
 
 
 # Run the server
