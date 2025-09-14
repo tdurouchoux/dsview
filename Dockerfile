@@ -15,6 +15,6 @@ RUN uv sync --frozen --no-cache
 
 EXPOSE 8000
 EXPOSE 8501
-EXPOSE 8080
+EXPOSE 2718
 
 CMD ["/bin/sh", "-c", "/app/docker_startup.sh"]

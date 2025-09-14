@@ -7,7 +7,7 @@ import uvicorn
 INTERFACE_DIR = Path("dsview/interface/")
 HOST = "0.0.0.0"
 HOST = "localhost"
-PORT = 8080
+PORT = 2718
 
 # Create a marimo ASGI app
 server = (

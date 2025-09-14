@@ -22,7 +22,7 @@ spec:
           ports:
             - containerPort: 8000
             - containerPort: 8501
-            - containerPort: 8080
+            - containerPort: 2718
           livenessProbe:
             httpGet:
               path: /_stcore/health

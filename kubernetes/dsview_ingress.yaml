@@ -19,8 +19,8 @@ spec:
       targetPort: 8501
     - name: dsview-dashboard
       protocol: TCP
-      port: 8080
-      targetPort: 8080
+      port: 2718
+      targetPort: 2718
 
   type: ClusterIP
 ---
@@ -75,7 +75,7 @@ spec:
               service:
                 name: dsview-service
                 port:
-                  number: 8080
+                  number: 2718
   tls:
     - hosts:
         - dsview-dashboard.lab.sspcloud.fr
