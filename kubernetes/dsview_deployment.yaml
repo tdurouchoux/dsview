@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dsview
+  name: dsview-deployment
   labels:
     app: dsview
 spec:
@@ -12,7 +12,7 @@ spec:
   template:
     metadata:
       labels:
-        app: dsview
+        app: s
     spec:
       serviceAccountName: dsview-sa
       containers:

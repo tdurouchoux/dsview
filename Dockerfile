@@ -1,5 +1,5 @@
 FROM python:3.11-slim
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.8.15 /uv /bin
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -13,8 +13,8 @@ ENV PROMPT_DIR="./prompts"
 WORKDIR /app
 RUN uv sync --frozen --no-cache
 
-EXPOSE 8000
-EXPOSE 8501
-EXPOSE 2718
+RUN uv run dsview/obsidian/setup.py
 
-CMD ["/bin/sh", "-c", "/app/docker_startup.sh"]
+EXPOSE 8000
+
+CMD ["uv", "run", "fastapi", "run", "dsview/api.py", "--host",  "0.0.0.0"]
