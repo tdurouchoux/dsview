@@ -13,8 +13,6 @@ ENV PROMPT_DIR="./prompts"
 WORKDIR /app
 RUN uv sync --frozen --no-cache
 
-RUN uv run dsview/obsidian/setup.py
-
 EXPOSE 8000
 
 CMD ["uv", "run", "fastapi", "run", "dsview/api.py", "--host",  "0.0.0.0"]

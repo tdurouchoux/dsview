@@ -11,10 +11,13 @@ from dsview.db import engine
 from dsview.db.ingest import update_content
 from dsview.db.schemas import InputContent
 from dsview.ingest_source import IngestPipeline
-from dsview.obsidian.sync_vault import api_sync_vault
+from dsview.obsidian.sync_vault import api_sync_vault, init_vault
+
+# TODO merge setup and sync_vault
 
 load_dotenv()
 setup_logger()
+init_vault()
 
 model_config = load_model_config()
 
