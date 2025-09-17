@@ -11,7 +11,7 @@ ENV CONF_DIR="./config"
 ENV PROMPT_DIR="./prompts"
 
 WORKDIR /app
-RUN uv sync --no-extra dashboard --frozen --no-cache
+RUN uv sync --frozen --no-cache
 
 EXPOSE 8000
 EXPOSE 8501

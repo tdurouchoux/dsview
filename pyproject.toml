@@ -46,6 +46,7 @@ build-backend = "hatchling.build"
 dsview = "dsview.cli:main"
 dsview-ui = "dsview.interface.run_dashboard:main"
 
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
@@ -62,3 +63,4 @@ dashboard = [
 labels = [
     "streamlit>=1.41.1",
 ]
+
