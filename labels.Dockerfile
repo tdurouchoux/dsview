@@ -9,6 +9,6 @@ ENV PROMPT_DIR="./prompts"
 WORKDIR /app
 RUN uv sync --group labels --frozen --no-cache
 
-EXPOSE 8080
+EXPOSE 8501
 
 CMD ["uv", "run", "streamlit", "run", "dsview/interface/labelling_interface.py", "--server.address","0.0.0.0"]

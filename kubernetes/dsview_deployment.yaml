@@ -93,7 +93,7 @@ spec:
           image: ghcr.io/tdurouchoux/dsview-labels:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 8501
           resources:
             requests:
               memory: "500Mi"
