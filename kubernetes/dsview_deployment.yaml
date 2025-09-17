@@ -21,8 +21,6 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
-            # - containerPort: 8501
-            # - containerPort: 2718
           resources:
             requests:
               memory: "1000Mi"
@@ -79,6 +77,11 @@ spec:
               memory: "4000Mi"
               cpu: "2000m"
           env:
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: MISTRAL_API_KEY
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:
