@@ -101,18 +101,18 @@ spec:
             limits:
               memory: "4000Mi"
               cpu: "2000m"
-          livenessProbe:
-            httpGet:
-              path: /_stcore/health
-              port: 8501
-              scheme: HTTP
-            timeoutSeconds: 1
-          readinessProbe:
-            httpGet:
-              path: /_stcore/health
-              port: 8501
-              scheme: HTTP
-            timeoutSeconds: 1
+          # livenessProbe:
+          #   httpGet:
+          #     path: /_stcore/health
+          #     port: 8501
+          #     scheme: HTTP
+          #   timeoutSeconds: 1
+          # readinessProbe:
+          #   httpGet:
+          #     path: /_stcore/health
+          #     port: 8501
+          #     scheme: HTTP
+          #   timeoutSeconds: 1
           env:
             - name: MISTRAL_API_KEY
               valueFrom:
