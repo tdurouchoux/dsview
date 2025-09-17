@@ -114,7 +114,22 @@ class ContentExtractor:
 
         extraction_topics = await self.topics_er(deduped_topics, content_id, session)
 
-        extraction_result.topics = extraction_topics
+        # Failsafe deduplication
+        logger.info("Number of topics before dedup : %s", len(extraction_topics))
+
+        extraction_topics_dedup = []
+        existing_topic_ids = set()
+        for topic in extraction_topics:
+            if topic.id is not None:
+                if topic.id in existing_topic_ids:
+                    logger.warning("Found duplicate topic after ER")
+                    continue
+                existing_topic_ids.add(topic.id)
+            extraction_topics_dedup.append(topic)
+
+        logger.info("Number of topics after dedup : %s", len(extraction_topics_dedup))
+
+        extraction_result.topics = extraction_topics_dedup
         session.add(extraction_result)
 
         return extraction_result

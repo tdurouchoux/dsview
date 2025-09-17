@@ -56,7 +56,7 @@ def backup():
         df = pd.read_sql(
             f"SELECT * FROM {table.__table__}",
             con=engine,
-        )
+        ).drop(columns=["id"])
 
         df.to_parquet(backup_path / f"{table.__tablename__}.parquet")
 

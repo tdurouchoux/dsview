@@ -12,29 +12,17 @@ spec:
   template:
     metadata:
       labels:
-        app: s
+        app: dsview
     spec:
       serviceAccountName: dsview-sa
       containers:
-        - name: dsview-deploy
-          image: ghcr.io/tdurouchoux/dsview:latest
+        - name: dsview-api
+          image: ghcr.io/tdurouchoux/dsview-api:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
-            - containerPort: 8501
-            - containerPort: 2718
-          livenessProbe:
-            httpGet:
-              path: /_stcore/health
-              port: 8501
-              scheme: HTTP
-            timeoutSeconds: 1
-          readinessProbe:
-            httpGet:
-              path: /_stcore/health
-              port: 8501
-              scheme: HTTP
-            timeoutSeconds: 1
+            # - containerPort: 8501
+            # - containerPort: 2718
           resources:
             requests:
               memory: "1000Mi"
@@ -68,6 +56,69 @@ spec:
                 secretKeyRef:
                   name: dsview-secret
                   key: GITHUB_TOKEN
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_PASSWORD
+        - name: dsview-dashboard
+          image: ghcr.io/tdurouchoux/dsview-dashboard:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 2718
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "500m"
+            limits:
+              memory: "4000Mi"
+              cpu: "2000m"
+          env:
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_PASSWORD
+        - name: dsview-labels
+          image: ghcr.io/tdurouchoux/dsview-labels:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "500m"
+            limits:
+              memory: "4000Mi"
+              cpu: "2000m"
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          env:
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: MISTRAL_API_KEY
             - name: POSTGRES_HOST
               valueFrom:
                 secretKeyRef:

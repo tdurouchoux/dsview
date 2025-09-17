@@ -9,7 +9,7 @@ spec:
   selector:
     app: dsview
   ports:
-    - name: dsview-ingest
+    - name: dsview-api
       protocol: TCP
       port: 8000
       targetPort: 8000
