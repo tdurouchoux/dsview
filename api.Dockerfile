@@ -1,5 +1,5 @@
 FROM python:3.11-slim
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.8.15 /uv /bin
 
 RUN apt-get update && \
     apt-get install -y git && \
@@ -14,6 +14,5 @@ WORKDIR /app
 RUN uv sync --frozen --no-cache
 
 EXPOSE 8000
-EXPOSE 8501
 
-CMD ["/bin/sh", "-c", "/app/docker_startup.sh"]
+CMD ["uv", "run", "fastapi", "run", "dsview/api.py", "--host",  "0.0.0.0"]
