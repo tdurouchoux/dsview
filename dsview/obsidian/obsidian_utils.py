@@ -17,8 +17,8 @@ def clean_note_title(note_name: str) -> str:
 
 
 def get_topic_link(topic_name: str, topic_type: str) -> str:
-    topic_name_url = urllib.parse.quote(clean_note_title(topic_name))
-    return f"![]({config.topic_directory}/{topic_type}/{topic_name_url})"
+    # topic_name_url = urllib.parse.quote(clean_note_title(topic_name))
+    return f"![[{config.topic_directory}/{topic_type}/{topic_name})]]"
 
 
 def get_topic_path(topic_name: str, topic_type: str) -> Path:
