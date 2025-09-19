@@ -27,11 +27,10 @@ Next steps :
 
 - Better interface :
 
-  - [ ] Qwartz or equivalent for publishing + hosting ? Tried not full convincing, medium to poor presentation. still could be usefull as a backup (especially if storage is moved to s3). Need to think about what is usefull remotely (which features)
+  - [x] Qwartz or equivalent for publishing + hosting ? Tried not full convincing, medium to poor presentation. still could be usefull as a backup (especially if storage is moved to s3). Need to think about what is usefull remotely (which features)
   - [ ] Newsletter like notifications (with relevance prediction ?)
   - [ ] Have some king of "watch" feature or remind me
-  - [ ] Switch to marimo for dashboard interface
-  - [ ] Migrate to Marimo ?
+  - [x] Switch to marimo for dashboard interface
 
 - Better data :
 
@@ -39,20 +38,22 @@ Next steps :
 
 - Better data management :
 
-  - [ ] Fix issue with missing note for some topics (could be related to that they already exist but under another type)
-  - [ ] Migrate from git to S3 save state
-  - [ ] Regular database dump to Sa3
+  - [x] Fix issue with missing note for some topics (could be related to that they already exist but under 
+  - [x] postgres database migration
 
+- Better extraction :
+  - [ ] Improve pdf ingestion and remove token limit from content loaders + better summarization
+  - [ ] handle youtube videos through transcript 
 - Better models :
 
-  - [ ] Improve ER with vector db like search + jaro
-  - [ ] Async ER run
-  - [ ] Improve pdf ingestion and remove token limit from content loaders + better summarization
-  - [ ] New LLM call architecture
+  - [x] Improve ER with vector db like search + jaro
+  - [x] Async ER run
+  
+  - [x] New LLM call architecture
   - [ ] Opt when sufficient number of annotations
   - [ ] Fix issue with read medium
   - [ ] Relevance prediction
-  - [ ] Switch to Mistral
+  - [x] Switch to Mistral
   - [ ] Better mlflow management (especially for  ing current parameters)
 
 - Better management :
