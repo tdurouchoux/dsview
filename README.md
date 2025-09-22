@@ -71,8 +71,6 @@ DSView transforms how data scientists stay current with rapidly evolving trends,
   - OpenAI
   - Anthropic
   - Or local Ollama installation
-- **Memory**: 4GB+ RAM recommended
-- **Storage**: 1GB+ for Obsidian vault and database
 
 ## 🚀 Quick Start
 
@@ -157,7 +155,7 @@ nano .env  # or your preferred editor
 MISTRAL_API_KEY=your_mistral_key
 # OR
 OPENAI_API_KEY=your_openai_key
-# OR  
+# OR
 ANTHROPIC_API_KEY=your_anthropic_key
 
 # Database connection
@@ -454,7 +452,7 @@ htop
 The project includes multiple Docker containers:
 
 - **API Service** (`api.Dockerfile`): FastAPI server for content ingestion
-- **Dashboard Service** (`dashboard.Dockerfile`): Marimo-based analytics interface  
+- **Dashboard Service** (`dashboard.Dockerfile`): Marimo-based analytics interface
 - **Labels Service** (`labels.Dockerfile`): Streamlit labelling interface
 
 ### Production Deployment
