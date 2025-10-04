@@ -3,8 +3,10 @@ import streamlit as st
 
 # --server.baseUrlPath=/labelling --server.port 8000
 def main():
+    # Get the directory of this script
     content_labelling_page = st.Page(
-        "labelling/content_labelling.py", title="Content labelling"
+        "labelling/content_labelling.py",
+        title="Content labelling",
     )
     er_labelling_page = st.Page("labelling/er_labelling.py", title="ER labelling")
 

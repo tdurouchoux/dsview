@@ -10,7 +10,6 @@ from dsview.extraction.models.topics_extraction import DataScienceTopic
 from dsview.model_utils import get_model_provider
 
 from ..schemas import (
-    ContentTopicRelation,
     ERComparison,
     ExtractionLink,
     ExtractionResult,

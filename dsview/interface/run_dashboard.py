@@ -3,10 +3,12 @@ from pathlib import Path
 import marimo
 from fastapi import FastAPI
 import uvicorn
+import typer
 
 INTERFACE_DIR = Path("dsview/interface/")
-HOST = "0.0.0.0"
-PORT = 2718
+
+# Create typer app
+app_cli = typer.Typer(help="DSView Dashboard Server")
 
 # Create a marimo ASGI app
 server = (
@@ -42,8 +44,17 @@ app = FastAPI(
 app.mount("", server.build())
 
 
+@app_cli.command()
+def run_dashboard(
+    host: str = typer.Option("0.0.0.0", help="Host to bind the server to"),
+    port: int = typer.Option(2718, help="Port to bind the server to"),
+):
+    """Start the DSView dashboard server."""
+    uvicorn.run(app, host=host, port=port, log_level="info")
+
+
 def main():
-    uvicorn.run(app, host=HOST, port=PORT, log_level="info")
+    app_cli()
 
 
 # Run the server
