@@ -43,7 +43,7 @@ class ContentExtractor:
         self.link_extractor = LinksExtractor()
         self.er_classifier = ERClassifier()
 
-    async def _send_api_requests(
+    async def run_extraction(
         self, content_loader: ContentLoader
     ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
         logger.info("Launching extraction api requests ...")
@@ -82,7 +82,7 @@ class ContentExtractor:
             content_description,
             topics,
             content_links,
-        ) = await self._send_api_requests(content_loader)
+        ) = await self.run_extraction(content_loader)
 
         # Make sure there is no duplicates in topics
         deduped_topics = []

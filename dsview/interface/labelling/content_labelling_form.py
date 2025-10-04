@@ -1,4 +1,5 @@
 import pandas as pd
+from sqlmodel import Session
 import streamlit as st
 
 from dsview.db.ingest import save_labels
@@ -86,6 +87,7 @@ def links_labelling(
 
 
 def generate_labelling_form(
+    session: Session,
     content_loader: WebContentLoader,
     content_description: ContentDescription,
     topics: list[DataScienceTopic],
@@ -129,6 +131,7 @@ def generate_labelling_form(
                 tags,
                 topics_ranking,
                 links_ranking,
+                session,
             )
 
             st.session_state["labelling"] = False

@@ -1,11 +1,9 @@
-from sqlalchemy.sql.expression import label
 import streamlit as st
-from sqlmodel import Session, text
+from sqlmodel import Session
 
-from dsview.config import get_sqlite_engine
+from dsview.db import engine
 from dsview.db.ingest import save_er_label
-from dsview.db.schemas import ERComparison
-from dsview.obsidian.sync_vault import label_sync_vault
+from dsview.db.query import get_random_missing_er_label
 
 st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.png")
 
@@ -13,25 +11,7 @@ st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.p
 # TODO seelect comparisons based on decisionsh
 
 
-def get_missing_label_comparison(session: Session) -> ERComparison:
-    result = session.exec(
-        text("""
-            SELECT * FROM ercomparison
-            WHERE (name_1, name_2) NOT IN (
-                SELECT name_1, name_2 FROM erlabels
-            ) ORDER BY RANDOM()""")
-    ).first()
-
-    return ERComparison(**result._asdict())
-
-
-@label_sync_vault("content", debug_mode=False)
-def save_and_sync_er_label(*args):
-    save_er_label(*args)
-
-
 def main():
-    engine = get_sqlite_engine()
     st.title("ER comparison labelling")
 
     topic_display_template = (
@@ -39,7 +19,7 @@ def main():
     )
 
     with Session(engine) as session:
-        comparison = get_missing_label_comparison(session)
+        comparison = get_random_missing_er_label(session)
 
         if comparison is None:
             st.info("No more comparisons to label")

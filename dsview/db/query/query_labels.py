@@ -2,10 +2,10 @@ from typing import Literal, Type
 
 import numpy as np
 import pandas as pd
-from sqlmodel import Session, select
+from sqlmodel import Session, select, text
 from sqlmodel.main import SQLModel
 
-from ..schemas import LabelledContent
+from ..schemas import ERComparison, ERLabels, LabelledContent
 
 DEFAULT_SPLIT_RATIOS = {
     "eval": 0.7,
@@ -97,3 +97,18 @@ def get_er_labels(
     df = assign_rows(df, split_ratios, random_state)
 
     return df
+
+
+def get_random_missing_er_label(session: Session) -> ERComparison | None:
+    result = session.exec(
+        text(f"""
+            SELECT * FROM {ERComparison.__table__.schema}.{ERComparison.__table__.name}
+            WHERE (name_1, name_2) NOT IN (
+                SELECT name_1, name_2 FROM {ERLabels.__table__.schema}.{ERLabels.__table__.name}
+            ) ORDER BY RANDOM()""")
+    ).first()
+
+    if result is None:
+        return None
+
+    return ERComparison(**result._asdict())
