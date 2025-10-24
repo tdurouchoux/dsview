@@ -1,29 +1,65 @@
 ---
+# API Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: dsview-service
+  name: dsview-api-service
   labels:
     app: dsview
+    component: api
 spec:
   selector:
     app: dsview
+    component: api
   ports:
-    - name: dsview-api
+    - name: http
       protocol: TCP
       port: 8000
       targetPort: 8000
-    - name: dsview-labels
-      protocol: TCP
-      port: 8501
-      targetPort: 8501
-    - name: dsview-dashboard
+  type: ClusterIP
+
+---
+# Dashboard Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dsview-dashboard-service
+  labels:
+    app: dsview
+    component: dashboard
+spec:
+  selector:
+    app: dsview
+    component: dashboard
+  ports:
+    - name: http
       protocol: TCP
       port: 2718
       targetPort: 2718
-
   type: ClusterIP
+
 ---
+# Labels Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dsview-labels-service
+  labels:
+    app: dsview
+    component: labels
+spec:
+  selector:
+    app: dsview
+    component: labels
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8501
+      targetPort: 8501
+  type: ClusterIP
+
+---
+# API Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -31,6 +67,7 @@ metadata:
   namespace: user-tdurouchoux
   labels:
     app: dsview
+    component: api
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
     nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-ingest
@@ -45,13 +82,15 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: dsview-service
+                name: dsview-api-service
                 port:
                   number: 8000
   tls:
     - hosts:
         - dsview-ingest.lab.sspcloud.fr
+
 ---
+# Dashboard Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -59,6 +98,7 @@ metadata:
   namespace: user-tdurouchoux
   labels:
     app: dsview
+    component: dashboard
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
     nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-dashboard
@@ -73,13 +113,15 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: dsview-service
+                name: dsview-dashboard-service
                 port:
                   number: 2718
   tls:
     - hosts:
         - dsview-dashboard.lab.sspcloud.fr
+
 ---
+# Labels Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -87,6 +129,7 @@ metadata:
   namespace: user-tdurouchoux
   labels:
     app: dsview
+    component: labels
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
     nginx.ingress.kubernetes.io/auth-secret: basic-auth-dsview-dashboard
@@ -101,7 +144,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: dsview-service
+                name: dsview-labels-service
                 port:
                   number: 8501
   tls:

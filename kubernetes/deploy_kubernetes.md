@@ -57,15 +57,13 @@ kubectl apply -f dsview_ingress.yaml
 ## Deployment removal :
 
 ```
-kubectl delete deployment dsview
-kubectl delete svc dsview-service
-kubectl delete ingress dsview-ingest-ingress
-kubectl delete ingress dsview-dashboard-ingress
-kubectl delete ingress dsview-labels-ingress
+kubectl delete -f dsview_deployment.yaml
+kubectl delete -f dsview_ingress.yaml
 ```
 
+> option `--ignore-not-found=true`
 
-## Postgres 
+## Postgres
 
-- initialize database 
+- initialize database
 - Create schemas
