@@ -51,14 +51,12 @@ Header should like : `Authorization: Basic <base64_encoded_auth>`
 
 ```
 kubectl apply -f dsview_deployment.yaml
-kubectl apply -f dsview_ingress.yaml
 ```
 
 ## Deployment removal :
 
 ```
 kubectl delete -f dsview_deployment.yaml
-kubectl delete -f dsview_ingress.yaml
 ```
 
 > option `--ignore-not-found=true`
