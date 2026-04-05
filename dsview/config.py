@@ -114,7 +114,7 @@ class GithubVault:
     username: str | None = "${oc.env:GITHUB_USERNAME,null}"
     email: str | None = "${oc.env:GITHUB_USER_EMAIL,null}"
     token: str | None = "${oc.env:GITHUB_TOKEN,null}"
-        
+
     @property
     def url(self) -> str:
         return (
@@ -135,7 +135,7 @@ class PostgresConfig:
     host: str = "${oc.env:POSTGRES_HOST}"
     port: int = 5432
     database: str = "dsview_db"
-    user: str = "postgres"
+    user: str = "${oc.env:POSTGRES_USER}"
     password: str = "${oc.env:POSTGRES_PASSWORD}"
 
     def db_uri(self, sqlalchemy: bool = True) -> str:

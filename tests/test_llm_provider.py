@@ -1,4 +1,5 @@
 import asyncio
+
 import numpy as np
 import pytest
 from dotenv import load_dotenv
@@ -26,7 +27,7 @@ OPENAI_MODEL_CONFIG = ModelConfig(
 )
 
 MISTRAL_MODEL_CONFIG = ModelConfig(
-    chat_model="mistral-small-latest",
+    chat_model="mistral-medium-latest",
     provider=LLMProvider.MISTRAL,
     token_limit=32_000,
 )
@@ -89,6 +90,7 @@ def test_send_messages(model_config: ModelConfig):
 
     assert isinstance(response, str)
 
+
 @pytest.mark.parametrize(
     "model_config",
     [
@@ -124,7 +126,7 @@ class Response(BaseModel):
 )
 def test_send_messaged_structured(model_config: ModelConfig):
     messages = [
-        {"role": "user", "content": "How are you ?"},
+        {"role": "user", "content": "Are you fine ?"},
     ]
 
     model_provider = get_model_provider(model_config)
@@ -150,9 +152,12 @@ def test_async_send_messaged_structured(model_config: ModelConfig):
 
     model_provider = get_model_provider(model_config)
 
-    response = asyncio.run(model_provider.async_send_messages(messages, structured_output_class=Response))
+    response = asyncio.run(
+        model_provider.async_send_messages(messages, structured_output_class=Response)
+    )
 
     assert isinstance(response, Response)
+
 
 @pytest.mark.parametrize(
     "model_config",

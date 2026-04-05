@@ -60,7 +60,7 @@ class MistralProvider(ModelProvider):
                 client=self.client,
                 model=self.model_config.chat_model,
                 mode=Mode.MISTRAL_TOOLS,
-                max_tokens=2000,
+                max_tokens=10_000,
             )
 
             resp = instructor_client.messages.create(
@@ -103,7 +103,7 @@ class MistralProvider(ModelProvider):
                 client=self.client,
                 model=self.model_config.chat_model,
                 mode=Mode.MISTRAL_TOOLS,
-                max_tokens=2000,
+                max_tokens=10_000,
                 use_async=True,
             )
 

@@ -79,6 +79,8 @@ def ingest(
     This will download, process, and extract information from the provided link.
     """
     from .ingest_source import IngestPipeline
+    mlflow.set_tracking_uri("http://localhost:5001")
+    mlflow.set_experiment("Dsview ingest")
 
     ingest_pipeline = IngestPipeline()
 
@@ -133,7 +135,7 @@ def rebuild(
     """
     from .ingest_source import IngestPipeline
 
-    mlflow.set_experiment(experiment_name="rebuild")
+    mlflow.set_experiment(experiment_name="Rebuild tasks")
 
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 

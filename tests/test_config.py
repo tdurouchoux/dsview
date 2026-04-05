@@ -13,11 +13,11 @@ from dsview.config import (
     ModelConfigurationError,
     ModelType,
     ObsidianConfig,
-    get_db_path,
     load_config,
     load_extraction_config,
     load_model_config,
     load_obsidian_config,
+    load_postgres_config,
 )
 
 MODEL_CONFIG_TEST_1 = """
@@ -149,10 +149,18 @@ def test_extraction_config():
 
 
 def test_obsidian_config():
-    with generate_config("obsidian.yaml", OBSIDIAN_CONFIG_TEST):
+    with generate_config("storage.yaml", f"""obsidian:
+  vault_path: dsview_vault
+  content_directory: contents
+  topic_directory: topics
+  github_vault:
+    repository: repo_url
+    username: me
+    email: me@mail.com
+    token: some_token
+"""):
         expected_config = ObsidianConfig(
             vault_path=Path("dsview_vault"),
-            db_file="vault.db",
             content_directory="contents",
             topic_directory="topics",
             github_vault=GithubVault(
@@ -169,8 +177,20 @@ def test_obsidian_config():
         assert obsidian_config == expected_config
 
 
-def test_db_path():
-    with generate_config("obsidian.yaml", OBSIDIAN_CONFIG_TEST):
-        db_path = get_db_path()
+def test_postgres_config():
+    with generate_config("storage.yaml", """obsidian:
+  vault_path: dsview_vault
+postgres:
+  host: localhost
+  port: 5432
+  database: test_db
+  user: test_user
+  password: test_password
+"""):
+        postgres_config = load_postgres_config()
 
-        assert db_path == Path("dsview_vault/vault.db")
+        assert postgres_config.host == "localhost"
+        assert postgres_config.port == 5432
+        assert postgres_config.database == "test_db"
+        assert postgres_config.user == "test_user"
+        assert postgres_config.password == "test_password"

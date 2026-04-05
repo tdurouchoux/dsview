@@ -14,7 +14,7 @@ from .get_model_provider import get_model_provider
 load_dotenv()
 
 default_model_config = load_model_config()
-
+mlflow.mistral.autolog()
 
 class MissingPromptFile(Exception):
     def __init__(self, prompt_filename: str):
