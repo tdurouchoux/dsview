@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Type
 
 import mlflow
+import pandas as pd
 import typer
 from dotenv import load_dotenv
-import pandas as pd
 from sqlmodel import Session, SQLModel
 
 from dsview.config import setup_logger
+from dsview.db import engine, schemas
 from dsview.db.query import get_content_list, get_failed_ingestions, get_topic_list
-from dsview.db import schemas, engine
 from dsview.db.schemas.extraction_schema import ExtractionResult
 from dsview.obsidian.write_notes import (
     write_content_note,
@@ -79,8 +79,9 @@ def ingest(
     This will download, process, and extract information from the provided link.
     """
     from .ingest_source import IngestPipeline
-    mlflow.set_tracking_uri("http://localhost:5001")
-    mlflow.set_experiment("Dsview ingest")
+
+    # mlflow.set_tracking_uri("http://localhost:5001")
+    # mlflow.set_experiment("Dsview ingest")
 
     ingest_pipeline = IngestPipeline()
 
@@ -135,7 +136,7 @@ def rebuild(
     """
     from .ingest_source import IngestPipeline
 
-    mlflow.set_experiment(experiment_name="Rebuild tasks")
+    # mlflow.set_experiment(experiment_name="Rebuild tasks")
 
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 

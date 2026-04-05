@@ -122,9 +122,9 @@ def save_er_comparison(
         vss_distance=vss_distance,
         decision_date=date.today().isoformat(),
         merge_topic=result.merge_topic,
-        merge_name=result.topic.name,
-        merge_type=result.topic.type,
-        merge_description=result.topic.description,
+        merge_name=(result.topic.name if result.topic else None),
+        merge_type=(result.topic.type if result.topic else None),
+        merge_description=(result.topic.description if result.topic else None),
     )
 
     session.add(er_comparison)

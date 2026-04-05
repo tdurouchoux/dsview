@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 def retry_callback(retry_state):
-    logger.warning(
-        f"Retry {retry_state.attempt_number} for {retry_state.fn.__name__} "
-        f"due to {retry_state.outcome.exception() if retry_state.outcome else 'unknown error'}"
-    )
+    # Only log for actual retries (attempt_number > 1)
+    if retry_state.attempt_number > 1:
+        logger.warning(
+            f"Retry {retry_state.attempt_number} for {retry_state.fn.__name__} "
+            f"due to {retry_state.outcome.exception() if retry_state.outcome else 'unknown error'}"
+        )
 
 
 default_model_config = load_model_config(ModelType.DEFAULT)
