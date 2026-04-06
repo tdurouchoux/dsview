@@ -3,7 +3,14 @@ configs:
     model_config:
       # host: https://llm.lab.sspcloud.fr/api
       # chat_model: mistral-small3.2:latest
-      chat_model: mistral-small-latest
+      chat_model: mistral-small-2603
+      embedding_model: mistral-embed
+      # provider: OPENAI
+      provider: MISTRAL
+      token_limit: 100000
+  - model_type: ER_CLASSIFICATION
+    model_config:
+      chat_model: mistral-medium-2508
       embedding_model: mistral-embed
       # provider: OPENAI
       provider: MISTRAL

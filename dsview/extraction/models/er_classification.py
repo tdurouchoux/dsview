@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from dsview.config import ModelType, load_model_config
@@ -10,7 +12,7 @@ er_classification_model_config = load_model_config(ModelType.ER_CLASSIFICATION)
 
 class ERResult(BaseModel):
     merge_topic: bool
-    topic: DataScienceTopic
+    topic: Optional[DataScienceTopic]
 
 
 class ERClassifier(LLMModel):

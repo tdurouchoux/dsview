@@ -1,3 +1,4 @@
+import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Union
@@ -12,6 +13,18 @@ from tenacity import (
 )
 
 from dsview.config import LLMProvider, ModelConfig, ModelType, load_model_config
+
+logger = logging.getLogger(__name__)
+
+
+def retry_callback(retry_state):
+    # Only log for actual retries (attempt_number > 1)
+    if retry_state.attempt_number > 1:
+        logger.warning(
+            f"Retry {retry_state.attempt_number} for {retry_state.fn.__name__} "
+            f"due to {retry_state.outcome.exception() if retry_state.outcome else 'unknown error'}"
+        )
+
 
 default_model_config = load_model_config(ModelType.DEFAULT)
 
@@ -81,7 +94,9 @@ class ModelProvider(ABC):
         pass
 
     @retry(
-        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+        wait=wait_random_exponential(multiplier=1, max=20),
+        stop=stop_after_attempt(8),
+        retry=retry_callback,
     )
     def embed(self, input: str) -> np.ndarray:
         return self._embed(input)
@@ -91,7 +106,9 @@ class ModelProvider(ABC):
         pass
 
     @retry(
-        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+        wait=wait_random_exponential(multiplier=1, max=20),
+        stop=stop_after_attempt(8),
+        retry=retry_callback,
     )
     async def async_embed(self, input: str) -> np.ndarray:
         return await self._async_embed(input)
@@ -105,7 +122,9 @@ class ModelProvider(ABC):
         pass
 
     @retry(
-        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+        wait=wait_random_exponential(multiplier=1, max=20),
+        stop=stop_after_attempt(8),
+        retry=retry_callback,
     )
     def send_messages(
         self,
@@ -123,7 +142,9 @@ class ModelProvider(ABC):
         pass
 
     @retry(
-        wait=wait_random_exponential(multiplier=1, max=20), stop=stop_after_attempt(8)
+        wait=wait_random_exponential(multiplier=1, max=20),
+        stop=stop_after_attempt(8),
+        retry=retry_callback,
     )
     async def async_send_messages(
         self,

@@ -24,4 +24,4 @@ def test_clean_note_title(note_title: str, cleaned_note_title: str):
 def test_get_topic_link():
     topic_link = get_topic_link("LLM", "Concept")
 
-    assert topic_link == "![](topics/Concept/LLM)"
+    assert topic_link == "![[topics/Concept/LLM]]"

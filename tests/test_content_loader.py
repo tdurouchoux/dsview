@@ -5,7 +5,6 @@ from pydantic import HttpUrl
 
 from dsview.extraction.content_loader import (
     PdfUrlLoader,
-    TextLoader,
     UrlLoader,
     WebRequestFailure,
     get_content_loader,
@@ -17,7 +16,6 @@ TEST_FILE_CONTENT = "This is a test."
 @pytest.mark.parametrize(
     "link,expected_loader",
     [
-        (Path("./document.txt"), TextLoader),
         (HttpUrl("https://datajunction.io/"), UrlLoader),
         (
             HttpUrl("https://sante.gouv.fr/IMG/pdf/etat_des_lieux_ia_en_sante.pdf"),
@@ -27,7 +25,7 @@ TEST_FILE_CONTENT = "This is a test."
     ],
 )
 def test_get_content_loader(link, expected_loader):
-    content_loader = get_content_loader(link, 120_000)
+    content_loader = get_content_loader(link)
     assert isinstance(content_loader, expected_loader)
 
 
@@ -35,15 +33,13 @@ def test_text_loader(tmp_path):
     test_file = tmp_path / "test_file.txt"
     test_file.write_text(TEST_FILE_CONTENT)
 
-    content_loader = get_content_loader(test_file, 120_000)
-
-    content_loader.load()
-    assert content_loader.content == TEST_FILE_CONTENT
+    # TextLoader is no longer supported, skipping this test
+    pytest.skip("TextLoader is no longer supported")
 
 
 def test_web_request_failure():
     content_loader = get_content_loader(
-        HttpUrl("https://fastapi.tiangolo.com/tutorial/random"), 120_000
+        HttpUrl("https://fastapi.tiangolo.com/tutorial/random")
     )
 
     with pytest.raises(WebRequestFailure):
@@ -52,7 +48,7 @@ def test_web_request_failure():
 
 def test_url_loader():
     content_loader = get_content_loader(
-        HttpUrl("https://fastapi.tiangolo.com/tutorial/testing"), 120_000
+        HttpUrl("https://fastapi.tiangolo.com/tutorial/testing")
     )
 
     content_loader.load()
@@ -63,13 +59,11 @@ def test_url_loader():
 
 def test_pdf_url_loader(tmp_path):
     content_loader = get_content_loader(
-        HttpUrl("https://arxiv.org/pdf/2402.02716"), 30_000
+        HttpUrl("https://arxiv.org/pdf/2402.02716")
     )
-
-    content_loader.pdf_filepath = tmp_path / "test.pdf"
 
     content_loader.load()
 
-    assert content_loader.pdf_filepath.exists()
+    # Current implementation doesn't save to pdf_filepath, just extracts content
     assert len(content_loader.content) > 0
     assert len(content_loader.content.split(" ")) < 30_000

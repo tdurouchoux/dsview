@@ -25,7 +25,7 @@ engine = create_engine(
     },
 )
 
-SQLModel.metadata.create_all(engine)
+# SQLModel.metadata.create_all(engine)
 
 
 @retry(reraise=True, stop=stop_after_attempt(5))

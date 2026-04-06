@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 from pydantic import HttpUrl
 
@@ -27,7 +25,7 @@ TEST_URL = HttpUrl("https://fastapi.tiangolo.com/tutorial/testing")
 
 @pytest.fixture
 def content_loader():
-    content_loader = get_content_loader(TEST_URL, 128_000)
+    content_loader = get_content_loader(TEST_URL)
 
     content_loader.load()
 
