@@ -7,8 +7,8 @@ metadata:
 data:
   POSTGRES_HOST: "dsview-postgres"
   POSTGRES_PORT: "5432"
-  POSTGRES_DB: "dsview"
-  POSTGRES_USER: "dsview"
+  POSTGRES_DB: "defaultdb"
+  POSTGRES_USER: "postgres"
 
 ---
 # PersistentVolumeClaim for PostgreSQL
@@ -49,7 +49,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:15-alpine
+          image: postgres:17-alpine
           ports:
             - containerPort: 5432
               name: postgres
