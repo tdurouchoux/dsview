@@ -2,7 +2,7 @@ import importlib.metadata
 import logging
 from datetime import datetime
 
-from sqlmodel import ARRAY, Column, Field, Float, SQLModel, Relationship
+from sqlmodel import ARRAY, Column, Field, Float, Relationship, SQLModel
 
 logger = logging.getLogger(__name__)
 

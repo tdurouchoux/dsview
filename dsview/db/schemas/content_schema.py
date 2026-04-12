@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import Path
 from typing import Dict
 
-from pydantic import HttpUrl
+from pydantic import HttpUrl, field_serializer
 from sqlalchemy.types import String, TypeDecorator
 from sqlmodel import Field, SQLModel
 
@@ -35,6 +35,10 @@ class InputContent(SQLModel, table=True):
     read_priority: int = Field(default=0, ge=0, le=5)
     relevance: int = Field(default=0, ge=0, le=5)
     source: str | None = Field(default=None)
+
+    @field_serializer("link")
+    def url_to_string(self, value: HttpUrl) -> str:
+        return str(value)
 
     def get_str_dict(self) -> Dict:
         instance_dict = self.model_dump()

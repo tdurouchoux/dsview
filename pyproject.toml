@@ -37,6 +37,7 @@ dependencies = [
     "sqlglot>=27.14.0",
     "beautifulsoup4>=4.13.5",
     "mlflow[genai]>=3.10.1",
+    "mcp[cli]>=1.27.0",
 ]
 
 [build-system]
