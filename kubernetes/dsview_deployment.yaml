@@ -194,6 +194,26 @@ spec:
   type: ClusterIP
 
 ---
+# MCP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: dsview-mcp-service
+  labels:
+    app: dsview
+    component: mcp
+spec:
+  selector:
+    app: dsview
+    component: mcp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
 # API Ingress
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -285,6 +305,33 @@ spec:
   tls:
     - hosts:
         - dsview-labels.lab.sspcloud.fr
+
+---
+# MCP Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dsview-mcp-ingress
+  namespace: user-tdurouchoux
+  labels:
+    app: dsview
+    component: mcp
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: dsview-mcp.lab.sspcloud.fr
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dsview-mcp-service
+                port:
+                  number: 8000
+  tls:
+    - hosts:
+        - dsview-mcp.lab.sspcloud.fr
 
 ---
 # API Deployment
@@ -497,6 +544,76 @@ spec:
               scheme: HTTP
             timeoutSeconds: 1
             initialDelaySeconds: 10
+          env:
+            # From ConfigMap
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dsview-config
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dsview-config
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: dsview-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: dsview-config
+                  key: POSTGRES_READONLY_USER
+            # From Secrets
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: POSTGRES_READONLY_PASSWORD
+            - name: MISTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: MISTRAL_API_KEY
+
+---
+# MCP Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dsview-mcp
+  labels:
+    app: dsview
+    component: mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dsview
+      component: mcp
+  template:
+    metadata:
+      labels:
+        app: dsview
+        component: mcp
+    spec:
+      serviceAccountName: dsview-sa
+      containers:
+        - name: dsview-mcp
+          image: ghcr.io/tdurouchoux/dsview-mcp:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+              name: http
+          resources:
+            requests:
+              memory: "248Mi"
+              cpu: "500m"
+            limits:
+              memory: "1024Mi"
+              cpu: "1000m"
           env:
             # From ConfigMap
             - name: POSTGRES_HOST
