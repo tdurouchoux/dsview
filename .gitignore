@@ -10,6 +10,7 @@ dsview_vault*
 
 # mlflow
 mlruns/
+mlartifacts/
 
 # Marimo
 __marimo__/

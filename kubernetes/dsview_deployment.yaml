@@ -1,4 +1,10 @@
 ---
+# ServiceAccount for dsview components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dsview-sa
+---
 # ConfigMap for common environment variables
 apiVersion: v1
 kind: ConfigMap
@@ -9,6 +15,7 @@ data:
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "defaultdb"
   POSTGRES_USER: "postgres"
+  POSTGRES_READONLY_USER: "dsview_ro"
 
 ---
 # PersistentVolumeClaim for PostgreSQL
@@ -86,7 +93,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - dsview
+                - postgres
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5
@@ -96,7 +103,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - dsview
+                - postgres
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 3
@@ -511,13 +518,13 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: dsview-config
-                  key: POSTGRES_USER
+                  key: POSTGRES_READONLY_USER
             # From Secrets
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: dsview-secret
-                  key: POSTGRES_PASSWORD
+                  key: POSTGRES_READONLY_PASSWORD
             - name: MISTRAL_API_KEY
               valueFrom:
                 secretKeyRef:

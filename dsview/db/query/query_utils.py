@@ -131,8 +131,13 @@ class DuckDBIndex:
         return input.replace("'", "")
 
     def _query_fts_index(
-        self, input: str, n_query: int, score_threshold: float = 1
+        self,
+        input: str,
+        n_query: int,
+        score_threshold: float = 1,
+        where_clause: str = "1",
     ) -> pd.DataFrame:
+
         fts_query = f"""
             SELECT *, fts_main_{self.index_table}.match_bm25(
                 {self.id_column},
@@ -140,7 +145,7 @@ class DuckDBIndex:
                 fields := '{",".join(self.fts_columns)}'
             ) AS fts_score
             FROM {self.index_table}
-            WHERE fts_score IS NOT NULL AND fts_score > {score_threshold}
+            WHERE {where_clause} AND fts_score IS NOT NULL AND fts_score > {score_threshold}
             ORDER BY fts_score DESC
             LIMIT {n_query};
         """
@@ -182,7 +187,11 @@ class DuckDBIndex:
         return float(result["fts_score"].iloc[0])
 
     def _query_vss_index(
-        self, input: str, n_query: int, distance_threshold: float = 0.95
+        self,
+        input: str,
+        n_query: int,
+        distance_threshold: float = 0.95,
+        where_clause: str = "1",
     ) -> pd.DataFrame:
         input_embedding = self.model_provider.embed(input)
 
@@ -194,7 +203,7 @@ class DuckDBIndex:
                     [{",".join([str(e) for e in input_embedding])}]::FLOAT[{self.embedding_size}]
                 ) as vss_distance
             FROM {self.index_table}
-            WHERE vss_distance < {distance_threshold}
+            WHERE {where_clause} AND vss_distance < {distance_threshold}
             ORDER BY vss_distance
             LIMIT {n_query};
         """
@@ -238,13 +247,19 @@ class DuckDBIndex:
         return float(result["vss_distance"].iloc[0])
 
     def query(
-        self, input: str, n_fts: int = 5, n_vss: int = 5
+        self,
+        input: str,
+        n_fts: int = 5,
+        n_vss: int = 5,
+        filters: list[str] | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         logger.info("Received %s input for duckdb indexing", input)
 
+        where_clause = " AND ".join(filters) if filters else "1"
+
         return (
-            self._query_fts_index(input, n_fts),
-            self._query_vss_index(input, n_vss),
+            self._query_fts_index(input, n_fts, where_clause=where_clause),
+            self._query_vss_index(input, n_vss, where_clause=where_clause),
         )
 
     def _merge_results_with_rff(
@@ -289,6 +304,7 @@ class DuckDBIndex:
         n_fts: int | None = None,
         n_vss: int | None = None,
         k: int = 60,
+        filters: list[str] | None = None,
     ) -> pd.DataFrame:
         """
         Query and return merged results using Reciprocal Rank Fusion.
@@ -311,7 +327,9 @@ class DuckDBIndex:
             n_vss = 2 * limit
 
         # Get FTS and VSS results
-        fts_results, vss_results = self.query(input, n_fts=n_fts, n_vss=n_vss)
+        fts_results, vss_results = self.query(
+            input, n_fts=n_fts, n_vss=n_vss, filters=filters
+        )
 
         return self._merge_results_with_rff(fts_results, vss_results, limit, k)
 
