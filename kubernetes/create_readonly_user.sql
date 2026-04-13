@@ -5,7 +5,7 @@ DO $$
 BEGIN
     -- Create the read-only user with password from environment variable
     EXECUTE format('CREATE USER dsview_ro WITH PASSWORD %L', current_setting('app.readonly_user_password', true));
-    EXCEPTION WHEN duplicate_user THEN
+    EXCEPTION WHEN SQLSTATE '42710' THEN
         RAISE NOTICE 'User dsview_ro already exists, skipping creation';
 END $$;
 
@@ -34,5 +34,3 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA labels TO dsview_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA content GRANT USAGE ON SEQUENCES TO dsview_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA extraction GRANT USAGE ON SEQUENCES TO dsview_ro;
 ALTER DEFAULT PRIVILEGES IN SCHEMA labels GRANT USAGE ON SEQUENCES TO dsview_ro;
-
-RAISE NOTICE 'Read-only user dsview_ro has been configured successfully';

@@ -524,7 +524,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: dsview-secret
-                  key: POSTGRES_PASSWORD
+                  key: POSTGRES_READONLY_PASSWORD
             - name: MISTRAL_API_KEY
               valueFrom:
                 secretKeyRef:

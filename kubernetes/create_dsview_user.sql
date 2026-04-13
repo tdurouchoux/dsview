@@ -5,7 +5,7 @@ DO $$
 BEGIN
     -- Create the read-write user with password from environment variable
     EXECUTE format('CREATE USER dsview WITH PASSWORD %L', current_setting('app.rw_user_password', true));
-    EXCEPTION WHEN duplicate_user THEN
+    EXCEPTION WHEN SQLSTATE '42710' THEN
         RAISE NOTICE 'User dsview already exists, skipping creation';
 END $$;
 
@@ -40,7 +40,3 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA extraction GRANT USAGE, UPDATE ON SEQUENCES T
 -- Grant only usage on sequences for labels (read-only)
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA labels TO dsview;
 ALTER DEFAULT PRIVILEGES IN SCHEMA labels GRANT USAGE ON SEQUENCES TO dsview;
-
-RAISE NOTICE 'Read-write user dsview has been configured successfully with:
-- Full CRUD access to content and extraction schemas
-- Read-only access to labels schema';
