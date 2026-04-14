@@ -79,6 +79,8 @@ mcp = FastMCP(
         translates to finding a relevant nodes within the graph.
         And then exploring their neighbors.
     """,
+    stateless_http=True,
+    json_response=True,
 )
 
 
@@ -291,4 +293,4 @@ def search_topic(
 
 
 if __name__ == "__main__":
-    mcp.run(transport="sse")
+    mcp.run(transport="streamable-http")
