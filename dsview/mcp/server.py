@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import date
-from this import s
 from typing import Annotated, Optional
 
 from mcp.server.fastmcp import Context, FastMCP
