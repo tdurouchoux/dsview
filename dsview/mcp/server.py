@@ -20,18 +20,12 @@ from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
 logger = logging.getLogger(__name__)
 extraction_config = load_extraction_config()
 
-extraction_index = ExtractionIndex()
-topics_index = TopicsIndex()
-
-extraction_index.build()
-topics_index.build()
-
 
 @dataclass
 class AppContext:
     db_session: Session
-    # extraction_index: ExtractionIndex
-    # topics_index: TopicsIndex
+    extraction_index: ExtractionIndex
+    topics_index: TopicsIndex
 
 
 # ? Why async
@@ -40,18 +34,23 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context."""
     # Initialize on startup
     db_session = Session(engine)
+    extraction_index = ExtractionIndex()
+    topics_index = TopicsIndex()
+
+    extraction_index.build()
+    topics_index.build()
 
     try:
         yield AppContext(
             db_session=db_session,
-            # extraction_index=extraction_index,
-            # topics_index=topics_index,
+            extraction_index=extraction_index,
+            topics_index=topics_index,
         )
     finally:
         # Cleanup on shutdown
         db_session.close()
-        # extraction_index.close()
-        # topics_index.close()
+        extraction_index.close()
+        topics_index.close()
 
 
 mcp = FastMCP(
@@ -208,7 +207,7 @@ def search_content(
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
-    # extraction_index = ctx.request_context.lifespan_context.extraction_index
+    extraction_index = ctx.request_context.lifespan_context.extraction_index
 
     filters = (
         ["content_type IN ('" + "','".join(types) + "')"] if types is not None else None
@@ -277,7 +276,7 @@ def search_topic(
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
-    # topics_index = ctx.request_context.lifespan_context.topics_index
+    topics_index = ctx.request_context.lifespan_context.topics_index
 
     filters = ["type IN ('" + "','".join(types) + "')"] if types is not None else None
 
