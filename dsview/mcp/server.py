@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -16,7 +17,7 @@ from dsview.db.query import ExtractionIndex, TopicsIndex
 from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
 
 # TODO maybe should handle async calls ?
-
+logger = logging.getLogger(__name__)
 extraction_config = load_extraction_config()
 
 
@@ -55,8 +56,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 mcp = FastMCP(
     "DSview mcp server",
     lifespan=app_lifespan,
-    host="0.0.0.0",
-    port=8000,
+    # host="0.0.0.0",
+    # port=8000,
     instructions="""
         Provide tools for exploring a dsview vault, a custom
         Data Science knowledge database managed by the user. It contains a curated
@@ -66,7 +67,7 @@ mcp = FastMCP(
         Development tools, libraries, ...).
 
         The database is structured as a graph of contents linked
-        to topics. It allows to navigate the knowledgwe graph and
+        to topics. It allows to navigate the knowledge graph and
         explore adjacent information.
 
         This is intented to be used in order to help the user
@@ -80,7 +81,7 @@ mcp = FastMCP(
         And then exploring their neighbors.
     """,
     stateless_http=True,
-    # json_response=True,
+    json_response=True,
 )
 
 
@@ -298,6 +299,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 class AcceptHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
+        logger.info(
+            f"MIDDLEWARE HIT: {request.url.path} Accept: {request.headers.get('accept')}"
+        )
+
         if request.url.path == "/mcp":
             headers = dict(request.headers)
             headers["accept"] = "application/json, text/event-stream"
@@ -313,4 +318,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
