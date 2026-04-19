@@ -277,7 +277,7 @@ def search_topic(
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
-    topics_index = ctx.request_context.lifespan_context.topics_index
+    # topics_index = ctx.request_context.lifespan_context.topics_index
 
     filters = ["type IN ('" + "','".join(types) + "')"] if types is not None else None
 
