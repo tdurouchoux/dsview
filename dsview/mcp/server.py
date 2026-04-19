@@ -66,7 +66,7 @@ mcp = FastMCP(
         Development tools, libraries, ...).
 
         The database is structured as a graph of contents linked
-        to topics. It allows to navigate the knowledge graph and
+        to topics. It allows to navigate the knowledgwe graph and
         explore adjacent information.
 
         This is intented to be used in order to help the user
@@ -292,5 +292,25 @@ def search_topic(
     return DsviewTopicList(topics=topics)
 
 
+from starlette.datastructures import Headers
+from starlette.middleware.base import BaseHTTPMiddleware
+
+
+class AcceptHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if request.url.path == "/mcp":
+            headers = dict(request.headers)
+            headers["accept"] = "application/json, text/event-stream"
+            request._headers = Headers(
+                raw=[(k.encode(), v.encode()) for k, v in headers.items()]
+            )
+        return await call_next(request)
+
+
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    app = mcp.streamable_http_app()
+    app.add_middleware(AcceptHeaderMiddleware)
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
