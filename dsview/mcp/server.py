@@ -10,6 +10,8 @@ from mcp.server.fastmcp import Context, FastMCP
 from mcp.server.session import ServerSession
 from pydantic import BaseModel, Field
 from sqlmodel import Session
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 from dsview.config import load_extraction_config
 from dsview.db import engine
@@ -83,6 +85,24 @@ mcp = FastMCP(
     stateless_http=True,
     json_response=True,
 )
+
+
+class FixAcceptHeaderMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        accept = request.headers.get("accept", "")
+        if not accept or accept.strip() == "*/*":
+            new_headers = [
+                (name, b"application/json, text/event-stream")
+                if name.lower() == b"accept"
+                else (name, value)
+                for name, value in request.scope["headers"]
+            ]
+            if not any(
+                name.lower() == b"accept" for name, _ in request.scope["headers"]
+            ):
+                new_headers.append((b"accept", b"application/json, text/event-stream"))
+            request.scope["headers"] = new_headers
+        return await call_next(request)
 
 
 # @mcp.resource("stats://graph")
@@ -284,7 +304,7 @@ def search_topic(
 
     topics = []
 
-    for topic_id, row in result.iterrows():
+    for topic_id, _ in result.iterrows():
         topic = db_session.get(ExtractionTopic, topic_id)
         dsview_topic = DsviewTopic(**topic.model_dump(exclude=["embedding"]))
 
@@ -294,4 +314,8 @@ def search_topic(
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    import uvicorn
+
+    app = mcp.streamable_http_app()
+    app.add_middleware(FixAcceptHeaderMiddleware)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
