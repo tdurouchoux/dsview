@@ -56,8 +56,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 mcp = FastMCP(
     "DSview mcp server",
     lifespan=app_lifespan,
-    # host="0.0.0.0",
-    # port=8000,
+    host="0.0.0.0",
+    port=8000,
     instructions="""
         Provide tools for exploring a dsview vault, a custom
         Data Science knowledge database managed by the user. It contains a curated
