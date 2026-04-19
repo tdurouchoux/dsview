@@ -300,7 +300,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class AcceptHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         logger.info(
-            f"MIDDLEWARE HIT: {request.url.path} Accept: {request.headers.get('accept')}"
+            f"MIDDLEWARE HIT: {request.url.path} Accept: {request.headers.get('accept')} HOST: {request.headers.get('host')}"
         )
 
         if request.url.path == "/mcp":
