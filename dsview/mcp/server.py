@@ -66,7 +66,7 @@ mcp = FastMCP(
         Development tools, libraries, ...).
 
         The database is structured as a graph of contents linked
-        to topics. It allows to navigate the knowlegde graph and
+        to topics. It allows to navigate the knowledge graph and
         explore adjacent information.
 
         This is intented to be used in order to help the user
@@ -80,7 +80,7 @@ mcp = FastMCP(
         And then exploring their neighbors.
     """,
     stateless_http=True,
-    json_response=True,
+    # json_response=True,
 )
 
 
