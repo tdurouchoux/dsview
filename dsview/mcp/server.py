@@ -61,20 +61,16 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context."""
     # Initialize on startup
     db_session = Session(engine)
-    extraction_index = get_extraction_index(INDEX_TTL)
-    topics_index = get_topics_index(INDEX_TTL)
 
     try:
         yield AppContext(
             db_session=db_session,
-            extraction_index=extraction_index,
-            topics_index=topics_index,
+            extraction_index=get_extraction_index(INDEX_TTL),
+            topics_index=get_topics_index(INDEX_TTL),
         )
     finally:
         # Cleanup on shutdown
         db_session.close()
-        extraction_index.close()
-        topics_index.close()
 
 
 icon = Icon(src="mini_icon.png", mimeType="image/png", sizes=["64x64"])
