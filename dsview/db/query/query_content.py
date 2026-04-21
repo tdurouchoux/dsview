@@ -1,3 +1,5 @@
+from typing import Literal, Optional
+
 from sqlmodel import Session, select
 
 from ..schemas import FailedIngestion, InputContent
@@ -41,6 +43,40 @@ def get_failed_ingestions(
     ).all()
 
     return content_list
+
+
+def get_filtered_content(
+    session: Session,
+    already_read: Optional[bool] = None,
+    read_priority: Optional[int] = None,
+    relevance: Optional[int] = None,
+    source: Optional[str] = None,
+    date_ordering: Optional[Literal["asc", "desc"]] = "desc",
+    limit: int = 20,
+) -> list[InputContent]:
+
+    stmt = select(InputContent)
+
+    if already_read is not None:
+        stmt = stmt.where(InputContent.already_read == already_read)
+
+    if read_priority is not None:
+        stmt = stmt.where(InputContent.read_priority == read_priority)
+
+    if relevance is not None:
+        stmt = stmt.where(InputContent.relevance == relevance)
+
+    if source is not None:
+        stmt = stmt.where(InputContent.source == source)
+
+    if date_ordering == "asc":
+        stmt = stmt.order_by(InputContent.upload_date.asc())
+    else:
+        stmt = stmt.order_by(InputContent.upload_date.desc())
+
+    stmt = stmt.limit(limit)
+
+    return session.exec(stmt).all()
 
 
 # class ContentIndex(DuckDBIndex)

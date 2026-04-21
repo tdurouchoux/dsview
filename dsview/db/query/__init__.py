@@ -1,4 +1,9 @@
-from .query_content import get_content, get_content_list, get_failed_ingestions
+from .query_content import (
+    get_content,
+    get_content_list,
+    get_failed_ingestions,
+    get_filtered_content,
+)
 from .query_extraction import (
     ExtractionIndex,
     get_content_extraction,

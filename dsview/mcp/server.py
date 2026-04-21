@@ -1,12 +1,14 @@
 import json
 import logging
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import date
-from typing import Annotated, Optional
+from functools import cache
+from typing import Annotated, Literal, Optional
 
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.fastmcp import Context, FastMCP, Icon
 from mcp.server.session import ServerSession
 from pydantic import BaseModel, Field
 from sqlmodel import Session
@@ -15,12 +17,35 @@ from starlette.requests import Request
 
 from dsview.config import load_extraction_config
 from dsview.db import engine
-from dsview.db.query import ExtractionIndex, TopicsIndex
+from dsview.db.query import ExtractionIndex, TopicsIndex, get_filtered_content
 from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
 
 # TODO maybe should handle async calls ?
 logger = logging.getLogger(__name__)
 extraction_config = load_extraction_config()
+
+INDEX_TTL = 3_600
+
+
+@cache
+def get_extraction_index(ttl_hash: int = None) -> ExtractionIndex:
+
+    extraction_index = ExtractionIndex()
+    extraction_index.build()
+    return extraction_index
+
+
+@cache
+def get_topics_index(ttl_hash: int = None) -> TopicsIndex:
+
+    topics_index = TopicsIndex()
+    topics_index.build()
+    return topics_index
+
+
+def get_ttl_hash(seconds: int):
+    """Return the same value withing `seconds` time period"""
+    return round(time.time() / seconds)
 
 
 @dataclass
@@ -36,11 +61,8 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context."""
     # Initialize on startup
     db_session = Session(engine)
-    extraction_index = ExtractionIndex()
-    topics_index = TopicsIndex()
-
-    extraction_index.build()
-    topics_index.build()
+    extraction_index = get_extraction_index(INDEX_TTL)
+    topics_index = get_topics_index(INDEX_TTL)
 
     try:
         yield AppContext(
@@ -55,18 +77,23 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
         topics_index.close()
 
 
+icon = Icon(src="mini_icon.png", mimeType="image/png", sizes=["64x64"])
+
 mcp = FastMCP(
     "DSview mcp server",
     lifespan=app_lifespan,
     host="0.0.0.0",
     port=8000,
+    icons=[icon],
     instructions="""
         Provide tools for exploring a dsview vault, a custom
         Data Science knowledge database managed by the user. It contains a curated
         list of **contents** (research papers, online courses, blog
         posts, github repositories, ...) and **topics** that are
         extracted from them (Machine Learning concepts,
-        Development tools, libraries, ...).
+        Development tools, libraries, ...). It serves also as a reading
+        list, storing information about what has been and should
+        be read.
 
         The database is structured as a graph of contents linked
         to topics. It allows to navigate the knowledge graph and
@@ -152,8 +179,22 @@ class DsviewContent(BaseModel):
     )
 
 
+def build_dsview_content(
+    input_content: InputContent, extraction_result: ExtractionResult | None = None
+) -> DsviewContent:
+    """Build a DsviewContent from an InputContent and an ExtractionResult"""
+    dsview_content = DsviewContent(**input_content.model_dump())
+
+    if extraction_result is not None:
+        dsview_content.title = extraction_result.title
+        dsview_content.type = extraction_result.content_type
+        dsview_content.tags = [tag.name for tag in extraction_result.tags]
+        dsview_content.summary = extraction_result.summary
+    return dsview_content
+
+
 @mcp.tool()
-def get_content_topics(
+def get_content(
     content_id: int, ctx: Context[ServerSession, AppContext]
 ) -> DsviewContent:
     """Retrieve a stored content from its id"""
@@ -165,21 +206,55 @@ def get_content_topics(
     if input_content is None:
         raise ValueError(f"Content id {content_id} was not found in database")
 
-    dsview_content = DsviewContent(**input_content.model_dump())
-
     extraction_result = db_session.get(ExtractionResult, content_id)
 
-    if extraction_result is not None:
-        dsview_content.title = extraction_result.title
-        dsview_content.type = extraction_result.content_type
-        dsview_content.tags = [tag.name for tag in extraction_result.tags]
-        dsview_content.summary = extraction_result.summary
-
-    return dsview_content
+    return build_dsview_content(input_content, extraction_result)
 
 
 class DsviewContentList(BaseModel):
     contents: list[DsviewContent]
+
+
+# @mcp.resource
+# def get_sources() -> str:
+#     return
+
+
+@mcp.tool()
+def query_content(
+    ctx: Context[ServerSession, AppContext],
+    already_read: Optional[bool] = None,
+    read_priority: Optional[int] = None,
+    relevance: Optional[int] = None,
+    source: Optional[str] = None,
+    date_ordering: Optional[Literal["asc", "desc"]] = None,
+    limit: int = 20,
+) -> DsviewContentList:
+    """
+    Simple query method to retrieve contents, from
+    the metadata attached when a content is uploaded
+    to the knowledge base.
+
+    Usefull for simple search, for example to search
+    for the last uploaded contents, most relevant
+    contents, ...
+
+    Defaults to listing last ingested contents.
+    """
+
+    db_session = ctx.request_context.lifespan_context.db_session
+
+    input_content_list = get_filtered_content(
+        db_session, already_read, read_priority, relevance, source, date_ordering, limit
+    )
+
+    contents = []
+
+    for input_content in input_content_list:
+        extraction_result = db_session.get(ExtractionResult, input_content.id)
+        contents.append(build_dsview_content(input_content, extraction_result))
+
+    return DsviewContentList(contents=contents)
 
 
 @mcp.tool()
@@ -194,12 +269,7 @@ def get_connected_contents(
     contents = []
     for extraction_result in topic.extractions:
         input_content = db_session.get(InputContent, extraction_result.content_id)
-        dsview_content = DsviewContent(**input_content.model_dump())
-        dsview_content.title = extraction_result.title
-        dsview_content.type = extraction_result.content_type
-        dsview_content.tags = [tag.name for tag in extraction_result.tags]
-        dsview_content.summary = extraction_result.summary
-        contents.append(dsview_content)
+        contents.append(build_dsview_content(input_content, extraction_result))
 
     return DsviewContentList(contents=contents)
 
@@ -311,6 +381,11 @@ def search_topic(
         topics.append(dsview_topic)
 
     return DsviewTopicList(topics=topics)
+
+
+# Deep explore tool, only returns ids and title
+# Give and understanding about structure bfs
+# What about cycles (prohibit them implicitely)
 
 
 if __name__ == "__main__":
