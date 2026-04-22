@@ -358,7 +358,9 @@ def search_topic(
     types: Annotated[Optional[list[str]], "The type of topic to search for"] = None,
 ) -> DsviewTopicList:
     """
-    Search for topics in the knowledge graph.
+    Search for topics in the knowledge graph. This is method
+    use both semantic and orthographic distance to find the
+    most relevant topics.
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
@@ -382,6 +384,104 @@ def search_topic(
 # Deep explore tool, only returns ids and title
 # Give and understanding about structure bfs
 # What about cycles (prohibit them implicitely)
+
+
+class NeighbordNode(BaseModel):
+    id: int
+    type: Literal["topic", "content"]
+    name: str = Field(description="Title for a content node, name for a topic.")
+    depth: int = Field(description="How far away from query node")
+
+
+class Neighborhood(BaseModel):
+    nodes: list[NeighbordNode]
+
+
+@mcp.tool()
+def explore_graph(
+    node_id: int,
+    node_type: Literal["topic", "content"],
+    ctx: Context[ServerSession, AppContext],
+    depth: int = 3,
+) -> Neighborhood:
+    """
+    Explore the neighborhood of a node in the
+    knowledge graph. Handle both topics nodes and
+    content nodes. The output will contains a list
+    node and their distance to the origin node.
+
+    It is usefull to quickly deeply explore the
+    neighborhood of a node and explore connected
+    information in the knowledge graph.
+
+    Because it returns few information on the content
+    of the nodes in the neighborhood, it should most be time
+    be used in combinaison with `get_content` or `get_topic`
+    on the most relevant nodes in the neighborhood (depending on
+    the user query)
+    """
+    db_session = ctx.request_context.lifespan_context.db_session
+
+    if node_type == "topic":
+        node = db_session.get(ExtractionTopic, node_id)
+    elif node_type == "content":
+        node = db_session.get(ExtractionResult, node_id)
+    else:
+        raise ValueError("Invalid node type")
+
+    if node is None:
+        raise ValueError(
+            f"Node {node_type} with id {node_id} was not found in database"
+        )
+
+    nodes = []
+    visited = set()
+    queue = [(node, 0)]
+
+    while queue:
+        current_node, current_depth = queue.pop(0)
+
+        if isinstance(current_node, ExtractionTopic):
+            node_catalog_id = f"topic_{current_node.id}"
+            if node_catalog_id in visited:
+                continue
+
+            nodes.append(
+                NeighbordNode(
+                    id=current_node.id,
+                    type="topic",
+                    name=current_node.name,
+                    depth=current_depth,
+                )
+            )
+            if current_depth == depth:
+                continue
+
+            for content in current_node.extractions:
+                queue.append((content, current_depth + 1))
+
+        elif isinstance(current_node, ExtractionResult):
+            node_catalog_id = f"content_{current_node.content_id}"
+            if node_catalog_id in visited:
+                continue
+
+            nodes.append(
+                NeighbordNode(
+                    id=current_node.content_id,
+                    type="content",
+                    name=current_node.title,
+                    depth=current_depth,
+                )
+            )
+            if current_depth == depth:
+                continue
+
+            for topic in current_node.topics:
+                queue.append((topic, current_depth + 1))
+
+        visited.add(node_catalog_id)
+
+    return Neighborhood(nodes=nodes)
 
 
 if __name__ == "__main__":
