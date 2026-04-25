@@ -258,6 +258,13 @@ def get_connected_contents(
     topic_id: int,
     ctx: Context[ServerSession, AppContext],
 ) -> DsviewContentList:
+    """
+    Get in depth information about contents mentionning
+    this topic.
+
+    Also usefull to iteratively explore the knowledge graph,
+    while still getting in depth information about the nodes.
+    """
     db_session = ctx.request_context.lifespan_context.db_session
 
     topic = db_session.get(ExtractionTopic, topic_id)
@@ -290,6 +297,10 @@ def search_content(
     It is performed using semantic and fuzzy search on the title and
     summary of contents within the database. This is one of the two
     entrypoints in the knowledge graph.
+
+    Carefull the query index are updated only every hour, so it may
+    not return the most fresh information, `query_content` should be
+    used to get the last ingested contents.
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
@@ -337,7 +348,13 @@ def get_connected_topics(
     content_id: str,
     ctx: Context[ServerSession, AppContext],
 ) -> DsviewTopicList:
+    """
+    Get in depth information about topics mentionned in one
+    content.
 
+    Also usefull to iteratively explore the knowledge graph,
+    while still getting in depth information about the nodes.
+    """
     db_session = ctx.request_context.lifespan_context.db_session
 
     extraction_result = db_session.get(ExtractionResult, content_id)
@@ -361,6 +378,10 @@ def search_topic(
     Search for topics in the knowledge graph. This is method
     use both semantic and orthographic distance to find the
     most relevant topics.
+
+    Carefull the query index are updated only every hour, so it may
+    not return the most fresh information, `query_content` should be
+    used to get the last ingested contents.
     """
 
     db_session = ctx.request_context.lifespan_context.db_session
@@ -411,14 +432,15 @@ def explore_graph(
     node and their distance to the origin node.
 
     It is usefull to quickly deeply explore the
-    neighborhood of a node and explore connected
-    information in the knowledge graph.
+    neighborhood of a node and get a sense of the
+    information stored in the knowledge graph.
 
     Because it returns few information on the content
-    of the nodes in the neighborhood, it should most be time
-    be used in combinaison with `get_content` or `get_topic`
-    on the most relevant nodes in the neighborhood (depending on
-    the user query)
+    of the nodes in the neighborhood, it should most of the time
+    be used in combinaison with more in depth exploration.
+    For example using the `get_content` or `get_topic` tools
+    to get detailed information on the most relevant nodes
+    in the neighborhood (depending on the user query).
     """
     db_session = ctx.request_context.lifespan_context.db_session
 
