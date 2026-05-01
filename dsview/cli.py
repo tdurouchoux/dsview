@@ -316,6 +316,20 @@ def restore_db(
             restore_one_table(backup_path, table, session)
 
 
+@app.command(help="Export extraction results as a graph")
+def export_graph(
+    output_file: str = typer.Option("dsview_graph.graphml", help="Output file path"),
+):
+    from dsview.graph.build_graph import build_graph
+
+    with Session(engine) as session:
+        graph = build_graph(session)
+
+    graph.write_graphml(output_file)
+
+    logger.info(f"Graph exported to {output_file}")
+
+
 def main():
     app()
 
