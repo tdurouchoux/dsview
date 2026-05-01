@@ -38,6 +38,7 @@ dependencies = [
     "beautifulsoup4>=4.13.5",
     "mlflow[genai]>=3.10.1",
     "mcp>=1.27.0",
+    "igraph>=1.0.0",
 ]
 
 [build-system]

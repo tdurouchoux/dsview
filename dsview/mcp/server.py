@@ -8,6 +8,7 @@ from datetime import date
 from functools import cache
 from typing import Annotated, Literal, Optional
 
+import igraph as ig
 from mcp.server.fastmcp import Context, FastMCP, Icon
 from mcp.server.session import ServerSession
 from pydantic import BaseModel, Field
@@ -19,6 +20,7 @@ from dsview.config import load_extraction_config
 from dsview.db import engine
 from dsview.db.query import ExtractionIndex, TopicsIndex, get_filtered_content
 from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
+from dsview.graph import build_graph, get_node_neighborhood, get_ranked_nodes
 
 # TODO maybe should handle async calls ?
 logger = logging.getLogger(__name__)
@@ -43,6 +45,15 @@ def get_topics_index(ttl_hash: int = None) -> TopicsIndex:
     return topics_index
 
 
+def make_get_graph(session: Session):
+
+    @cache
+    def get_graph(ttl_hash: int = None) -> ig.Graph:
+        return build_graph(session)
+
+    return get_graph
+
+
 def get_ttl_hash(seconds: int):
     """Return the same value withing `seconds` time period"""
     return round(time.time() / seconds)
@@ -53,6 +64,7 @@ class AppContext:
     db_session: Session
     extraction_index: ExtractionIndex
     topics_index: TopicsIndex
+    graph: ig.Graph
 
 
 # ? Why async
@@ -61,12 +73,15 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context."""
     # Initialize on startup
     db_session = Session(engine)
+    get_graph = make_get_graph(db_session)
 
     try:
+        ttl_hash = get_ttl_hash(INDEX_TTL)
         yield AppContext(
             db_session=db_session,
-            extraction_index=get_extraction_index(INDEX_TTL),
-            topics_index=get_topics_index(INDEX_TTL),
+            extraction_index=get_extraction_index(ttl_hash),
+            topics_index=get_topics_index(ttl_hash),
+            graph=get_graph(ttl_hash),
         )
     finally:
         # Cleanup on shutdown
@@ -407,23 +422,27 @@ def search_topic(
 # What about cycles (prohibit them implicitely)
 
 
-class NeighbordNode(BaseModel):
+class GraphNode(BaseModel):
     id: int
-    type: Literal["topic", "content"]
-    name: str = Field(description="Title for a content node, name for a topic.")
-    depth: int = Field(description="How far away from query node")
+    kind: Literal["topic", "content"]
+    label: str = Field(description="Title for a content node, name for a topic.")
+    type: str
+
+
+class NeighborNode(GraphNode):
+    distance: int = Field(description="How far away from query node")
 
 
 class Neighborhood(BaseModel):
-    nodes: list[NeighbordNode]
+    nodes: list[NeighborNode]
 
 
 @mcp.tool()
 def explore_graph(
     node_id: int,
-    node_type: Literal["topic", "content"],
+    node_kind: Literal["topic", "content"],
     ctx: Context[ServerSession, AppContext],
-    depth: int = 3,
+    radius: int = 3,
 ) -> Neighborhood:
     """
     Explore the neighborhood of a node in the
@@ -442,68 +461,80 @@ def explore_graph(
     to get detailed information on the most relevant nodes
     in the neighborhood (depending on the user query).
     """
-    db_session = ctx.request_context.lifespan_context.db_session
+    graph = ctx.request_context.lifespan_context.graph
 
-    if node_type == "topic":
-        node = db_session.get(ExtractionTopic, node_id)
-    elif node_type == "content":
-        node = db_session.get(ExtractionResult, node_id)
-    else:
-        raise ValueError("Invalid node type")
-
-    if node is None:
-        raise ValueError(
-            f"Node {node_type} with id {node_id} was not found in database"
-        )
+    results = get_node_neighborhood(
+        graph,
+        node_id,
+        node_kind,
+        radius=radius,
+    )
 
     nodes = []
-    visited = set()
-    queue = [(node, 0)]
 
-    while queue:
-        current_node, current_depth = queue.pop(0)
+    for node, distance in results:
+        node_attributes = node.attributes()
+        node_attributes["id"] = node_attributes["name"].split("_")[1]
+        node_attributes["distance"] = distance
 
-        if isinstance(current_node, ExtractionTopic):
-            node_catalog_id = f"topic_{current_node.id}"
-            if node_catalog_id in visited:
-                continue
-
-            nodes.append(
-                NeighbordNode(
-                    id=current_node.id,
-                    type="topic",
-                    name=current_node.name,
-                    depth=current_depth,
-                )
-            )
-            if current_depth == depth:
-                continue
-
-            for content in current_node.extractions:
-                queue.append((content, current_depth + 1))
-
-        elif isinstance(current_node, ExtractionResult):
-            node_catalog_id = f"content_{current_node.content_id}"
-            if node_catalog_id in visited:
-                continue
-
-            nodes.append(
-                NeighbordNode(
-                    id=current_node.content_id,
-                    type="content",
-                    name=current_node.title,
-                    depth=current_depth,
-                )
-            )
-            if current_depth == depth:
-                continue
-
-            for topic in current_node.topics:
-                queue.append((topic, current_depth + 1))
-
-        visited.add(node_catalog_id)
+        nodes.append(NeighborNode(**node_attributes))
 
     return Neighborhood(nodes=nodes)
+
+
+class RankedNode(GraphNode):
+    score: float
+
+
+class NodeRanking(BaseModel):
+    nodes: list[RankedNode]
+
+
+@mcp.tool()
+def get_nodes_ranking(
+    ctx: Context[ServerSession, AppContext],
+    metric: Literal["betweenness", "degree", "pagerank"] = "betweenness",
+    node_kind: Optional[Literal["content", "topic"]] = None,
+    limit: int = 20,
+):
+    """
+    Get a list of the most important nodes in the knowledge
+    graph with regards to a graph metric. The default metric
+    is betweenesss centrality. The output will contain a list
+    of node ordered based on the score attribute.
+
+    This can be used to identify what is the core knowledge stored
+    in the graph. It can be filtered on only contents or topics.
+
+    Betweenness centrality is the most relevant scoring metric, as the
+    underlining graph is created iteratively with a focus on having
+    a connected graph, this score allows to surface the core topics
+    or most crucial contents. It can also be used to prioritize, when
+    the author asks what they should read next (when this tool is combined
+    with anoter get tool to get the full node information).
+
+    Degree score should only be used with node_kind equal to "topic", in
+    this setup it will surface the most mentionned topics, and can also
+    be usefull to get an idea of important topics in the graph.
+    """
+    graph = ctx.request_context.lifespan_context.graph
+
+    results = get_ranked_nodes(
+        graph,
+        metric,
+        node_kind=node_kind,
+        limit=limit,
+    )
+
+    nodes = []
+    for node, score in results:
+        node_attributes = node.attributes()
+        node_attributes["id"] = node_attributes["name"].split("_")[1]
+        node_attributes["score"] = score
+
+        nodes.append(RankedNode(**node_attributes))
+
+    return NodeRanking(nodes=nodes)
 
 
 if __name__ == "__main__":
