@@ -62,7 +62,11 @@ def _compute_metric(
 ) -> dict[int, float]:
     """Helper to compute a metric for all nodes or a subset."""
     scores = getattr(graph, metric_name)(vertices=nodes, **kwargs)
-    return {i: score for i, score in enumerate(scores)}
+
+    if nodes is None:
+        return {i: score for i, score in enumerate(scores)}
+
+    return {nodes[i]: score for i, score in enumerate(scores)}
 
 
 def degree(
