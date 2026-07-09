@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.13.11"
+__generated_with = "0.15.2"
 app = marimo.App(
     width="columns",
     layout_file="layouts/content_description_opt.grid.json",
@@ -24,9 +24,9 @@ def _():
     from dsview.config import (
         ModelConfig,
         LLMProvider,
-        get_sqlite_engine,
         load_extraction_config,
     )
+    from dsview.db import engine
     from dsview.model_utils.providers import OllamaProvider
     return LLMProvider, ModelConfig, evaluate, load_extraction_config, mlflow
 
@@ -58,9 +58,16 @@ def _(load_extraction_config, mlflow):
 
 
 @app.cell
+def _():
+    import os
+    os.environ["PROMPT_DIR"] = "./prompts/"
+    return
+
+
+@app.cell
 def _(evaluate, experiment, mlflow):
     with mlflow.start_run(
-        run_name="New config", experiment_id=experiment.experiment_id
+        run_name="Mistral small 4", experiment_id=experiment.experiment_id
     ):
         eval_results = evaluate()
     return (eval_results,)

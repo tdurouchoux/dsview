@@ -12,6 +12,9 @@ st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.p
 
 
 def main():
+    if not "comparison" in st.session_state:
+        st.session_state["comparison"] = None
+
     st.title("ER comparison labelling")
 
     topic_display_template = (
@@ -19,21 +22,23 @@ def main():
     )
 
     with Session(engine) as session:
-        comparison = get_random_missing_er_label(session)
+        if st.session_state.comparison is None:
+            st.session_state.comparison = get_random_missing_er_label(session)
+            st.success("New comparison loaded")
 
-        if comparison is None:
+        if st.session_state.comparison is None:
             st.info("No more comparisons to label")
             return
 
         col1, col2 = st.columns(2)
         col1.markdown(
             topic_display_template.format(
-                1, comparison.name_1, comparison.type_1, comparison.description_1
+                1, st.session_state.comparison.name_1, st.session_state.comparison.type_1, st.session_state.comparison.description_1
             )
         )
         col2.markdown(
             topic_display_template.format(
-                2, comparison.name_2, comparison.type_2, comparison.description_2
+                2, st.session_state.comparison.name_2, st.session_state.comparison.type_2, st.session_state.comparison.description_2
             )
         )
 
@@ -45,14 +50,16 @@ def main():
         if merge or not_merge:
             save_er_label(
                 session,
-                comparison.name_1,
-                comparison.type_1,
-                comparison.description_1,
-                comparison.name_2,
-                comparison.type_2,
-                comparison.description_2,
+                st.session_state.comparison.name_1,
+                st.session_state.comparison.type_1,
+                st.session_state.comparison.description_1,
+                st.session_state.comparison.name_2,
+                st.session_state.comparison.type_2,
+                st.session_state.comparison.description_2,
                 merge,
             )
+
+            st.session_state.comparison = None
             st.rerun()
 
 

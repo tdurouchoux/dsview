@@ -2,10 +2,11 @@ from typing import Literal, Type
 
 import numpy as np
 import pandas as pd
+from sqlalchemy.sql import schema
 from sqlmodel import Session, select, text
 from sqlmodel.main import SQLModel
 
-from ..schemas import ERComparison, ERLabels, LabelledContent
+from ..schemas import LABELS_SCHEMA, ERComparison, ERLabels, LabelledContent
 
 DEFAULT_SPLIT_RATIOS = {
     "eval": 0.7,
@@ -34,7 +35,9 @@ def get_labeled_content(
     split_ratios: dict[str, float] = DEFAULT_SPLIT_RATIOS,
     random_state: int = DEFAULT_RANDOM_STATE,
 ) -> pd.DataFrame:
-    df_labeled = pd.read_sql_table(LabelledContent.__tablename__, session.bind)
+    df_labeled = pd.read_sql_table(
+        LabelledContent.__tablename__, session.bind, schema=LABELS_SCHEMA
+    )
 
     df_labeled = assign_rows(df_labeled, split_ratios, random_state)
 
@@ -49,7 +52,9 @@ def get_labels_data(
     df_labeled = get_labeled_content(set_type, session)
 
     for labels_table in labels_tables:
-        df_labels = pd.read_sql_table(labels_table.__tablename__, session.bind)
+        df_labels = pd.read_sql_table(
+            labels_table.__tablename__, session.bind, schema=LABELS_SCHEMA
+        )
 
         df_labeled = df_labeled.merge(
             df_labels.drop(columns=["id"]),
@@ -72,7 +77,7 @@ def get_er_labels(
     random_state: int,
     session: Session,
 ) -> pd.DataFrame:
-    query = """
+    query = f"""
         SELECT
            	erlabels.id,
             erlabels.merge,
@@ -82,8 +87,8 @@ def get_er_labels(
             ercomparison.name_2,
             ercomparison.description_2,
             ercomparison.type_2
-        FROM erlabels
-        JOIN ercomparison
+        FROM {ERLabels.__table__.schema}.{ERLabels.__table__.name}
+        JOIN {ERComparison.__table__.schema}.{ERComparison.__table__.name}
         ON erlabels.er_comparison_id = ercomparison.id
     """
 
