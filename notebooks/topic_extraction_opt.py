@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.13.15"
+__generated_with = "0.15.2"
 app = marimo.App(width="medium")
 
 
@@ -38,6 +38,13 @@ def _():
         pd,
         tqdm,
     )
+
+
+@app.cell
+def _():
+    import os
+    os.environ["PROMPT_DIR"] = "./prompts/"
+    return
 
 
 @app.cell
@@ -175,12 +182,20 @@ def _(eval_data):
 
 
 @app.cell
-def _(evaluate, experiment, mlflow):
+def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
+    mistral_medium_config = ModelConfig(
+        chat_model="mistral-medium-3-5",
+        provider=LLMProvider.MISTRAL,
+        token_limit=100_000,
+    )
+
     with mlflow.start_run(
-        run_name="default config",
+        run_name="Mistral medium 3.5",
         experiment_id=experiment.experiment_id,
     ):
-        eval_results = evaluate()
+        eval_results = evaluate(
+            model_config=mistral_medium_config
+        )
     return (eval_results,)
 
 

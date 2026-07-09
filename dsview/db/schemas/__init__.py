@@ -1,3 +1,4 @@
+from .content_schema import FailedIngestion, InputContent
 from .extraction_schema import (
     ContentTopicRelation,
     ERComparison,
@@ -6,8 +7,8 @@ from .extraction_schema import (
     ExtractionTag,
     ExtractionTopic,
 )
-from .content_schema import FailedIngestion, InputContent
 from .labels_schema import (
+    LABELS_SCHEMA,
     ContentTypeLabels,
     ERLabels,
     LabelledContent,
@@ -16,5 +17,4 @@ from .labels_schema import (
     TitleLabels,
     TopicsLabels,
 )
-
 from .schema_utils import drop_tables
