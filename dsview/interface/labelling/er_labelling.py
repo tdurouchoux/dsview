@@ -18,7 +18,7 @@ def main():
     st.title("ER comparison labelling")
 
     topic_display_template = (
-        "## Topic {}\n\n **Name** : {}\n\n **Type** : {}\n\n **Description** : \n\n {}"
+        "## Topic {}\n\n **Name** : {}\n\n **Type** : {}"
     )
 
     with Session(engine) as session:
@@ -45,14 +45,19 @@ def main():
         col1, col2 = st.columns(2)
         col1.markdown(
             topic_display_template.format(
-                1, st.session_state.comparison.name_1, st.session_state.comparison.type_1, st.session_state.comparison.description_1
+                1, st.session_state.comparison.name_1, st.session_state.comparison.type_1,
             )
         )
+        exp1 = col1.expander("Description")
+        exp1.markdown(st.session_state.comparison.description_1)
+
         col2.markdown(
             topic_display_template.format(
-                2, st.session_state.comparison.name_2, st.session_state.comparison.type_2, st.session_state.comparison.description_2
+                2, st.session_state.comparison.name_2, st.session_state.comparison.type_2
             )
         )
+        exp2 = col2.expander("Description")
+        exp2.markdown(st.session_state.comparison.description_2)
 
         st.subheader("Are these topics the same ?")
         col1, col2 = st.columns(2)
