@@ -1,9 +1,10 @@
+import binascii
 from typing import Literal, Type
 
 import numpy as np
 import pandas as pd
 from sqlalchemy.sql import schema
-from sqlmodel import Session, select, text
+from sqlmodel import Session, select, text, func
 from sqlmodel.main import SQLModel
 
 from ..schemas import LABELS_SCHEMA, ERComparison, ERLabels, LabelledContent
@@ -104,16 +105,56 @@ def get_er_labels(
     return df
 
 
-def get_random_missing_er_label(session: Session) -> ERComparison | None:
-    result = session.exec(
-        text(f"""
-            SELECT * FROM {ERComparison.__table__.schema}.{ERComparison.__table__.name}
-            WHERE (name_1, name_2) NOT IN (
-                SELECT name_1, name_2 FROM {ERLabels.__table__.schema}.{ERLabels.__table__.name}
-            ) ORDER BY RANDOM()""")
-    ).first()
+def count_er_labels(
+    session: Session
+) -> tuple[int, int]:
+
+    count_total_labeled = (
+        session.scalar(select(func.count(ERLabels.id)))
+    )
+
+    count_total_comparisons = (
+        session.scalar(select(func.count(ERComparison.id)))
+    )
+
+    return count_total_labeled, count_total_comparisons
+
+
+def get_random_missing_er_label(
+    session: Session,
+    class_weight: float | None = 0.4,
+    bias_expr: str | None = "1 - vss_distance",
+    bias_strength: float = 0.5,
+) -> ERComparison | None:
+
+    query = f"""
+        SELECT * FROM {ERComparison.__table__.schema}.{ERComparison.__table__.name}
+        WHERE (name_1, name_2) NOT IN (
+            SELECT name_1, name_2 FROM {ERLabels.__table__.schema}.{ERLabels.__table__.name}
+        )
+    """
+
+    if class_weight is not None:
+        query += f"AND merge_topic = (RANDOM() < {class_weight})"
+
+    if bias_expr is not None:
+        query += f"""
+            ORDER BY POWER(random(), 1.0 / GREATEST(POWER({bias_expr}, {bias_strength}), 0.0001)) DESC;
+        """
+    else:
+        query += "ORDER BY RANDOM()"
+
+    result = session.exec(text(query)).first()
 
     if result is None:
+        if class_weight is not None:
+            return get_random_missing_er_label(
+                session,
+                class_weight=None,
+                bias_expr=bias_expr,
+                bias_strength=bias_strength,
+            )
+
         return None
 
     return ERComparison(**result._asdict())
