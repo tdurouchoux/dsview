@@ -1,5 +1,5 @@
-import binascii
 from typing import Literal, Type
+import random
 
 import numpy as np
 import pandas as pd
@@ -135,14 +135,15 @@ def get_random_missing_er_label(
     """
 
     if class_weight is not None:
-        query += f"AND merge_topic = (RANDOM() < {class_weight})"
+        class_selection = random.random() < class_weight
+        query += f" AND merge_topic = {'true' if class_selection else 'false'}"
 
     if bias_expr is not None:
         query += f"""
             ORDER BY POWER(random(), 1.0 / GREATEST(POWER({bias_expr}, {bias_strength}), 0.0001)) DESC;
         """
     else:
-        query += "ORDER BY RANDOM()"
+        query += " ORDER BY RANDOM()"
 
     result = session.exec(text(query)).first()
 
