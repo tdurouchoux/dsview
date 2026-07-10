@@ -13,6 +13,7 @@ from .query_labels import (
     check_link_labelled,
     get_er_labels,
     get_labels_data,
+    count_er_labels,
     get_random_missing_er_label,
 )
 from .query_topic import TopicsIndex, get_topic_by_name, get_topic_list
