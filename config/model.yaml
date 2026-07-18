@@ -10,15 +10,6 @@ configs:
       token_limit: 100000
       model_specific_config:
         temperature: 0
-  - model_type: ER_CLASSIFICATION
-    model_config:
-      chat_model: mistral-small-2603
-      embedding_model: mistral-embed
-      # provider: OPENAI
-      provider: MISTRAL
-      token_limit: 100000
-      model_specific_config:
-        temperature: 0
   - model_type: SEMANTIC_SCORE
     model_config:
       chat_model: smollm2:1.7b
