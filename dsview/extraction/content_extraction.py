@@ -4,7 +4,6 @@ import time
 
 from sqlmodel import Session
 
-from dsview.config import load_extraction_config
 from dsview.db.ingest import (
     embed_and_save_topic,
     embed_and_update_topic,
@@ -23,8 +22,6 @@ from .models.description_generation import (
 from .models.links_extraction import LinksExtractor, RelevantLink
 from .models.summary_generation import SummaryGenerator
 from .models.topics_extraction import DataScienceTopic, TopicsExtractor
-
-config = load_extraction_config()
 
 logger = logging.getLogger(__name__)
 

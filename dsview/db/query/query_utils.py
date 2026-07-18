@@ -3,12 +3,12 @@ import logging
 import duckdb
 import pandas as pd
 
-from dsview.config import ModelType, load_model_config, load_postgres_config
+from dsview.config import ModelType, lazy, lazy_model_config, load_postgres_config
 from dsview.model_utils import get_model_provider
 
 logger = logging.getLogger(__name__)
-model_config = load_model_config(ModelType.INDEX)
-postgres_config = load_postgres_config()
+model_config = lazy_model_config(ModelType.INDEX)
+postgres_config = lazy(load_postgres_config)
 
 EXTENSION_LIST = ["vss", "fts", "postgres"]
 

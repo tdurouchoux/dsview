@@ -8,7 +8,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
 from tenacity import RetryError
 
-from dsview.config import load_model_config, setup_logger
+from dsview.config import setup_logger
 from dsview.db import engine, check_db_connection
 from dsview.db.ingest import update_content
 from dsview.db.schemas import InputContent
@@ -20,8 +20,6 @@ from dsview.obsidian.sync_vault import api_sync_vault, init_vault
 load_dotenv()
 setup_logger()
 init_vault()
-
-model_config = load_model_config()
 
 logger = logging.getLogger(__name__)
 

@@ -16,7 +16,7 @@ from sqlmodel import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from dsview.config import load_extraction_config
+from dsview.config import lazy, load_extraction_config
 from dsview.db import engine
 from dsview.db.query import ExtractionIndex, TopicsIndex, get_filtered_content
 from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
@@ -24,7 +24,7 @@ from dsview.graph import build_graph, get_node_neighborhood, get_ranked_nodes
 
 # TODO maybe should handle async calls ?
 logger = logging.getLogger(__name__)
-extraction_config = load_extraction_config()
+extraction_config = lazy(load_extraction_config)
 
 INDEX_TTL = 3_600
 

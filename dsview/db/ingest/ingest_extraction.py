@@ -2,7 +2,7 @@ from datetime import date
 
 from sqlmodel import Session
 
-from dsview.config import ModelType, load_model_config
+from dsview.config import ModelType, lazy, load_model_config
 from dsview.extraction.models.description_generation import ContentDescription
 from dsview.extraction.models.er_classification import ERResult
 from dsview.extraction.models.links_extraction import RelevantLink
@@ -18,8 +18,8 @@ from ..schemas import (
 )
 from .update import update_instance
 
-model_config = load_model_config(ModelType.INDEX)
-model_provider = get_model_provider(model_config)
+# Lazy: building a provider checks API keys, which must not happen at import
+model_provider = lazy(lambda: get_model_provider(load_model_config(ModelType.INDEX)))
 
 
 async def embed_and_format_extraction_results(

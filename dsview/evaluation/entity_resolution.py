@@ -1,7 +1,12 @@
 import mlflow
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score,
+    f1_score,
+    fbeta_score,
+    precision_score,
+    recall_score,
+)
 from sqlmodel import Session
-from tqdm import tqdm
 
 from dsview.config import ModelConfig
 from dsview.db import engine
@@ -11,9 +16,9 @@ from dsview.extraction.models.topics_extraction import DataScienceTopic
 
 RANDOM_STATE = 42
 SPLIT_RATIOS = {
-    "example": 0.4,
-    "eval": 0.5,
-    "test": 0.1,
+    "example": 0.1,
+    "eval": 0.7,
+    "test": 0.2,
 }
 
 
@@ -26,7 +31,7 @@ def evaluate(
 ):
     with Session(engine) as session:
         er_data = get_er_labels(SPLIT_RATIOS, RANDOM_STATE, session)
-    run_data = er_data[er_data["row_type"] == set_type]
+    run_data = er_data[er_data["row_type"] == set_type].copy()
 
     er_classifier = ERClassifier(
         model_config=model_config, system_prompt=system_prompt, user_prompt=user_prompt
@@ -39,22 +44,25 @@ def evaluate(
     if mlflow.active_run() is not None:
         er_classifier.log_params()
 
-    merge_pred = []
-
-    for comparison in tqdm(run_data.itertuples(index=False), total=run_data.shape[0]):
-        topic_1 = DataScienceTopic(
-            name=comparison.name_1,
-            type=comparison.type_1,
-            description=comparison.description_1,
+    topic_pairs = [
+        (
+            DataScienceTopic(
+                name=comparison.name_1,
+                type=comparison.type_1,
+                description=comparison.description_1,
+            ),
+            DataScienceTopic(
+                name=comparison.name_2,
+                type=comparison.type_2,
+                description=comparison.description_2,
+            ),
         )
+        for comparison in run_data.itertuples(index=False)
+    ]
 
-        topic_2 = DataScienceTopic(
-            name=comparison.name_2,
-            type=comparison.type_2,
-            description=comparison.description_2,
-        )
-
-        merge_pred.append(er_classifier.predict(topic_1, topic_2).merge_topic)
+    merge_pred = [
+        result.merge_topic for result in er_classifier.predict_batch(topic_pairs)
+    ]
 
     run_data["merge_pred"] = merge_pred
 
@@ -63,6 +71,7 @@ def evaluate(
         "precision": precision_score(run_data["merge"], merge_pred),
         "recall": recall_score(run_data["merge"], merge_pred),
         "f1": f1_score(run_data["merge"], merge_pred),
+        "f0.75": fbeta_score(run_data["merge"], merge_pred, beta=0.75),
     }
 
     print({key: f"{value:.2f}" for key, value in metrics.items()})

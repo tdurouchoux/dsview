@@ -3,9 +3,9 @@ import logging
 from pathlib import Path
 import subprocess
 
-from dsview.config import load_obsidian_config
+from dsview.config import lazy, load_obsidian_config
 
-config = load_obsidian_config()
+config = lazy(load_obsidian_config)
 logger = logging.getLogger(__name__)
 
 

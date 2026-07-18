@@ -1,10 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pandas as pd
 from sqlmodel import Session, select
 
-from dsview.extraction.models.topics_extraction import DataScienceTopic
-
 from ..schemas import ExtractionTopic
 from .query_utils import DuckDBIndex
+
+if TYPE_CHECKING:
+    from dsview.extraction.models.topics_extraction import DataScienceTopic
 
 TOPICS_FTS_FIELDS = ["name"]  # "description"
 N_TOPICS_FTS = 3
@@ -15,6 +20,10 @@ N_TOPICS_VSS = 1
 
 class TopicsIndex(DuckDBIndex):
     def __init__(self, embedding_size: int = 1024):
+        # Imported here: the extraction models build enums from config at
+        # import time, which must not be required to import this module
+        from dsview.extraction.models.topics_extraction import DataScienceTopic
+
         self.topic_fields = list(DataScienceTopic.model_fields.keys())
 
         super().__init__(
@@ -28,6 +37,8 @@ class TopicsIndex(DuckDBIndex):
         self,
         topic: DataScienceTopic,
     ) -> dict[int, dict[str, DataScienceTopic | float]]:
+        from dsview.extraction.models.topics_extraction import DataScienceTopic
+
         result_topics = {}
 
         fts_query_result = self._query_fts_index(topic.name, N_TOPICS_FTS)

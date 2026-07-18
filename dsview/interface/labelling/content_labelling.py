@@ -4,16 +4,12 @@ from pydantic import HttpUrl
 from sqlmodel import Session
 import streamlit as st
 
-from dsview.config import load_model_config
 from dsview.db import engine
 from dsview.db.query import check_link_labelled
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import get_content_loader
 
 from dsview.interface.labelling.content_labelling_form import generate_labelling_form
-
-# Load config
-model_config = load_model_config()
 
 st.set_page_config(page_title="Content labelling", page_icon="small_icon.png")
 # how to feed new url ? > list input or random

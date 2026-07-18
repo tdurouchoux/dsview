@@ -43,7 +43,7 @@ class IngestPipeline:
 
         if clean_url.host in MEDIUM_HOSTS:
             logger.info("Received a medium link, redirecting to readmedium")
-            clean_url = HttpUrl("https://readmedium.com/" + str(clean_url))
+            clean_url = HttpUrl("https://readmedium.com/" + link.path)
 
         return clean_url
 

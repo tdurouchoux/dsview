@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache, partial
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, TypeVar, Union, cast
 
 import yaml
 from dotenv import load_dotenv
@@ -72,6 +72,51 @@ class ModelConfigurationError(Exception):
         )
 
 
+T = TypeVar("T")
+
+_UNSET = object()
+
+
+class LazyProxy:
+    """Stand-in for a module-level object that defers its construction.
+
+    Wraps a zero-argument loader; the target is built on first attribute
+    access and memoized, so importing a module that declares one never
+    touches config files or environment variables.
+    """
+
+    __slots__ = ("_loader", "_target")
+
+    def __init__(self, loader: Callable[[], object]) -> None:
+        object.__setattr__(self, "_loader", loader)
+        object.__setattr__(self, "_target", _UNSET)
+
+    def _resolve(self):
+        target = object.__getattribute__(self, "_target")
+        if target is _UNSET:
+            target = object.__getattribute__(self, "_loader")()
+            object.__setattr__(self, "_target", target)
+        return target
+
+    def __getattr__(self, name: str):
+        return getattr(self._resolve(), name)
+
+    def __setattr__(self, name: str, value) -> None:
+        setattr(self._resolve(), name, value)
+
+    def __repr__(self) -> str:
+        return repr(self._resolve())
+
+
+def lazy(loader: Callable[[], T]) -> T:
+    """Typed lazy module-level global.
+
+    The cast lets call sites keep the loaded type for IDE completion and
+    type checking while the value is actually a LazyProxy.
+    """
+    return cast(T, LazyProxy(loader))
+
+
 def load_model_config(model_type: ModelType = None) -> ModelConfig:
     if model_type is None:
         model_type = ModelType.DEFAULT
@@ -93,6 +138,25 @@ def load_model_config(model_type: ModelType = None) -> ModelConfig:
     if model_config is None:
         raise ModelConfigurationError(model_type)
     return model_config
+
+
+def lazy_model_config(model_type: ModelType = ModelType.DEFAULT) -> ModelConfig:
+    """Lazy counterpart of load_model_config for module-level declarations."""
+    return lazy(partial(load_model_config, model_type))
+
+
+@dataclass
+class EvaluationConfig:
+    model_config: Optional[ModelConfig] = None
+    system_prompt_file: Optional[Path] = None
+    user_prompt_file: Optional[Path] = None
+
+
+def load_evaluation_config(config_file: Path) -> EvaluationConfig:
+    default_config = OmegaConf.structured(EvaluationConfig)
+    file_config = OmegaConf.load(config_file)
+
+    return OmegaConf.to_object(OmegaConf.merge(default_config, file_config))
 
 
 @dataclass
@@ -121,6 +185,7 @@ class GithubVault:
             f"https://{self.username}:{self.token}"
             f"@{self.repository.replace('https://', '')}"
         )
+
 
 @dataclass
 class ObsidianConfig:

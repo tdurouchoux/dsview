@@ -1,3 +1,7 @@
+# Claude files
+.agents/
+.claude/
+skills-lock.json
 
 # backup directory
 backup/
@@ -11,6 +15,7 @@ dsview_vault*
 # mlflow
 mlruns/
 mlartifacts/
+eval_configs/
 
 # Marimo
 __marimo__/

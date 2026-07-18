@@ -1,14 +1,13 @@
 import shutil
 import urllib.parse
-from functools import partial
 from pathlib import Path
 from typing import List
 
 import regex as re
 
-from dsview.config import load_obsidian_config
+from dsview.config import lazy, load_obsidian_config
 
-config = load_obsidian_config()
+config = lazy(load_obsidian_config)
 
 
 def clean_note_title(note_name: str) -> str:
@@ -67,8 +66,12 @@ def retrieve_notes_path(note_dir: str) -> List[Path]:
     return notes_path
 
 
-retrieve_topics_path = partial(retrieve_notes_path, config.topic_directory)
-retrieve_contents_path = partial(retrieve_notes_path, config.content_directory)
+def retrieve_topics_path() -> List[Path]:
+    return retrieve_notes_path(config.topic_directory)
+
+
+def retrieve_contents_path() -> List[Path]:
+    return retrieve_notes_path(config.content_directory)
 
 
 def clear_vault():
