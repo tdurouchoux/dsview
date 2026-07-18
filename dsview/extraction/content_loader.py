@@ -10,7 +10,6 @@ from pypdf import PdfReader
 from dsview.config import load_model_config
 
 logger = logging.getLogger(__name__)
-token_limit = load_model_config().token_limit
 
 
 class WebRequestFailure(Exception):
@@ -97,7 +96,7 @@ class PdfUrlLoader(WebContentLoader):
     def _extract_pdf_content(self, reader: PdfReader):
         self.content = ""
         word_count = 0
-        word_limit = token_limit / 2
+        word_limit = load_model_config().token_limit / 2
 
         for i, page in enumerate(reader.pages):
             page_content = page.extract_text()

@@ -7,13 +7,12 @@ import mlflow
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-from dsview.config import ModelConfig, load_model_config
+from dsview.config import ModelConfig, lazy_model_config
 
 from .get_model_provider import get_model_provider
 
 load_dotenv()
 
-default_model_config = load_model_config()
 # mlflow.mistral.autolog()
 
 
@@ -48,7 +47,7 @@ def get_prompt(prompt_filename: str) -> str:
 
 
 class LLMModel:
-    DEFAULT_MODEL_CONFIG = default_model_config
+    DEFAULT_MODEL_CONFIG = lazy_model_config()
     DEFAULT_SYSTEM_PROMPT_FILE: str = None
     DEFAULT_USER_PROMPT_FILE: str = None
     DEFAULT_SYSTEM_PROMPT_FORMAT: Union[list[str], dict[str, str]] = None
@@ -130,3 +129,12 @@ class LLMModel:
         )
 
         return result
+
+    def predict_batch(
+        self, inputs: list[dict[str, str]]
+    ) -> list[Union[str, BaseModel]]:
+        batch_messages = [self._prepare_messages(input) for input in inputs]
+
+        return self.model_provider.batch_send_messages(
+            batch_messages, self.structured_output_class
+        )

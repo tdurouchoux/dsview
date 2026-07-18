@@ -4,13 +4,16 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from scipy.spatial.distance import cosine
 
-from dsview.config import ModelType, load_model_config
+from dsview.config import ModelType, lazy, load_model_config
 from dsview.model_utils import get_model_provider
 
 nltk.download("stopwords")
+nltk.download("punkt_tab")  # required by word_tokenize in tokenize()
 
-semantic_score_model_config = load_model_config(ModelType.SEMANTIC_SCORE)
-model_provider = get_model_provider(semantic_score_model_config)
+# Lazy: building a provider checks API keys, which must not happen at import
+model_provider = lazy(
+    lambda: get_model_provider(load_model_config(ModelType.SEMANTIC_SCORE))
+)
 
 stop_words = set(stopwords.words("english"))
 

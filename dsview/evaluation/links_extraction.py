@@ -49,13 +49,8 @@ def compute_average_precision(
     return sum(precision_at_i) / len(pred_ranking)
 
 
-def eval_row(links_extractor: LinksExtractor, row: pd.Series) -> pd.Series:
-    content_loader = UrlLoader(HttpUrl(row["link"]), 64_000)
-    content_loader.load()
-
-    extracted_links = [
-        link.url for link in links_extractor.predict(content_loader).links
-    ]
+def score_row(row: pd.Series) -> pd.Series:
+    extracted_links = row["pred_hyperlink"]
     n_extracted_links = len(extracted_links)
     relevant_links = row["hyperlink"]
 
@@ -71,7 +66,7 @@ def eval_row(links_extractor: LinksExtractor, row: pd.Series) -> pd.Series:
         recall = len(links_intersection) / len(relevant_links)
         average_precision = compute_average_precision(relevant_links, extracted_links)
 
-    return pd.Series([extracted_links, precision, recall, average_precision])
+    return pd.Series([precision, recall, average_precision])
 
 
 def evaluate(
@@ -89,9 +84,20 @@ def evaluate(
 
     df = get_links_extraction_data(set_type)
 
+    content_loaders = []
+    for link in tqdm(df["link"], desc="Loading contents"):
+        content_loader = UrlLoader(HttpUrl(link), 64_000)
+        content_loader.load()
+        content_loaders.append(content_loader)
+
     # TODO remove token_limit from model_config
-    df[["pred_hyperlink", "precision", "recall", "average_precision"]] = (
-        df.progress_apply(lambda row: eval_row(links_extractor, row), axis=1)
+    extraction_results = links_extractor.predict_batch(content_loaders)
+    df["pred_hyperlink"] = [
+        [link.url for link in result.links] for result in extraction_results
+    ]
+
+    df[["precision", "recall", "average_precision"]] = df.progress_apply(
+        score_row, axis=1
     )
 
     metrics = {

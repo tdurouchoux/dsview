@@ -1,33 +1,25 @@
-import asyncio
 from typing import Literal
 
 import mlflow
-import nest_asyncio
 import pandas as pd
 from pydantic import BaseModel
 from sqlmodel import Session
-from tqdm import tqdm
 
-from dsview.config import ModelConfig, load_extraction_config
+from dsview.config import ModelConfig
 from dsview.db import engine
 from dsview.db.query import get_labels_data
 from dsview.db.schemas import TopicsLabels
 from dsview.extraction.models.topics_extraction import (
-    DataScienceTopic,
     TopicsExtractor,
     TopicType,
 )
 from dsview.model_utils import LLMModel
 
-tqdm.pandas()
-nest_asyncio.apply()
-
-extraction_config = load_extraction_config()
-
 MAX_N_TOPICS = 10
 
 
 class SimpleERResult(BaseModel):
+    analysis: bool
     merge_topic: bool
 
 
@@ -52,103 +44,87 @@ def get_topics_extraction_data(set_type: Literal["eval", "test"]) -> pd.DataFram
     return df_labels
 
 
-async def is_topic_close(
-    simple_er: SimpleERModel,
-    relevant_topic_name: str,
-    relevant_topic_type: str,
-    topic_name: str,
-    topic_type: str,
-) -> bool:
-    result = await simple_er.async_predict(
-        {
-            "name_1": relevant_topic_name,
-            "type_1": relevant_topic_type,
-            "name_2": topic_name,
-            "type_2": topic_type,
-        }
-    )
+def find_er_matches(simple_er: SimpleERModel, df: pd.DataFrame) -> dict[tuple, str]:
+    """Match predicted topics to labelled topics with the LLM judge.
 
-    return result.merge_topic
+    Returns a mapping of (row id, predicted topic position) to the matched
+    labelled topic name. Predicted topics whose name is an exact labelled
+    name are matched without a judge call.
+    """
+    er_inputs = []
+    er_keys = []
 
+    for row_id, row in df.iterrows():
+        for topic_position, topic in enumerate(row["pred_topics"]):
+            if topic.name in row["name"]:
+                continue
 
-def find_close_topic(
-    simple_er: SimpleERModel,
-    topic: DataScienceTopic,
-    relevant_topic_name_list: list[str],
-    relevant_topic_type_list: list[str],
-) -> str:
-    tasks = []
+            for labelled_name, labelled_type in zip(row["name"], row["type"]):
+                er_inputs.append(
+                    {
+                        "name_1": labelled_name,
+                        "type_1": labelled_type,
+                        "name_2": topic.name,
+                        "type_2": topic.type.value,
+                    }
+                )
+                er_keys.append((row_id, topic_position, labelled_name))
 
-    for relevant_topic_name, relevant_topic_type in zip(
-        relevant_topic_name_list, relevant_topic_type_list
-    ):
-        tasks.append(
-            is_topic_close(
-                simple_er,
-                relevant_topic_name,
-                relevant_topic_type,
-                topic.name,
-                topic.type.value,
-            )
-        )
+    er_results = simple_er.predict_batch(er_inputs)
 
-    results = asyncio.run(asyncio.gather(*tasks))
+    er_matches = {}
+    for (row_id, topic_position, labelled_name), result in zip(er_keys, er_results):
+        key = (row_id, topic_position)
+        # Labelled topics are rank-ordered: keep the first match.
+        if result.merge_topic and key not in er_matches:
+            er_matches[key] = labelled_name
 
-    if True not in results:
-        return None
-
-    print("ONE TOPIC MATCHED !!!")
-    return relevant_topic_name_list[results.index(True)]
+    return er_matches
 
 
-def eval_row(
-    topics_extractor: TopicsExtractor, simple_er: SimpleERModel, row: pd.Series
-) -> pd.Series:
-    pred_topics = topics_extractor.predict({"content": row["content"]}).topics
-
+def score_row(row_id, row: pd.Series, er_matches: dict[tuple, str]) -> pd.Series:
     pred_topics_match = []
     precision_at_i = []
     count_type_correct = 0
 
-    print(f"Number of predicted topics : {len(pred_topics)}")
-    print(f"Number of er comparison to make : {len(pred_topics) * len(row['name'])}")
-
-    for i, topic in enumerate(pred_topics):
+    for topic_position, topic in enumerate(row["pred_topics"]):
         if topic.name in row["name"]:
             topic_match = topic.name
         else:
-            topic_match = find_close_topic(
-                simple_er, topic, row["name"][:1], row["type"][:1]
-            )
+            topic_match = er_matches.get((row_id, topic_position))
 
         pred_topics_match.append(topic_match)
 
         if topic_match is not None:
-            precision_at_i.append(1 - (pred_topics_match.count(None) / (i + 1)))
+            precision_at_i.append(
+                1 - (pred_topics_match.count(None) / (topic_position + 1))
+            )
 
             # Check if type is also correct
             topic_match_index = row["name"].index(topic_match)
             if topic.type.value == row["type"][topic_match_index]:
                 count_type_correct += 1
 
-    count_correct_topic = len(pred_topics) - pred_topics_match.count(None)
+    count_correct_topic = len(row["pred_topics"]) - pred_topics_match.count(None)
 
-    if len(pred_topics) == 0:
-        precision = 1
+    if len(row["pred_topics"]) == 0:
+        # Predicting nothing is always a failure here (every labelled row has
+        # topics to find), so an empty prediction must score 0 — not 1. Scoring
+        # it 1 rewarded abstention and silently inflated precision/AP on rows
+        # where the model returned nothing (e.g. a blocked/empty source page).
+        precision = 0
         recall = 0
-        average_precision = 1
+        average_precision = 0
     else:
-        precision = count_correct_topic / len(pred_topics)
+        precision = count_correct_topic / len(row["pred_topics"])
         recall = len({name for name in pred_topics_match if name is not None}) / min(
             len(row["name"]), MAX_N_TOPICS
         )
 
-        average_precision = sum(precision_at_i) / len(pred_topics)
-        # Compute type precision
+        average_precision = sum(precision_at_i) / len(row["pred_topics"])
 
     return pd.Series(
         [
-            pred_topics,
             count_correct_topic,
             precision,
             recall,
@@ -156,9 +132,6 @@ def eval_row(
             count_type_correct,
         ]
     )
-
-
-# Beware invalid topic type during evaluation
 
 
 def evaluate(
@@ -177,21 +150,22 @@ def evaluate(
 
     df = get_topics_extraction_data(set_type)
 
-    df["content_len"] = df["content"].apply(len)
-    df = df.sort_values("content_len", ascending=False)
+    extraction_results = topics_extractor.predict_batch(
+        [{"content": content} for content in df["content"]]
+    )
+    df["pred_topics"] = [result.topics for result in extraction_results]
+
+    er_matches = find_er_matches(simple_er, df)
 
     df[
         [
-            "pred_topics",
             "count_correct_topic",
             "precision",
             "recall",
             "average_precision",
             "count_type_correct",
         ]
-    ] = df.progress_apply(
-        lambda row: eval_row(topics_extractor, simple_er, row), axis=1
-    )
+    ] = df.apply(lambda row: score_row(row.name, row, er_matches), axis=1)
 
     metrics = {
         f"mean_{metric}": df[metric].mean()

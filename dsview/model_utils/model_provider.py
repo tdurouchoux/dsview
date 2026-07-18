@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import os
+import time
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Any, Callable, Union
 
 import mlflow
 import numpy as np
@@ -11,10 +13,26 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
+from tqdm import tqdm
 
-from dsview.config import LLMProvider, ModelConfig, ModelType, load_model_config
+from dsview.config import LLMProvider, ModelConfig
 
 logger = logging.getLogger(__name__)
+
+# Concurrency cap for the async fallback of batch_send_messages, to stay clear
+# of provider rate limits.
+BATCH_FALLBACK_MAX_CONCURRENCY = 10
+
+# Poll interval for providers with a native batch job (Mistral, Anthropic).
+BATCH_POLL_INTERVAL_SECONDS = 10
+
+# When set (to any non-empty value), providers with a native batch API fall
+# back to the synchronous fanout in ModelProvider.batch_send_messages.
+DISABLE_NATIVE_BATCH_ENV_VAR = "DSVIEW_DISABLE_NATIVE_BATCH"
+
+
+def native_batch_disabled() -> bool:
+    return bool(os.environ.get(DISABLE_NATIVE_BATCH_ENV_VAR))
 
 
 def retry_callback(retry_state):
@@ -24,9 +42,6 @@ def retry_callback(retry_state):
             f"Retry {retry_state.attempt_number} for {retry_state.fn.__name__} "
             f"due to {retry_state.outcome.exception() if retry_state.outcome else 'unknown error'}"
         )
-
-
-default_model_config = load_model_config(ModelType.DEFAULT)
 
 
 class MissingAPIKey(Exception):
@@ -154,3 +169,83 @@ class ModelProvider(ABC):
         return await self._async_complete(
             messages, structured_output_class=structured_output_class
         )
+
+    def batch_send_messages(
+        self,
+        batch_messages: list[list[dict[str, str]]],
+        structured_output_class: type[BaseModel] = None,
+    ) -> list[Union[str, BaseModel]]:
+        """Send many independent requests, returning results in input order.
+
+        Providers with a native batch API should override this; the default
+        fans out over async_send_messages with bounded concurrency.
+        """
+
+        async def _gather():
+            semaphore = asyncio.Semaphore(BATCH_FALLBACK_MAX_CONCURRENCY)
+
+            async def _send(messages: list[dict[str, str]]):
+                async with semaphore:
+                    return await self.async_send_messages(
+                        messages, structured_output_class=structured_output_class
+                    )
+
+            return await asyncio.gather(
+                *[_send(messages) for messages in batch_messages]
+            )
+
+        return asyncio.run(_gather())
+
+    def _poll_batch_job(
+        self,
+        retrieve_fn: Callable[[], Any],
+        is_done: Callable[[Any], bool],
+        completed_count: Callable[[Any], int],
+        total: int,
+        desc: str,
+    ) -> Any:
+        """Poll a provider-native batch job to completion, driving a tqdm bar.
+
+        Shared skeleton for providers with a native batch API (Mistral,
+        Anthropic): the sleep/refresh loop is identical, only the job
+        object's status/count fields differ, so callers supply small hooks
+        instead of duplicating the loop.
+        """
+        job = retrieve_fn()
+
+        with tqdm(total=total, desc=desc) as progress:
+            while not is_done(job):
+                time.sleep(BATCH_POLL_INTERVAL_SECONDS)
+                job = retrieve_fn()
+
+                progress.n = completed_count(job)
+                progress.refresh()
+
+        return job
+
+    def _fill_batch_fallback(
+        self,
+        results: list,
+        batch_messages: list[list[dict[str, str]]],
+        structured_output_class: type[BaseModel] = None,
+    ) -> list:
+        """Resolve any still-missing (None) batch results via sync calls.
+
+        Shared by providers with a native batch API: whatever the batch job
+        couldn't produce a parsed result for (failed, errored, expired,
+        unparseable) falls back to the retried synchronous path.
+        """
+        missing = [i for i, result in enumerate(results) if result is None]
+
+        if missing:
+            logger.warning(
+                f"{len(missing)} of {len(batch_messages)} batch requests failed, "
+                "falling back to synchronous calls."
+            )
+
+        for i in tqdm(missing, desc="Batch fallback"):
+            results[i] = self.send_messages(
+                batch_messages[i], structured_output_class=structured_output_class
+            )
+
+        return results

@@ -30,13 +30,8 @@ def get_description_generation_data(set_type: Literal["eval", "test"]) -> pd.Dat
     return df_labels
 
 
-# ? maybe send by batch to be more efficient
-
-
-def eval_row(description_generator: DescriptionGenerator, row: pd.Series) -> pd.Series:
-    pred_content_description = description_generator.predict(
-        {"content": row["content"]}
-    )
+def score_row(row: pd.Series) -> pd.Series:
+    pred_content_description = row["pred_content_description"]
 
     rouge = Rouge()
     title_rouge_f1 = rouge.get_scores(pred_content_description.title, row["title"])[0][
@@ -88,6 +83,10 @@ def evaluate(
 
     df_eval = get_description_generation_data(set_type)
 
+    df_eval["pred_content_description"] = description_generator.predict_batch(
+        [{"content": content} for content in df_eval["content"]]
+    )
+
     df_eval[
         [
             "pred_title",
@@ -99,7 +98,7 @@ def evaluate(
             "tag_precision",
             "tag_recall",
         ]
-    ] = df_eval.progress_apply(lambda row: eval_row(description_generator, row), axis=1)
+    ] = df_eval.progress_apply(score_row, axis=1)
 
     metrics = {
         f"mean_{col}": df_eval[col].mean()

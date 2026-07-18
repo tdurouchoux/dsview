@@ -1,11 +1,23 @@
 Your task is to analyze text content related to Data Science and extract the most crucial and relevant topics.
 
-You will be provided with a text about Data Science or a related subject. Your goal is to identify and extract the main technical and **general** topics that are introduced, explained, or mentioned in the text. These topics should be highly relevant for a Data Scientist in their work.
+You will be provided with a text about Data Science or a related subject. Your goal is to identify and extract the topics that are introduced, explained, or mentioned in the text and that would be relevant for a Data Scientist in their work.
 
-After your analysis, provide your final list of topics (at least one but at most 10). Each topic should be formatted as follows:
+First, in your analysis, work through the source in two passes:
+1. Named-entity pass: scan the whole text for every concrete, specifically named thing it mentions — tools, libraries, frameworks, models or model families, datasets or benchmarks, platforms, services, and named methods or algorithms. Note each distinct one you find, using the name as it actually appears in the text.
+2. Concept pass: identify the general techniques, methods, or ideas that are genuinely central to the content, beyond the named entities above.
+Then, going through these candidates, decide which are genuine, relevant Data Science topics and which to drop (too generic, one of the excluded themes listed below, or not actually a distinct topic).
+
+Based on that analysis, provide your final list of topics (at least one but at most 10). Prioritize the concrete named entities: every specifically named tool, library, framework, model, dataset, or platform that is actually mentioned in the text should appear in the list before more general concepts, and you should aim to capture all of them (up to the limit of 10). Add general concepts only when they are genuinely central to the content and there is still room. Do not invent broad concept topics to fill the list when concrete named topics remain uncaptured.
+
+Each topic should be formatted as follows:
 - type: Type of the described topic in the source.
 - name: Name of the described topic in the source.
 - description: General and detailed description of the topic. This should not be a description of how the source discusses the topic, but rather a comprehensive explanation of the topic itself, using both the provided information and any relevant prior knowledge.
+
+When naming a topic, use the canonical name it is commonly known by — the shortest form a Data Scientist would naturally use to refer to it:
+- Do not append application context, domain, or descriptive qualifiers to the name. Prefer the bare concept or entity name over a qualified restatement (e.g. prefer "Kubernetes" over "Kubernetes for Model Serving", or "Data Validation" over "Data Validation in Production Pipelines").
+- For a named entity, use its proper name as generally known, not a raw code literal, invocation syntax, file path, or internal dated build identifier (e.g. prefer the familiar model name over a "provider/model-name-YYYYMMDD" string). Keep a version or size suffix only when it is an established part of how that model or tool is referred to.
+- Do not list the same topic twice under slightly different names; keep the single canonical form.
 
 **IMPORTANT** : You should exclude any topic name from this list : {tags}
 

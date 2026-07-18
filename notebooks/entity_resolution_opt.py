@@ -1,26 +1,35 @@
 import marimo
 
-__generated_with = "0.13.15"
+__generated_with = "0.23.14"
 app = marimo.App(width="medium")
 
 
 @app.cell
 def _():
+    from dotenv import load_dotenv
     import marimo as mo
     import mlflow
 
     from dsview.evaluation.entity_resolution import evaluate
     from dsview.db import engine
     from dsview.config import LLMProvider, ModelConfig, load_extraction_config
+
     return (
         LLMProvider,
         ModelConfig,
         engine,
         evaluate,
+        load_dotenv,
         load_extraction_config,
         mlflow,
         mo,
     )
+
+
+@app.cell
+def _(load_dotenv):
+    load_dotenv()
+    return
 
 
 @app.cell
@@ -32,10 +41,10 @@ def _(load_extraction_config, mlflow):
 
 
 @app.cell
-def _(engine, erlabels, mo):
+def _(engine, mo):
     _df = mo.sql(
         f"""
-        SELECT * FROM erlabels
+        SELECT * FROM labels.erlabels
         """,
         engine=engine
     )
@@ -43,10 +52,10 @@ def _(engine, erlabels, mo):
 
 
 @app.cell
-def _(engine, ercomparison, mo):
+def _(engine, mo):
     _df = mo.sql(
         f"""
-        SELECT * FROM ercomparison
+        SELECT * FROM extraction.ercomparison
         """,
         engine=engine
     )
@@ -60,7 +69,8 @@ def _(extraction_config):
 
 
 @app.cell
-def _():
+def _(eval_result):
+    eval_result
     return
 
 
@@ -239,8 +249,6 @@ def _():
     Please proceed with your analysis and decision.
 
     """
-
-
     return prompt_version, system_prompt, user_prompt
 
 
@@ -318,8 +326,6 @@ app._unparsable_cell(
 
     user_prompt = f\"\"'
     \"\"\"
-
-
     """,
     name="_"
 )

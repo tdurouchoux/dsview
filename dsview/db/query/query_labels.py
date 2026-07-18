@@ -1,7 +1,7 @@
 from typing import Literal, Type
+import hashlib
 import random
 
-import numpy as np
 import pandas as pd
 from sqlalchemy.sql import schema
 from sqlmodel import Session, select, text, func
@@ -20,12 +20,29 @@ def assign_rows(
     df: pd.DataFrame,
     split_ratios: dict[str, float],
     random_state: int,
+    keys: pd.Series,
 ) -> pd.DataFrame:
-    df["row_type"] = np.random.RandomState(random_state).choice(
-        list(split_ratios.keys()),
-        size=df.shape[0],
-        p=list(split_ratios.values()),
-    )
+    """Deterministically assign each row to a split based on a hash of its key.
+
+    Unlike positional random sampling, a row's split membership depends only
+    on its own key, so it stays stable as new labelled rows are appended —
+    positional sampling reshuffled every existing row's eval/test membership
+    whenever the labelled set grew, silently invalidating past MLflow runs.
+    """
+
+    def _bucket(key) -> str:
+        digest = hashlib.sha256(f"{random_state}:{key}".encode()).digest()
+        fraction = int.from_bytes(digest[:8], "big") / 2**64
+
+        cumulative = 0.0
+        for set_type, ratio in split_ratios.items():
+            cumulative += ratio
+            if fraction < cumulative:
+                return set_type
+
+        return next(reversed(split_ratios))
+
+    df["row_type"] = [_bucket(key) for key in keys]
 
     return df
 
@@ -40,7 +57,9 @@ def get_labeled_content(
         LabelledContent.__tablename__, session.bind, schema=LABELS_SCHEMA
     )
 
-    df_labeled = assign_rows(df_labeled, split_ratios, random_state)
+    df_labeled = assign_rows(
+        df_labeled, split_ratios, random_state, keys=df_labeled["id"]
+    )
 
     return df_labeled[df_labeled["row_type"] == set_type].drop(columns=["row_type"])
 
@@ -90,7 +109,7 @@ def get_er_labels(
             ercomparison.type_2
         FROM {ERLabels.__table__.schema}.{ERLabels.__table__.name}
         JOIN {ERComparison.__table__.schema}.{ERComparison.__table__.name}
-        ON erlabels.er_comparison_id = ercomparison.id
+        ON erlabels.name_1 = ercomparison.name_1 AND erlabels.name_2 = ercomparison.name_2
     """
 
     # Use the connection with pandas read_sql
@@ -100,7 +119,7 @@ def get_er_labels(
         index_col="id",
     )
 
-    df = assign_rows(df, split_ratios, random_state)
+    df = assign_rows(df, split_ratios, random_state, keys=df.index)
 
     return df
 

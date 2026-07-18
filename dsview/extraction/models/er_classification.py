@@ -2,21 +2,24 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from dsview.config import ModelType, load_model_config
+from dsview.config import ModelType, lazy_model_config
 from dsview.model_utils import LLMModel
 
 from .topics_extraction import DataScienceTopic, TopicType
 
-er_classification_model_config = load_model_config(ModelType.ER_CLASSIFICATION)
-
 
 class ERResult(BaseModel):
+    # analysis must come first: structured-output decoding fills fields in
+    # schema order, so this is what actually lets the model work through the
+    # <topic_comparison> reasoning steps in the prompt before committing to
+    # merge_topic. Without it, the prompt's reasoning instructions are inert.
+    analysis: str
     merge_topic: bool
     topic: Optional[DataScienceTopic]
 
 
 class ERClassifier(LLMModel):
-    DEFAULT_MODEL_CONFIG = er_classification_model_config
+    DEFAULT_MODEL_CONFIG = lazy_model_config(ModelType.ER_CLASSIFICATION)
     DEFAULT_SYSTEM_PROMPT_FILE = "system_entity_resolution.txt"
     DEFAULT_USER_PROMPT_FILE = "user_entity_resolution.txt"
     DEFAULT_SYSTEM_PROMPT_FORMAT = [",".join(TopicType)]
@@ -46,3 +49,10 @@ class ERClassifier(LLMModel):
         input = self._format_topics(topic1, topic2)
 
         return await super().async_predict(input)
+
+    def predict_batch(
+        self, topic_pairs: list[tuple[DataScienceTopic, DataScienceTopic]]
+    ) -> list[ERResult]:
+        inputs = [self._format_topics(topic1, topic2) for topic1, topic2 in topic_pairs]
+
+        return super().predict_batch(inputs)

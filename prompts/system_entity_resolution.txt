@@ -5,36 +5,24 @@ Here are the available topic types:
 {}
 </topic_tags>
 
-You will be presented with two Data Science topics, each defined by a name, type (from the list above), and description. Your goal is to decide whether these topics should be merged based on the following rules:
+You will be presented with two Data Science topics, each defined by a name, type (from the list above), and description. Decide whether they should be merged based on these rules:
 
-1. Topics should represent the same generic theme or tool to qualify for merging.
-2. Topics do not need to match exactly, spelling variations or slight rephrasing should be merged regardless of other differences.
-3. If one topic encompasses or significantly intersects with the other, they should be merged.
-4. If the two topics share the same root (e.g., the same library) but describe distinct concepts within this subject, they should NOT be merged.
+1. Merge topics that cover the same theme, concept, tool, or product — including when one encompasses or significantly intersects the other. A topic whose name is the other's name plus an application context (where the idea is applied) is a duplicate: merge it into the broader one. But if the qualifier names a distinct variant, method, or field with its own mechanism or identity, it is a different topic (rule 3).
+2. Surface differences never block a merge: spelling or plural variants, an acronym and its expansion, a translation, an added brand prefix, or a rephrasing of the same scope.
+3. Do NOT merge when one topic names a specific method, tool, product, or narrower sub-field, and the other is the broader category, field, or general practice it belongs to — this applies whether or not the narrower name is a recognizable brand, as long as it denotes a distinct, specifically-scoped thing rather than the broader idea merely applied in a context (a named vendor tool is not the same topic as the practice it supports; a specific technique is not the same topic as the family of techniques it belongs to when other members exist alongside it).
+4. Exception to rule 3 for models: two Model topics merge when they share the same base model line name, whatever version numbers, size suffixes, or variant tags they carry — a major version jump is still the same line (e.g. "Gemma" and "Gemma 3 270M", or "Qwen 2.5" and "Qwen 3 32B" all merge). Models from different named product lines never merge.
 
 When analyzing the topics, complete your analysis inside <topic_comparison> tags using the following structure:
 
 <topic_comparison>
-1. Name Comparison:
-   [Check if the names are close]
+1. Same or overlapping theme?
+   [Do the two topics cover the same theme, concept, or product — allowing surface variation (rule 2) and scoped or narrower restatements (rule 1)? If clearly yes and step 2 does not object, merge.]
 
-2. Key Concepts :
-   [List key concepts from each description]
+2. Distinctly named member?
+   [Is one topic a specific method, product, algorithm, or sub-field that is just one member of the broader category or practice named by the other — regardless of whether its name is a recognizable brand? A name that merely adds an application context (rule 1) does not count; a name that denotes its own distinct method/tool/sub-field does. If yes, do not merge (rule 3) — unless both are models of the same line (rule 4).]
 
-3. Concept Overlap:
-   [Identify overlapping concepts between the two topics]
-
-4. Significant Differences:
-   [Note any significant differences between the topics]
-
-5. Similarity Assessment:
-   [Evaluate how similar the topics are, considering their theme, tool, or concept]
-
-6. Confidence Level:
-   [Assess your confidence in the similarity of the topics on a scale of 1-10]
-
-7. Merging Decision:
-    [Based on the above analysis, decide whether to merge the topics or not]
+3. Decision:
+   [Merge or not, citing the deciding rule.]
 </topic_comparison>
 
 The output should take the following format :
@@ -51,72 +39,326 @@ Here are some examples :
 <examples>
 Example 1 :
 	- Topic 1 :
-		- name : Evaluation metrics
-		- type :  Concept
-		- description : Methods and criteria used to assess the performance and quality of generated content, particularly in the context of language models.
-	- Topic 2 :
-		- name : Evaluation Strategies
+		- name : Reinforcement Learning (RL)
 		- type : Concept
-		- description : Methods and techniques for assessing the performance and output quality of language models.
+		- description : A training method used to improve language model performance via reward signals guiding the learning process, e.g. used to create reasoning models and generate supervised fine-tuning examples.
+	- Topic 2 :
+		- name : Reinforcement Learning
+		- type : Concept
+		- description : A type of machine learning where an agent learns to make decisions by taking actions in an environment to maximize cumulative reward, learning from trial-and-error rather than labeled data.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — identical name up to the standard acronym; both describe learning from reward signals, one applied to LLMs.
+        2. Distinctly named member?
+           No — same name, same concept at different levels of detail.
+        3. Decision:
+           Merge (rule 2, acronym variant).
+        </topic_comparison>
 	- Result :
-        - merge_topic : False
-        - topic : None
+        - merge_topic : True
+        - topic :
+            - name : Reinforcement Learning (RL)
+            - type : Concept
+            - description : A type of machine learning where an agent learns to make decisions in an environment to maximize cumulative reward via reward signals, learning from trial-and-error rather than labeled data; used e.g. to train reasoning models.
 
 Example 2 :
 	- Topic 1 :
-		- name : Data Manipulation
-		- type :  Concept
-		- description : The process of adjusting, organizing, and transforming data to make it more suitable for analysis.
+		- name : Gemini 2.5
+		- type : Model
+		- description : A "thinking" model from Google designed to tackle increasingly complex problems, leading common benchmarks with strong reasoning and code capabilities.
 	- Topic 2 :
-		- name : Data Transformation
-		- type : Concept
-		- description : The process of converting data from one format or structure into another, often a key step in data pipelines.
-    - Result :
-        - merge_topic : True
-        - topic :
-            - name : Data Transformation
-            - type : Concept
-            - description : The process of transforming and organizing data to make it more suitable for analysis or consumption, often a key step in data pipelines.
-
-Example 3 :
-	- Topic 1 :
-		- name : vLLM
-		- type :  Product
-		- description : A serving framework for large language models that includes caching mechanisms and optimizations for improved inference throughput.
-	- Topic 2 :
-		- name : vLLM
-		- type : Library
-		- description : A fast and easy-to-use library for LLM inference and serving, featuring state-of-the-art serving throughput and efficient memory management.
+		- name : Gemini
+		- type : Model
+		- description : A family of multimodal models developed by Google, including versions such as Gemini 1.5, Pro, Ultra, and Nano, trained jointly across image, audio, video, and text.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — one version of a model family vs the family itself.
+        2. Distinctly named member?
+           Gemini 2.5 is a member of the Gemini family, but both are Model topics sharing the same base line name — the model-line exception applies.
+        3. Decision:
+           Merge (rule 4, same model line).
+        </topic_comparison>
 	- Result :
         - merge_topic : True
         - topic :
-            - name : vLLM
-            - type : Library
-            - description : An easy-to-use serving framework for large language models, featuring state-of-the-art performances and capabilities such
-            as caching mechanisms and efficient memory management.
+            - name : Gemini
+            - type : Model
+            - description : A family of multimodal models developed by Google, trained jointly across image, audio, video, and text, including versions such as Gemini 1.5 and the "thinking" Gemini 2.5 which leads common benchmarks in reasoning and code.
+
+Example 3 :
+	- Topic 1 :
+		- name : Random Forest
+		- type : Concept
+		- description : An ensemble learning method for classification and regression that constructs multiple decision trees and outputs the mode/mean of their predictions.
+	- Topic 2 :
+		- name : Random Forests
+		- type : Model
+		- description : An ensemble learning method for classification, regression, and other tasks that builds multiple decision trees, known for handling high-dimensional data and reducing overfitting.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — singular vs plural of the same algorithm, near-identical descriptions.
+        2. Distinctly named member?
+           No.
+        3. Decision:
+           Merge (rule 2, spelling variant); the type mismatch does not matter.
+        </topic_comparison>
+	- Result :
+        - merge_topic : True
+        - topic :
+            - name : Random Forests
+            - type : Model
+            - description : An ensemble learning method for classification, regression, and other tasks that constructs multiple decision trees and outputs the mode/mean of their predictions, known for handling high-dimensional data and reducing overfitting.
 
 Example 4 :
 	- Topic 1 :
-		- name : Machine Learning Systems Design
-		- type :  Concept
-		- description : The process of defining the software architecture, infrastructure, algorithms, and data for a machine learning system to satisfy specified requirements.
-	- Topic 2 :
-		- name : Machine Learning Pipeline
+		- name : Data Augmentation for Computer Vision
 		- type : Concept
-		- description : The end-to-end process of building and deploying machine learning models.
+		- description : Techniques that expand image training datasets by applying transformations such as rotations, crops, flips, and color jitter, improving the robustness of vision models.
+	- Topic 2 :
+		- name : Data Augmentation
+		- type : Concept
+		- description : A set of techniques that increase the size and diversity of training datasets by generating modified versions of existing samples, used to reduce overfitting and improve generalization.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — the same technique, one topic scoped to an application domain (computer vision).
+        2. Distinctly named member?
+           No — "Data Augmentation for Computer Vision" is not a distinct named method, just the same name with an application qualifier.
+        3. Decision:
+           Merge (rule 1, scoped restatement of the same concept).
+        </topic_comparison>
+	- Result :
+        - merge_topic : True
+        - topic :
+            - name : Data Augmentation
+            - type : Concept
+            - description : A set of techniques that increase the size and diversity of training datasets by generating modified versions of existing samples (e.g. image rotations, crops, flips, color jitter), used to reduce overfitting and improve generalization.
+
+Example 5 :
+	- Topic 1 :
+		- name : AI Regulation and Standardization
+		- type : Concept
+		- description : Developing and implementing frameworks, norms, and standards so AI systems are safe, ethical, and compliant, harmonizing evaluation methods and best practices across bodies.
+	- Topic 2 :
+		- name : AI Regulation
+		- type : Concept
+		- description : The set of rules and guidelines governing the development, deployment, and use of AI technologies, such as the EU AI Act, addressing bias, privacy, and ethical use.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — both name the practice of governing AI through rules and standards; one title just adds a qualifier to the same scope.
+        2. Distinctly named member?
+           No — neither is a distinct named entity within the other.
+        3. Decision:
+           Merge (rule 1/2, rephrasing of the same scope).
+        </topic_comparison>
+	- Result :
+        - merge_topic : True
+        - topic :
+            - name : AI Regulation
+            - type : Concept
+            - description : Rules, frameworks, and standards governing the development, deployment, and use of AI technologies, harmonizing evaluation methods, certifications, and best practices to ensure AI systems are safe, ethical, and compliant.
+
+Example 6 :
+	- Topic 1 :
+		- name : Vertex AI
+		- type : Platform
+		- description : Google's enterprise-grade platform for building, deploying, and scaling machine learning models.
+	- Topic 2 :
+		- name : Google Cloud Vertex AI
+		- type : Platform
+		- description : Google Cloud's comprehensive machine learning platform, offering a unified environment for training, evaluating, and deploying ML models.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Yes — the identical product, one name carrying the parent brand prefix.
+        2. Distinctly named member?
+           No — same product, not a member of the other.
+        3. Decision:
+           Merge (rule 2, brand prefix).
+        </topic_comparison>
+	- Result :
+        - merge_topic : True
+        - topic :
+            - name : Vertex AI
+            - type : Platform
+            - description : Google Cloud's enterprise-grade machine learning platform, offering a unified environment for building, training, evaluating, and deploying ML models at scale.
+
+Example 7 :
+	- Topic 1 :
+		- name : Supervised Learning
+		- type : Concept
+		- description : A type of machine learning where a model is trained on a labeled dataset to learn a mapping from inputs to outputs, using algorithms like linear regression or neural networks.
+	- Topic 2 :
+		- name : Machine Learning
+		- type : Concept
+		- description : A subset of AI focused on algorithms and statistical models that let computers learn from data, encompassing supervised, unsupervised, and reinforcement learning.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Overlapping, but not the same — one is a paradigm, the other the whole field.
+        2. Distinctly named member?
+           Yes — "Supervised Learning" is a distinct named paradigm within Machine Learning, alongside unsupervised and reinforcement learning; it is not a qualified restatement of "Machine Learning".
+        3. Decision:
+           Do not merge (rule 3).
+        </topic_comparison>
 	- Result :
         - merge_topic : False
         - topic : None
 
-Example 5 :
+Example 8 :
 	- Topic 1 :
-		- name : TensorFlow.js
-		- type :  Library
-		- description : A JavaScript library for machine learning that can run in the browser and on Node.js.
+		- name : Gradient Descent
+		- type : Concept
+		- description : An optimization algorithm that minimizes a loss function by iteratively adjusting parameters in the opposite direction of the gradient.
 	- Topic 2 :
-		- name : TensorFlow
+		- name : Optimizers
+		- type : Concept
+		- description : Algorithms used in machine learning to adjust model weights to reduce loss, including Stochastic Gradient Descent, Adam, RMSprop, and Adagrad, each with a different update mechanism.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Overlapping — both about reducing loss — but one specific algorithm vs the class of such algorithms.
+        2. Distinctly named member?
+           Yes — Gradient Descent is one named member of the Optimizers category, with named siblings like Adam and RMSprop. Heavy description overlap does not make them the same topic.
+        3. Decision:
+           Do not merge (rule 3).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 9 :
+	- Topic 1 :
+		- name : AWS
+		- type : Platform
+		- description : Amazon Web Services, a comprehensive cloud computing platform offering compute, storage, networking, AI, and analytics services.
+	- Topic 2 :
+		- name : AWS Glue
+		- type : Platform
+		- description : A fully managed extract-transform-load (ETL) service that automatically discovers, profiles, and transforms data for analytics.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Overlapping only through the vendor — a whole cloud platform vs one ETL service.
+        2. Distinctly named member?
+           Yes — "Glue" is its own product name; AWS Glue is one distinctly named service among the many offered on the AWS platform, not a restatement of "AWS".
+        3. Decision:
+           Do not merge (rule 3).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 10 :
+	- Topic 1 :
+		- name : Apache Arrow
 		- type : Library
-		- description : An open-source library for machine learning and deep learning applications, including a framework for implementing federated learning and federated analytics.
+		- description : An open-source cross-language platform for in-memory data, providing a standardized memory format optimized for efficient data processing and interchange.
+	- Topic 2 :
+		- name : PyArrow
+		- type : Library
+		- description : A Python library providing a high-level interface to Apache Arrow, used for reading and writing Parquet files.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Related — PyArrow is the Python binding built on top of Arrow — but they are two distinct named projects with different scopes.
+        2. Distinctly named member?
+           Yes — PyArrow is its own named library, one language-specific implementation within the Arrow ecosystem.
+        3. Decision:
+           Do not merge (rule 3).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 11 :
+	- Topic 1 :
+		- name : AutoML
+		- type : Concept
+		- description : Automates the end-to-end process of applying machine learning, including data preprocessing, feature engineering, model selection, and hyperparameter tuning.
+	- Topic 2 :
+		- name : MLOps
+		- type : Concept
+		- description : A practice that deploys and maintains machine learning models in production reliably, combining ML, DevOps, and data engineering.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           No — automating model building vs operating models in production; adjacent stages of the ML lifecycle, but neither encompasses nor restates the other.
+        2. Distinctly named member?
+           No — neither contains the other.
+        3. Decision:
+           Do not merge (rule 1, different concepts).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 12 :
+	- Topic 1 :
+		- name : Boston housing dataset
+		- type : Dataset
+		- description : A well-known dataset used to predict median home values based on features like crime rate and room count, often used for regression tasks.
+	- Topic 2 :
+		- name : Random Forests
+		- type : Model
+		- description : An ensemble learning method that builds multiple decision trees for classification and regression.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           No — a dataset and an algorithm; one may be applied to the other, but that is a usage relation, not identity.
+        2. Distinctly named member?
+           No.
+        3. Decision:
+           Do not merge (rule 1).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 13 :
+	- Topic 1 :
+		- name : High-Bandwidth Memory (HBM)
+		- type : Concept
+		- description : A type of memory used in modern GPUs to store large datasets and model weights efficiently, crucial for high-performance computing tasks.
+	- Topic 2 :
+		- name : Memory Architectures
+		- type : Concept
+		- description : Systems used to store and retrieve information for AI agents, including episodic, semantic, and vector-based memory.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           No — hardware memory chips vs knowledge-storage systems for AI agents; the shared word "memory" is a false friend.
+        2. Distinctly named member?
+           No — HBM is not a member of agent memory architectures; the domains differ entirely.
+        3. Decision:
+           Do not merge (rule 1).
+        </topic_comparison>
+	- Result :
+        - merge_topic : False
+        - topic : None
+
+Example 14 :
+	- Topic 1 :
+		- name : Data Validation
+		- type : Concept
+		- description : The general practice of checking that data meets required formats, types, and constraints before it is used, catching errors early in a pipeline.
+	- Topic 2 :
+		- name : Schema Validation
+		- type : Concept
+		- description : Checking that a piece of data conforms to a predefined schema (field names, types, and structure), commonly used when parsing JSON, XML, or database records.
+	- Analysis :
+        <topic_comparison>
+        1. Same or overlapping theme?
+           Overlapping — both catch bad data before it is used — but one checks structural conformance to a schema, a narrower technique among several (schema validation, range checks, uniqueness checks, etc.).
+        2. Distinctly named member?
+           Yes — "Schema Validation" is not "Data Validation" plus an application context, it names one specific technique within data validation, with other named techniques existing alongside it. No recognizable brand is involved, but the name still denotes a distinct, specifically-scoped thing.
+        3. Decision:
+           Do not merge (rule 3).
+        </topic_comparison>
 	- Result :
         - merge_topic : False
         - topic : None

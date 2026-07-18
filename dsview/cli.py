@@ -3,23 +3,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import Type
 
-import mlflow
 import pandas as pd
 import typer
 from dotenv import load_dotenv
 from sqlmodel import Session, SQLModel
 
+from dsview import db
 from dsview.config import setup_logger
-from dsview.db import engine, schemas
+from dsview.db import schemas
 from dsview.db.query import get_content_list, get_failed_ingestions, get_topic_list
 from dsview.db.schemas.extraction_schema import ExtractionResult
+from dsview.evaluation.cli import evaluate_app
 from dsview.obsidian.write_notes import (
     write_content_note,
     write_topic_note,
 )
 
 load_dotenv()
-setup_logger()
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,16 @@ app = typer.Typer(
     help="DSView CLI - A tool for content ingestion, processing, and knowledge base management"
 )
 
-# TODO Implement evaluation cli
-# app.add_typer(evaluate_app, name="evaluate")
+
+@app.callback()
+def cli_setup():
+    # Runs before any command (but not for --help), so a bare `dsview --help`
+    # works without CONF_DIR or database environment variables.
+    setup_logger()
+
+
+app.add_typer(evaluate_app, name="evaluate")
+
 BACKUP_TABLES = [
     schemas.InputContent,
     schemas.LabelledContent,
@@ -55,7 +63,7 @@ def backup():
     for table in BACKUP_TABLES:
         df = pd.read_sql(
             f"SELECT * FROM {table.__table__}",
-            con=engine,
+            con=db.engine,
         ).drop(columns=["id"])
 
         df.to_parquet(backup_path / f"{table.__tablename__}.parquet")
@@ -93,7 +101,7 @@ def ingest(
         relevance=relevance,
         source=source,
     )
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         ingest_pipeline.ingest_content(content, session)
 
 
@@ -109,16 +117,16 @@ def retry_failed(
 
     logger.info("Retrying failed ingestions ...")
 
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
         content_list = get_failed_ingestions(session, ignore_errors=ignore)
 
         logger.info("Found %s failed ingestions", len(content_list))
 
-    schemas.drop_tables([schemas.FailedIngestion], engine, reset=True)
+    schemas.drop_tables([schemas.FailedIngestion], db.engine, reset=True)
 
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         logger.info("Starting ingestions ...")
         ingest_pipeline.ingest_content_list(content_list, session)
 
@@ -140,7 +148,7 @@ def rebuild(
 
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         content_list = get_content_list(
             session,
             start_id=start,
@@ -180,7 +188,7 @@ def regen_vault():
     Regenerate the entire Obsidian vault from the database.
     This creates fresh notes for all content and topic pages.
     """
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         content_list = get_content_list(session)
         missing_extraction_count = regen_content_notes(content_list, session)
 
@@ -216,7 +224,7 @@ def reset_db():
                 schemas.ExtractionLink,
                 schemas.ExtractionTag,
             ],
-            engine,
+            db.engine,
         )
 
 
@@ -260,13 +268,13 @@ def reset_labelling():
                 schemas.TopicsLabels,
                 schemas.LinksLabels,
             ],
-            engine,
+            db.engine,
         )
 
     delete_er_labelling = typer.confirm("Clear ER labelling ?")
     if delete_er_labelling:
         logger.info("Clearing ER labels")
-        schemas.drop_tables([schemas.ERLabels], engine)
+        schemas.drop_tables([schemas.ERLabels], db.engine)
 
 
 class MissingBackupDirectory(Exception):
@@ -311,7 +319,7 @@ def restore_db(
     if not backup_path.exists():
         raise MissingBackupDirectory(backup_path)
 
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         for table in BACKUP_TABLES:
             restore_one_table(backup_path, table, session)
 
@@ -322,7 +330,7 @@ def export_graph(
 ):
     from dsview.graph.build_graph import build_graph
 
-    with Session(engine) as session:
+    with Session(db.engine) as session:
         graph = build_graph(session)
 
     graph.write_graphml(output_file)
