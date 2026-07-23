@@ -45,6 +45,15 @@ def get_failed_ingestions(
     return content_list
 
 
+def get_failed_ingestion(
+    content_id: int,
+    session: Session,
+) -> FailedIngestion | None:
+    return session.exec(
+        select(FailedIngestion).where(FailedIngestion.content_id == content_id)
+    ).first()
+
+
 def get_filtered_content(
     session: Session,
     already_read: Optional[bool] = None,

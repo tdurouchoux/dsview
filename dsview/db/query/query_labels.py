@@ -124,17 +124,11 @@ def get_er_labels(
     return df
 
 
-def count_er_labels(
-    session: Session
-) -> tuple[int, int]:
+def count_er_labels(session: Session) -> tuple[int, int]:
 
-    count_total_labeled = (
-        session.scalar(select(func.count(ERLabels.id)))
-    )
+    count_total_labeled = session.scalar(select(func.count(ERLabels.id)))
 
-    count_total_comparisons = (
-        session.scalar(select(func.count(ERComparison.id)))
-    )
+    count_total_comparisons = session.scalar(select(func.count(ERComparison.id)))
 
     return count_total_labeled, count_total_comparisons
 

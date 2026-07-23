@@ -15,7 +15,7 @@ uv sync --group labels           # streamlit labelling extras
 pytest tests/test_config.py      # safe: no network, no LLM calls
 pytest                           # CAUTION: see "Testing" below before running the full suite
 
-ruff format . && ruff check .    # formatting / linting
+uvx ruff format . && uvx ruff check .   # formatting / linting (must be run via uvx)
 dsview --help                    # CLI (ingest, rebuild, backup, regen-vault, ...)
 
 # evaluation — costs real API money, see "Model evaluation" below

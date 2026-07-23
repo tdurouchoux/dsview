@@ -149,7 +149,9 @@ def test_extraction_config():
 
 
 def test_obsidian_config():
-    with generate_config("storage.yaml", f"""obsidian:
+    with generate_config(
+        "storage.yaml",
+        f"""obsidian:
   vault_path: dsview_vault
   content_directory: contents
   topic_directory: topics
@@ -158,7 +160,8 @@ def test_obsidian_config():
     username: me
     email: me@mail.com
     token: some_token
-"""):
+""",
+    ):
         expected_config = ObsidianConfig(
             vault_path=Path("dsview_vault"),
             content_directory="contents",
@@ -178,7 +181,9 @@ def test_obsidian_config():
 
 
 def test_postgres_config():
-    with generate_config("storage.yaml", """obsidian:
+    with generate_config(
+        "storage.yaml",
+        """obsidian:
   vault_path: dsview_vault
 postgres:
   host: localhost
@@ -186,7 +191,8 @@ postgres:
   database: test_db
   user: test_user
   password: test_password
-"""):
+""",
+    ):
         postgres_config = load_postgres_config()
 
         assert postgres_config.host == "localhost"

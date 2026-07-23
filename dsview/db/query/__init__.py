@@ -1,6 +1,7 @@
 from .query_content import (
     get_content,
     get_content_list,
+    get_failed_ingestion,
     get_failed_ingestions,
     get_filtered_content,
 )

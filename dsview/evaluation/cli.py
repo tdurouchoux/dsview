@@ -62,6 +62,7 @@ def _prepare_for_parquet(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = df[col].map(_to_parquet_safe)
     return df
 
+
 evaluate_app = typer.Typer(
     help="Run model evaluations on the labelled datasets (results go to MLflow)"
 )

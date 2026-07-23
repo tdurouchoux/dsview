@@ -18,6 +18,7 @@ def _():
         LLMProvider,
         load_extraction_config,
     )
+
     return LLMProvider, ModelConfig, evaluate, mlflow, mo
 
 
@@ -191,9 +192,7 @@ def _(
     system_prompt,
     user_prompt,
 ):
-    with mlflow.start_run(
-        run_name=run_name, experiment_id=experiment.experiment_id
-    ):
+    with mlflow.start_run(run_name=run_name, experiment_id=experiment.experiment_id):
         eval_results_prompt = evaluate(
             model_config=mistral_small_config,
             system_prompt=system_prompt,

@@ -66,27 +66,10 @@ exploration, centrality-based ranking for "what should I read next").
    `topics_er` gathers concurrent tasks against one session with a `# ! I am not sure but I may need thread safe session`
    comment ([content_extraction.py:204](dsview/extraction/content_extraction.py#L204)).
 
-3. **Eval bug in topic matching:** [evaluation/topics_extraction.py:120-122](dsview/evaluation/topics_extraction.py#L120-L122)
-   calls `find_close_topic(simple_er, topic, row["name"][:1], row["type"][:1])` — only the *first*
-   labelled topic is ever considered for a fuzzy match. Recall/precision numbers are systematically
-   understated. This looks like leftover debugging (`[:1]`), along with `print("ONE TOPIC MATCHED !!!")`.
-   Given the branch name (`td_evaluation_makeover`), this is presumably part of what's being reworked.
-
-4. **Degenerate eval scores:** when the extractor returns zero topics, precision and average
-   precision are set to 1 ([topics_extraction.py:136-139](dsview/evaluation/topics_extraction.py#L136-L139)).
-   An empty prediction scoring perfect precision will inflate means; most IR conventions would score 0
-   or exclude the row.
-
 5. **`get_connected_topics` takes `content_id: str`** while every other tool uses `int`
    ([server.py:363](dsview/mcp/server.py#L363)), and neither it nor `get_connected_contents` handles
    a missing row (`db_session.get(...)` returning `None` → `AttributeError` instead of a clean tool error,
    unlike `get_content` which raises a proper `ValueError`).
-
-6. **Backup/restore drops primary keys.** `backup()` removes the `id` column
-   ([cli.py:59](dsview/cli.py#L59)) before writing parquet. On restore, `InputContent` rows get fresh
-   auto-increment ids — but `ExtractionResult.content_id` (not part of the backup set) references the
-   old ids. A restore into a DB that still has extraction data, or any drift in insert order, silently
-   re-associates content with the wrong extractions.
 
 ### Security / robustness
 
@@ -98,10 +81,6 @@ exploration, centrality-based ranking for "what should I read next").
    quotes from the search term. For a single-user personal tool the blast radius is small, but the MCP
    server listens on `0.0.0.0` and is driven by an LLM — parameterized queries (`conn.execute(sql, params)`
    works in DuckDB) would close this cheaply.
-
-8. **No auth on any surface.** The FastAPI ingest API, the MCP server, and the dashboards all bind
-   `0.0.0.0` with no authentication; protection presumably relies entirely on the Kubernetes ingress.
-   Worth a one-line statement of that assumption in the deployment docs.
 
 9. **`GithubVault.url` embeds the GitHub token** in the remote URL ([config.py:118-123](dsview/config.py#L118-L123)).
    Fine as a mechanism, but make sure it never gets logged (e.g. by git error output surfaced in logs).

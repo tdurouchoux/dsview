@@ -291,7 +291,7 @@ def _(mo, test_engine, topics_ingest):
         f"""
         SELECT * FROM topics_ingest
         """,
-        engine=test_engine
+        engine=test_engine,
     )
     return
 
@@ -499,7 +499,7 @@ def _(engine, mo):
         f"""
         CREATE VIRTUAL TABLE IF NOT EXISTS topics_fts USING fts5 (name, description);
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -530,7 +530,7 @@ def _(engine, mo, search_topic):
             topics_fts MATCH 'NEAR({search_topic}, 20)'
         ORDER BY rank LIMIT 5
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -604,7 +604,7 @@ app._unparsable_cell(
 
     pack_embedding = struct.pack(\"%sf\" % 1024, *search_topic_embedding)
     """,
-    name="_"
+    name="_",
 )
 
 

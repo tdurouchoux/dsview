@@ -14,7 +14,6 @@ dependencies = [
     "omegaconf>=2.3.0",
     "pandas>=2.2.3",
     "pydantic>=2.10.3",
-    "pypdf>=5.1.0",
     "python-dotenv>=1.0.1",
     "python-frontmatter>=1.1.0",
     "pyyaml>=6.0.2",
@@ -40,6 +39,8 @@ dependencies = [
     "mcp>=1.27.0",
     "igraph>=1.0.0",
     "marimo>=0.23.14",
+    "youtube-transcript-api>=1.2.4",
+    "docling>=2.113.0",
 ]
 
 [tool.uv]

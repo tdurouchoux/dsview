@@ -10,11 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class CommandFailed(Exception):
-
     def __init__(self, cmd_label: str, stdout: str, stderr: str):
         super().__init__(
-            f"Command {cmd_label} failed with stdout : '{stdout}'"
-            f" and stderr '{stderr}'"
+            f"Command {cmd_label} failed with stdout : '{stdout}' and stderr '{stderr}'"
         )
 
 
@@ -23,23 +21,18 @@ def run_cmd(cmd: list[str], cmd_label: str, ignore_error: bool = False, **cmd_kw
         result = subprocess.run(
             cmd,
             capture_output=True,  # Captures both stdout and stderr
-            text=True,            # Decodes to str instead of bytes
-            check=True,            # Raises CalledProcessError if non-zero exit code
-            **cmd_kwargs
+            text=True,  # Decodes to str instead of bytes
+            check=True,  # Raises CalledProcessError if non-zero exit code
+            **cmd_kwargs,
         )
         logger.info("Command '%s' ran successfully", cmd_label)
         logger.debug("with stdout : %s", result.stdout)
 
     except subprocess.CalledProcessError as e:
-
         logger.error("Failed to run command '%s' with stderr : %s", cmd_label, e.stderr)
 
         if not ignore_error:
-            raise CommandFailed(
-                cmd_label,
-                e.stdout,
-                e.stderr
-            )
+            raise CommandFailed(cmd_label, e.stdout, e.stderr)
 
 
 def clone_vault():
@@ -69,7 +62,7 @@ def init_vault():
         clone_vault()
     else:
         config.vault_path.mkdir()
-    
+
     (config.vault_path / config.content_directory).mkdir(exist_ok=True)
     (config.vault_path / config.topic_directory).mkdir(exist_ok=True)
 
@@ -80,9 +73,17 @@ def pull_changes():
 
 def upload_changes(commit_message: str):
     run_cmd(["git", "add", "."], "Adding changes", cwd=config.vault_path)
-    run_cmd(["git", "commit", "-am", commit_message], "Commit changes", cwd=config.vault_path)
+    run_cmd(
+        ["git", "commit", "-am", commit_message],
+        "Commit changes",
+        cwd=config.vault_path,
+    )
 
-    run_cmd(["git", "push", config.github_vault.url, "main"], "Push changes", cwd=config.vault_path)
+    run_cmd(
+        ["git", "push", config.github_vault.url, "main"],
+        "Push changes",
+        cwd=config.vault_path,
+    )
 
 
 def api_sync_vault(function: callable) -> callable:

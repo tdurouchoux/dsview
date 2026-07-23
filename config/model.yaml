@@ -7,7 +7,7 @@ configs:
       embedding_model: mistral-embed
       # provider: OPENAI
       provider: MISTRAL
-      token_limit: 100000
+      token_limit: 256000
       model_specific_config:
         temperature: 0
   - model_type: SEMANTIC_SCORE
