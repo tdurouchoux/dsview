@@ -1,10 +1,7 @@
 # DSView 🔍
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com)
-
-**DSView** is an intelligent data science news monitoring and knowledge management platform that automatically ingests, processes, and organizes data science content using Large Language Models (LLMs) and graph representation in Obsidian.
+**DSView** is a knowledge management suite built to store and organize knowledge about data science news 
+and methodologies. It is in 
 
 ## 🌟 Overview
 

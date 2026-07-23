@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from dsview.config import ModelConfig
 
-from ..model_provider import ModelConfigurationError, ModelProvider
+from ..model_provider import ModelProvider, ProviderConfigurationError
 
 # TODO Configure this
 OLLAMA_HOST = "http://localhost:11434"
@@ -54,7 +54,7 @@ class OllamaProvider(ModelProvider):
             self.client.pull(model_name)
 
         except ollama.ResponseError as error:
-            raise ModelConfigurationError(
+            raise ProviderConfigurationError(
                 self.model_config.provider,
                 model_name,
                 error,

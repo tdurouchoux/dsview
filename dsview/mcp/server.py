@@ -1,16 +1,12 @@
 import json
 import logging
 import time
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
 from datetime import date
 from functools import cache
 from typing import Annotated, Literal, Optional
 
 import igraph as ig
-from mcp.server.fastmcp import Context, FastMCP, Icon
-from mcp.server.session import ServerSession
+from mcp.server.fastmcp import FastMCP, Icon
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -29,6 +25,11 @@ extraction_config = lazy(load_extraction_config)
 INDEX_TTL = 3_600
 
 
+def get_ttl_hash(seconds: int):
+    """Return the same value withing `seconds` time period"""
+    return round(time.time() / seconds)
+
+
 @cache
 def get_extraction_index(ttl_hash: int = None) -> ExtractionIndex:
 
@@ -45,54 +46,16 @@ def get_topics_index(ttl_hash: int = None) -> TopicsIndex:
     return topics_index
 
 
-def make_get_graph(session: Session):
-
-    @cache
-    def get_graph(ttl_hash: int = None) -> ig.Graph:
+@cache
+def get_graph(ttl_hash: int = None) -> ig.Graph:
+    with Session(engine) as session:
         return build_graph(session)
-
-    return get_graph
-
-
-def get_ttl_hash(seconds: int):
-    """Return the same value withing `seconds` time period"""
-    return round(time.time() / seconds)
-
-
-@dataclass
-class AppContext:
-    db_session: Session
-    extraction_index: ExtractionIndex
-    topics_index: TopicsIndex
-    graph: ig.Graph
-
-
-# ? Why async
-@asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
-    """Manage application lifecycle with type-safe context."""
-    # Initialize on startup
-    db_session = Session(engine)
-    get_graph = make_get_graph(db_session)
-
-    try:
-        ttl_hash = get_ttl_hash(INDEX_TTL)
-        yield AppContext(
-            db_session=db_session,
-            extraction_index=get_extraction_index(ttl_hash),
-            topics_index=get_topics_index(ttl_hash),
-            graph=get_graph(ttl_hash),
-        )
-    finally:
-        # Cleanup on shutdown
-        db_session.close()
 
 
 icon = Icon(src="mini_icon.png", mimeType="image/png", sizes=["64x64"])
 
 mcp = FastMCP(
     "DSview mcp server",
-    lifespan=app_lifespan,
     host="0.0.0.0",
     port=8000,
     icons=[icon],
@@ -205,21 +168,18 @@ def build_dsview_content(
 
 
 @mcp.tool()
-def get_content(
-    content_id: int, ctx: Context[ServerSession, AppContext]
-) -> DsviewContent:
+def get_content(content_id: int) -> DsviewContent:
     """Retrieve a stored content from its id"""
 
-    db_session = ctx.request_context.lifespan_context.db_session
+    with Session(engine) as db_session:
+        input_content = db_session.get(InputContent, content_id)
 
-    input_content = db_session.get(InputContent, content_id)
+        if input_content is None:
+            raise ValueError(f"Content id {content_id} was not found in database")
 
-    if input_content is None:
-        raise ValueError(f"Content id {content_id} was not found in database")
+        extraction_result = db_session.get(ExtractionResult, content_id)
 
-    extraction_result = db_session.get(ExtractionResult, content_id)
-
-    return build_dsview_content(input_content, extraction_result)
+        return build_dsview_content(input_content, extraction_result)
 
 
 class DsviewContentList(BaseModel):
@@ -233,7 +193,6 @@ class DsviewContentList(BaseModel):
 
 @mcp.tool()
 def query_content(
-    ctx: Context[ServerSession, AppContext],
     already_read: Optional[bool] = None,
     read_priority: Optional[int] = None,
     relevance: Optional[int] = None,
@@ -253,26 +212,28 @@ def query_content(
     Defaults to listing last ingested contents.
     """
 
-    db_session = ctx.request_context.lifespan_context.db_session
+    with Session(engine) as db_session:
+        input_content_list = get_filtered_content(
+            db_session,
+            already_read,
+            read_priority,
+            relevance,
+            source,
+            date_ordering,
+            limit,
+        )
 
-    input_content_list = get_filtered_content(
-        db_session, already_read, read_priority, relevance, source, date_ordering, limit
-    )
+        contents = []
 
-    contents = []
+        for input_content in input_content_list:
+            extraction_result = db_session.get(ExtractionResult, input_content.id)
+            contents.append(build_dsview_content(input_content, extraction_result))
 
-    for input_content in input_content_list:
-        extraction_result = db_session.get(ExtractionResult, input_content.id)
-        contents.append(build_dsview_content(input_content, extraction_result))
-
-    return DsviewContentList(contents=contents)
+        return DsviewContentList(contents=contents)
 
 
 @mcp.tool()
-def get_connected_contents(
-    topic_id: int,
-    ctx: Context[ServerSession, AppContext],
-) -> DsviewContentList:
+def get_connected_contents(topic_id: int) -> DsviewContentList:
     """
     Get in depth information about contents mentionning
     this topic.
@@ -280,16 +241,18 @@ def get_connected_contents(
     Also usefull to iteratively explore the knowledge graph,
     while still getting in depth information about the nodes.
     """
-    db_session = ctx.request_context.lifespan_context.db_session
+    with Session(engine) as db_session:
+        topic = db_session.get(ExtractionTopic, topic_id)
 
-    topic = db_session.get(ExtractionTopic, topic_id)
+        if topic is None:
+            raise ValueError(f"Topic id {topic_id} was not found in database")
 
-    contents = []
-    for extraction_result in topic.extractions:
-        input_content = db_session.get(InputContent, extraction_result.content_id)
-        contents.append(build_dsview_content(input_content, extraction_result))
+        contents = []
+        for extraction_result in topic.extractions:
+            input_content = db_session.get(InputContent, extraction_result.content_id)
+            contents.append(build_dsview_content(input_content, extraction_result))
 
-    return DsviewContentList(contents=contents)
+        return DsviewContentList(contents=contents)
 
 
 @mcp.resource("config://content_types")
@@ -299,11 +262,37 @@ def get_content_types() -> str:
     return json.dumps(types)
 
 
+def _build_type_filter(
+    column: str, types: Optional[list[str]], valid_types: list[str]
+) -> Optional[list[str]]:
+    """
+    Build a safe `column IN (...)` filter clause for the DuckDB index.
+
+    `types` is client-supplied and gets interpolated directly into a raw SQL
+    string by `DuckDBIndex`, so every value must be checked against the
+    known-good set of types from config before it is allowed anywhere near
+    the query string.
+    """
+    if types is None:
+        return None
+
+    if len(types) == 0:
+        return ["1=0"]
+
+    unknown_types = set(types) - set(valid_types)
+    if unknown_types:
+        raise ValueError(
+            f"Unknown type(s) {sorted(unknown_types)}, expected one of {valid_types}"
+        )
+
+    quoted_types = ",".join(f"'{type_}'" for type_ in types)
+    return [f"{column} IN ({quoted_types})"]
+
+
 # ! I don't know if type value or keys are stored in db
 @mcp.tool()
 def search_content(
     search_term: str,
-    ctx: Context[ServerSession, AppContext],
     limit: int = 10,
     types: Annotated[Optional[list[str]], "Filter content by types"] = None,
 ) -> DsviewContentList:
@@ -318,26 +307,26 @@ def search_content(
     used to get the last ingested contents.
     """
 
-    db_session = ctx.request_context.lifespan_context.db_session
-    extraction_index = ctx.request_context.lifespan_context.extraction_index
+    with Session(engine) as db_session:
+        extraction_index = get_extraction_index(get_ttl_hash(INDEX_TTL))
 
-    filters = (
-        ["content_type IN ('" + "','".join(types) + "')"] if types is not None else None
-    )
+        filters = _build_type_filter(
+            "content_type", types, list(extraction_config.content_types.values())
+        )
 
-    result = extraction_index.query_with_rff(search_term, limit, filters=filters)
+        result = extraction_index.query_with_rff(search_term, limit, filters=filters)
 
-    contents = []
+        contents = []
 
-    for content_id, row in result.iterrows():
-        input_content = db_session.get(InputContent, content_id)
-        dsview_content = DsviewContent(**input_content.model_dump())
-        dsview_content.title = row["title"]
-        dsview_content.summary = row["summary"]
+        for content_id, row in result.iterrows():
+            input_content = db_session.get(InputContent, content_id)
+            dsview_content = DsviewContent(**input_content.model_dump())
+            dsview_content.title = row["title"]
+            dsview_content.summary = row["summary"]
 
-        contents.append(dsview_content)
+            contents.append(dsview_content)
 
-    return DsviewContentList(contents=contents)
+        return DsviewContentList(contents=contents)
 
 
 class DsviewTopic(BaseModel):
@@ -359,10 +348,7 @@ def get_topic_types() -> str:
 
 
 @mcp.tool()
-def get_connected_topics(
-    content_id: str,
-    ctx: Context[ServerSession, AppContext],
-) -> DsviewTopicList:
+def get_connected_topics(content_id: int) -> DsviewTopicList:
     """
     Get in depth information about topics mentionned in one
     content.
@@ -370,22 +356,25 @@ def get_connected_topics(
     Also usefull to iteratively explore the knowledge graph,
     while still getting in depth information about the nodes.
     """
-    db_session = ctx.request_context.lifespan_context.db_session
+    with Session(engine) as db_session:
+        extraction_result = db_session.get(ExtractionResult, content_id)
 
-    extraction_result = db_session.get(ExtractionResult, content_id)
+        if extraction_result is None:
+            raise ValueError(
+                f"Content id {content_id} extraction result was not found in database"
+            )
 
-    topics = []
+        topics = []
 
-    for topic in extraction_result.topics:
-        topics.append(DsviewTopic(**topic.model_dump(exclude=["embedding"])))
+        for topic in extraction_result.topics:
+            topics.append(DsviewTopic(**topic.model_dump(exclude=["embedding"])))
 
-    return DsviewTopicList(topics=topics)
+        return DsviewTopicList(topics=topics)
 
 
 @mcp.tool()
 def search_topic(
     search_term: str,
-    ctx: Context[ServerSession, AppContext],
     limit: int = 10,
     types: Annotated[Optional[list[str]], "The type of topic to search for"] = None,
 ) -> DsviewTopicList:
@@ -399,22 +388,24 @@ def search_topic(
     used to get the last ingested contents.
     """
 
-    db_session = ctx.request_context.lifespan_context.db_session
-    topics_index = ctx.request_context.lifespan_context.topics_index
+    with Session(engine) as db_session:
+        topics_index = get_topics_index(get_ttl_hash(INDEX_TTL))
 
-    filters = ["type IN ('" + "','".join(types) + "')"] if types is not None else None
+        filters = _build_type_filter(
+            "type", types, list(extraction_config.topic_categories.values())
+        )
 
-    result = topics_index.query_with_rff(search_term, limit, filters=filters)
+        result = topics_index.query_with_rff(search_term, limit, filters=filters)
 
-    topics = []
+        topics = []
 
-    for topic_id, _ in result.iterrows():
-        topic = db_session.get(ExtractionTopic, topic_id)
-        dsview_topic = DsviewTopic(**topic.model_dump(exclude=["embedding"]))
+        for topic_id, _ in result.iterrows():
+            topic = db_session.get(ExtractionTopic, topic_id)
+            dsview_topic = DsviewTopic(**topic.model_dump(exclude=["embedding"]))
 
-        topics.append(dsview_topic)
+            topics.append(dsview_topic)
 
-    return DsviewTopicList(topics=topics)
+        return DsviewTopicList(topics=topics)
 
 
 # Deep explore tool, only returns ids and title
@@ -441,7 +432,6 @@ class Neighborhood(BaseModel):
 def explore_graph(
     node_id: int,
     node_kind: Literal["topic", "content"],
-    ctx: Context[ServerSession, AppContext],
     radius: int = 3,
 ) -> Neighborhood:
     """
@@ -461,7 +451,7 @@ def explore_graph(
     to get detailed information on the most relevant nodes
     in the neighborhood (depending on the user query).
     """
-    graph = ctx.request_context.lifespan_context.graph
+    graph = get_graph(get_ttl_hash(INDEX_TTL))
 
     results = get_node_neighborhood(
         graph,
@@ -492,7 +482,6 @@ class NodeRanking(BaseModel):
 
 @mcp.tool()
 def get_nodes_ranking(
-    ctx: Context[ServerSession, AppContext],
     metric: Literal["betweenness", "degree", "pagerank"] = "betweenness",
     node_kind: Optional[Literal["content", "topic"]] = None,
     limit: int = 20,
@@ -517,7 +506,7 @@ def get_nodes_ranking(
     this setup it will surface the most mentionned topics, and can also
     be usefull to get an idea of important topics in the graph.
     """
-    graph = ctx.request_context.lifespan_context.graph
+    graph = get_graph(get_ttl_hash(INDEX_TTL))
 
     results = get_ranked_nodes(
         graph,

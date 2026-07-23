@@ -90,11 +90,6 @@ exploration, centrality-based ranking for "what should I read next").
 
 ### Code quality / hygiene
 
-- **Module-level side effects everywhere:** `load_dotenv()`, `setup_logger()`, `load_model_config()`
-  run at import time in [api.py](dsview/api.py#L20-L24), [llm_model.py](dsview/model_utils/llm_model.py#L14-L16),
-  [query_utils.py](dsview/db/query/query_utils.py#L10-L11), etc. This makes imports order-sensitive,
-  requires `CONF_DIR` to be set before *any* dsview import, and is why the CLI resorts to function-level
-  imports. Deferring config loading to first use (a cached accessor) would untangle this.
 - **`ModelConfigurationError` is defined twice** with different signatures
   ([config.py:66](dsview/config.py#L66), [model_provider.py:40](dsview/model_utils/model_provider.py#L40)).
 - **TODO density is high in core paths** — e.g. `content_extraction.py` opens with four TODOs including
@@ -127,8 +122,6 @@ The README is polished but promises more than the repo delivers, which is worse 
 2. **MCP server hardening:** per-request session, actually-refreshing indexes (call `get_ttl_hash` inside
    each tool), parameterized DuckDB queries, `int` content_id + not-found handling.
 3. **Trim the README to reality** and add a LICENSE (or delete the license section).
-4. **Add a test/lint CI workflow**; fill in `test_db.py` with the backup/restore round-trip — it would
-   have exposed issue #6.
 5. Longer term: the module-level config loading is the biggest structural drag; making config lazy would
    simplify testing and make the four service entrypoints less fragile.
 
