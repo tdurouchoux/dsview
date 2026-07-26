@@ -2,7 +2,7 @@ import json
 import logging
 import time
 from datetime import date
-from functools import cache
+from functools import lru_cache
 from typing import Annotated, Literal, Optional
 
 import igraph as ig
@@ -30,7 +30,7 @@ def get_ttl_hash(seconds: int):
     return round(time.time() / seconds)
 
 
-@cache
+@lru_cache(maxsize=1)
 def get_extraction_index(ttl_hash: int = None) -> ExtractionIndex:
 
     extraction_index = ExtractionIndex()
@@ -38,7 +38,7 @@ def get_extraction_index(ttl_hash: int = None) -> ExtractionIndex:
     return extraction_index
 
 
-@cache
+@lru_cache(maxsize=1)
 def get_topics_index(ttl_hash: int = None) -> TopicsIndex:
 
     topics_index = TopicsIndex()
@@ -46,7 +46,7 @@ def get_topics_index(ttl_hash: int = None) -> TopicsIndex:
     return topics_index
 
 
-@cache
+@lru_cache(maxsize=1)
 def get_graph(ttl_hash: int = None) -> ig.Graph:
     with Session(engine) as session:
         return build_graph(session)

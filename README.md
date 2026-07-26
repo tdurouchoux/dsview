@@ -10,5 +10,4 @@ It is not supposed to represent what a DS actually knows, but efficiently store 
 can be reused later.
 
 The user workflow has also been optimized to be as easy to use as possible, so that it is never in the way.
-Adding some new content is just a few click away and runs in the background. The updated knowledge vault is
-them automatically 
+Adding some new content is just a few click away and runs in the background.
