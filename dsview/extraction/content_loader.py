@@ -1,21 +1,16 @@
 import json
 import logging
+import math
 import re
 import tempfile
 from abc import ABC, abstractmethod
 from functools import cache
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 from urllib.parse import parse_qs
 
 import requests
 import tiktoken
 from bs4 import BeautifulSoup
-from docling.chunking import HybridChunker
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.document import ConversionResult
-from docling.datamodel.pipeline_options import PdfPipelineOptions
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling_core.transforms.chunker.tokenizer.openai import OpenAITokenizer
 from pydantic import HttpUrl
 from youtube_transcript_api import (
     NoTranscriptFound,
@@ -25,6 +20,15 @@ from youtube_transcript_api import (
 )
 
 from dsview.config import load_model_config
+
+if TYPE_CHECKING:
+    # docling pulls in torch/transformers - only imported for real inside the
+    # lazily-cached factories below, so processes that never load a PDF (MCP,
+    # dashboards, labelling UI unless a PDF link is actually submitted) don't
+    # pay that cost just for importing this module.
+    from docling.chunking import HybridChunker
+    from docling.datamodel.document import ConversionResult
+    from docling.document_converter import DocumentConverter
 
 logger = logging.getLogger(__name__)
 
@@ -98,13 +102,6 @@ class UrlLoader(WebContentLoader):
 
 
 class PdfUrlLoader(WebContentLoader):
-    PIPELINE_OPTIONS = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
-    CONVERTER = DocumentConverter(
-        format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=PIPELINE_OPTIONS)
-        }
-    )
-
     # Chunk granularity for the over-budget sampling path only - independent from the
     # overall document token budget, just controls how finely a chapter can be trimmed.
     CHUNK_MAX_TOKENS = 512
@@ -121,10 +118,10 @@ class PdfUrlLoader(WebContentLoader):
             temp_pdf.write(response.content)
             temp_pdf.flush()
 
-            result = self.CONVERTER.convert(temp_pdf.name)
+            result = self._get_pdf_converter().convert(temp_pdf.name)
             self._extract_pdf_content(result)
 
-    def _extract_pdf_content(self, result: ConversionResult):
+    def _extract_pdf_content(self, result: "ConversionResult"):
         token_limit = load_model_config().token_limit / 2
         full_content = result.document.export_to_markdown()
 
@@ -151,7 +148,24 @@ class PdfUrlLoader(WebContentLoader):
 
     @staticmethod
     @cache
-    def _get_pdf_chunker() -> tuple[HybridChunker, Callable[[str], int]]:
+    def _get_pdf_converter() -> "DocumentConverter":
+        from docling.datamodel.base_models import InputFormat
+        from docling.datamodel.pipeline_options import PdfPipelineOptions
+        from docling.document_converter import DocumentConverter, PdfFormatOption
+
+        pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
+        return DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            }
+        )
+
+    @staticmethod
+    @cache
+    def _get_pdf_chunker() -> tuple["HybridChunker", Callable[[str], int]]:
+        from docling.chunking import HybridChunker
+        from docling_core.transforms.chunker.tokenizer.openai import OpenAITokenizer
+
         tokenizer = OpenAITokenizer(
             tokenizer=tiktoken.get_encoding("cl100k_base"),
             max_tokens=PdfUrlLoader.CHUNK_MAX_TOKENS,
@@ -169,7 +183,7 @@ class PdfUrlLoader(WebContentLoader):
         chapter. Stops as soon as the running total would exceed token_limit.
         """
         total_tokens = sum(count_tokens(text) for _, text in chunks)
-        stride = max(1, round(total_tokens / token_limit))
+        stride = max(1, math.ceil(total_tokens / token_limit))
 
         sections = []
         used_tokens = 0
@@ -194,24 +208,30 @@ class PdfUrlLoader(WebContentLoader):
 
 
 class ArxivContentLoader(PdfUrlLoader):
+    # Below this length, treat a 200 response as an HTML error page or an empty
+    # overview rather than a real alphaXiv overview, and fall back to the PDF path.
+    MIN_ALPHAXIV_OVERVIEW_LENGTH = 200
+
     def __init__(self, link: HttpUrl) -> None:
         super().__init__(link)
 
-        self.paper_id: str | None = self._extract_paper_id()
+        # get_content_loader only dispatches here when this already resolves to a
+        # real id, so paper_id is guaranteed non-None.
+        self.paper_id: str | None = self.extract_paper_id(link.path)
 
-    def _extract_paper_id(self) -> str | None:
-        # matches /abs/{id}, /pdf/{id}, /pdf/{id}.pdf, /pdf/{id}v2, and old-style
-        # /abs/hep-th/9901001 ids (which contain a slash).
-        match = re.search(r"/(?:abs|pdf)/(.+?)(?:\.pdf)?$", self.link.path or "")
+    @staticmethod
+    def extract_paper_id(path: str | None) -> str | None:
+        # matches /abs/{id}, /pdf/{id}, /pdf/{id}.pdf, /pdf/{id}v2, an optional trailing
+        # slash, and old-style /abs/hep-th/9901001 ids (which contain a slash). Anything
+        # else (/html/{id}, /list/...) is not an id this class can handle - dispatch
+        # (get_content_loader) uses this same method to fall back to UrlLoader instead.
+        match = re.search(r"/(?:abs|pdf)/(.+?)/?(?:\.pdf)?$", path or "")
         if not match:
             return None
 
         return re.sub(r"v\d+$", "", match.group(1))
 
     def _load_content(self):
-        if self.paper_id is None:
-            raise ValueError(f"Could not extract an arXiv paper id from {self.link}")
-
         if self._load_alphaxiv_overview():
             return
 
@@ -226,7 +246,11 @@ class ArxivContentLoader(PdfUrlLoader):
         except WebRequestFailure:
             return False
 
-        self.content = response.text
+        content = response.text.strip()
+        if len(content) < self.MIN_ALPHAXIV_OVERVIEW_LENGTH:
+            return False
+
+        self.content = content
         return True
 
 
@@ -235,6 +259,11 @@ class YoutubeTranscriptUnavailable(Exception):
         super().__init__(
             f"No transcript available for YouTube video {video_id}: {reason}"
         )
+
+
+class JsonExtractionError(Exception):
+    def __init__(self, marker: str, error: json.JSONDecodeError) -> None:
+        super().__init__(f"Failed to parse JSON after marker '{marker}': {error}")
 
 
 class YoutubeContentLoader(WebContentLoader):
@@ -299,6 +328,8 @@ class YoutubeContentLoader(WebContentLoader):
         if start == -1:
             return None
         start = html.find("{", start)
+        if start == -1:
+            return None
 
         depth = 0
         in_string = False
@@ -319,7 +350,10 @@ class YoutubeContentLoader(WebContentLoader):
             elif ch == "}":
                 depth -= 1
                 if depth == 0:
-                    return json.loads(html[start : i + 1])
+                    try:
+                        return json.loads(html[start : i + 1])
+                    except json.JSONDecodeError as error:
+                        raise JsonExtractionError(marker, error) from error
         return None
 
     def _load_transcript(self) -> str:
@@ -352,7 +386,10 @@ def get_content_loader(link: HttpUrl) -> ContentLoader:
     if link.host in YOUTUBE_HOSTS:
         return YoutubeContentLoader(link)
 
-    if link.host == "arxiv.org":
+    if (
+        link.host == "arxiv.org"
+        and ArxivContentLoader.extract_paper_id(link.path) is not None
+    ):
         return ArxivContentLoader(link)
 
     # ! Improve pdf detection

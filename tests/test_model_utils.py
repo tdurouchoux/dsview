@@ -5,7 +5,7 @@ import pytest
 
 from dsview.config import LLMProvider, ModelConfig
 from dsview.model_utils.llm_model import LLMModel, MissingPromptFile, get_prompt
-from dsview.model_utils.providers import MistralProvider
+from dsview.model_utils.providers.mistral import MistralProvider
 
 TEST_SYSTEM_PROMPT = "You are a helpfull history assistant specialized in {}"
 TEST_USER_PROMPT = "Who is {input} ?"

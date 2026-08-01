@@ -1,3 +1,4 @@
+import asyncio
 from functools import wraps
 import logging
 from pathlib import Path
@@ -7,6 +8,11 @@ from dsview.config import lazy, load_obsidian_config
 
 config = lazy(load_obsidian_config)
 logger = logging.getLogger(__name__)
+
+# Serializes git pull/add/commit/push against config.vault_path so a background
+# ingest completion and an overlapping /ingest or /relevance call can't interleave
+# git operations on the same working-copy checkout.
+vault_lock = asyncio.Lock()
 
 
 class CommandFailed(Exception):
@@ -86,16 +92,26 @@ def upload_changes(commit_message: str):
     )
 
 
+async def async_pull_changes():
+    async with vault_lock:
+        await asyncio.to_thread(pull_changes)
+
+
+async def async_upload_changes(commit_message: str):
+    async with vault_lock:
+        await asyncio.to_thread(upload_changes, commit_message)
+
+
 def api_sync_vault(function: callable) -> callable:
     @wraps(function)
     async def function_with_sync(*args, **kwargs):
         if config.github_vault.repository is None:
             return await function(*args, **kwargs)
 
-        pull_changes()
+        await async_pull_changes()
 
         await function(*args, **kwargs)
 
-        upload_changes("Adding content")
+        await async_upload_changes("Adding content")
 
     return function_with_sync

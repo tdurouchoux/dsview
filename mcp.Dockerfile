@@ -7,7 +7,7 @@ ENV CONF_DIR="./config"
 ENV PROMPT_DIR="./prompts"
 
 WORKDIR /app
-RUN uv sync --frozen --no-cache
+RUN uv sync --no-default-groups --group mcp --frozen --no-cache
 
 EXPOSE 8000
 

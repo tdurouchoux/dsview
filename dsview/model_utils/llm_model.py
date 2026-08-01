@@ -3,7 +3,6 @@ from functools import reduce
 from pathlib import Path
 from typing import Union
 
-import mlflow
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
@@ -100,6 +99,8 @@ class LLMModel:
         )
 
     def log_params(self):
+        import mlflow
+
         self.model_provider.log_params()
         mlflow.log_param("system_prompt", self.system_prompt)
         mlflow.log_param("structured_output_class", self.structured_output_class)

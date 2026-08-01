@@ -28,7 +28,7 @@ def _():
         load_extraction_config,
     )
     from dsview.db import engine
-    from dsview.model_utils.providers import OllamaProvider
+    from dsview.model_utils.providers.ollama import OllamaProvider
 
     return LLMProvider, ModelConfig, evaluate, load_extraction_config, mlflow
 
