@@ -133,6 +133,7 @@ async def ingest(content: InputContent, session: SessionDep):
 @app.get("/ingest/status")
 async def ingest_status(link: HttpUrl, session: SessionDep):
     content = ingest_pipeline.get_existing_content(link, session)
+
     if content is None:
         return {"status": "pending"}
 

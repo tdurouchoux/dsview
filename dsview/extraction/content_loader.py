@@ -374,6 +374,7 @@ class GithubContentLoader(UrlLoader):
 
     def _load_content(self):
         if self._load_readme():
+            logger.info("Successfully loaded GitHub README via API")
             return
 
         logger.warning(
