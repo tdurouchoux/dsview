@@ -12,6 +12,8 @@ from urllib.parse import parse_qs, quote, urlparse
 import requests
 import tiktoken
 from bs4 import BeautifulSoup
+from markdown_it import MarkdownIt
+from markdown_it.token import Token
 from pydantic import HttpUrl
 from youtube_transcript_api import (
     NoTranscriptFound,
@@ -23,6 +25,8 @@ from youtube_transcript_api import (
 from dsview.config import load_model_config
 
 REQUEST_TIMEOUT = 60
+
+_MARKDOWN_PARSER = MarkdownIt()
 
 if TYPE_CHECKING:
     # docling pulls in torch/transformers - only imported for real inside the
@@ -283,16 +287,6 @@ class GithubContentLoader(UrlLoader):
     # Matches /{owner}/{repo} (repo root), optional trailing slash.
     _ROOT_PATH_RE = re.compile(r"^/(?P<owner>[^/]+)/(?P<repo>[^/]+)/?$")
 
-    # Markdown links. The first alternative handles a badge-style link, where the
-    # link text is itself an image, e.g. "[![Build](badge.svg)](target)" - a plain
-    # "[text](url)" pattern alone would stop at the image's closing "]" and extract
-    # the badge image url instead of the actual link target. The second alternative
-    # is a plain link; the negative lookbehind excludes bare (non-linked) images.
-    _MARKDOWN_LINK_RE = re.compile(
-        r"\[!\[[^\]]*\]\([^)]*\)\]\((?P<badge_url>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
-        r"|(?<!!)\[[^\]]*\]\((?P<url>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
-    )
-
     def __init__(self, link: HttpUrl) -> None:
         super().__init__(link)
 
@@ -327,12 +321,22 @@ class GithubContentLoader(UrlLoader):
         parsed = urlparse(url)
         return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
+    @staticmethod
+    def _iter_link_hrefs(tokens: list[Token]):
+        # Links only ever appear inside an "inline" token's children (block-level
+        # nesting - lists, blockquotes, ... - is a flat sequence of open/close
+        # tokens at the top level, never nested via .children).
+        for token in tokens:
+            if token.type != "inline":
+                continue
+            for child in token.children:
+                if child.type == "link_open":
+                    yield child.attrs["href"]
+
     def _extract_readme_links(self, content: str) -> list[str]:
-        urls = (
-            match["badge_url"] or match["url"]
-            for match in self._MARKDOWN_LINK_RE.finditer(content)
-        )
-        return list({url for url in urls if self._is_absolute_link(url)})
+        tokens = _MARKDOWN_PARSER.parse(content)
+        hrefs = self._iter_link_hrefs(tokens)
+        return list({href for href in hrefs if self._is_absolute_link(href)})
 
     def _load_readme(self) -> bool:
         logger.info("Attempting to load GitHub README via API")

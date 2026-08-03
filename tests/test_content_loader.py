@@ -400,6 +400,11 @@ def test_load_readme_accepts_real_content(monkeypatch):
             "[![Build](https://img.shields.io/badge.svg)](https://example.com/actions)",
             ["https://example.com/actions"],
         ),
+        # Reference-style link, resolved via its separate [ref]: url definition.
+        (
+            "See [the docs][ref] for more.\n\n[ref]: https://example.com/docs",
+            ["https://example.com/docs"],
+        ),
     ],
 )
 def test_extract_readme_links_drops_relative_links(content, expected_links):

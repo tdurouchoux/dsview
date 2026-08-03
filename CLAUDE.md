@@ -189,6 +189,10 @@ Rules for tests you write:
 
 ## Conventions
 
+- Prefer an existing, well-established library over hand-rolled parsing/extraction logic (regex,
+  manual string processing, ...) when one already does the job — check `pyproject.toml`/`uv.lock`
+  first, including transitive dependencies (e.g. `markdown-it-py` comes in via `rich`), before
+  writing custom logic or reaching for a new dependency.
 - Python ≥ 3.11, `uv` for dependency management, `ruff` for format + lint, `pyright` configured.
 - SQLModel tables live in per-domain schema modules under `dsview/db/schemas/`; Postgres schemas
   are `content`, `extraction`, `labels`.
