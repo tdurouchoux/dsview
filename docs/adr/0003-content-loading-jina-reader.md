@@ -1,10 +1,12 @@
-# ADR 0003: Content loading — Jina Reader for generic web pages
+---
+status: "rejected"
+date: "2026-07-23"
+decision-makers: "tdurouchoux"
+---
 
-## Status
+# Content loading — Jina Reader for generic web pages
 
-Rejected
-
-## Context
+## Context and Problem Statement
 
 `dsview/extraction/content_loader.py` loads generic web pages with `requests` +
 `BeautifulSoup.get_text()`: flat text that still carries nav bars, footers and cookie banners,
@@ -22,10 +24,33 @@ the HTML loader changed.
 The labels themselves are loader-independent: the Streamlit form never displays loaded content,
 so the labeller works from the live website. Ground truth is not biased toward either loader.
 
-## Options considered
+## Considered Options
+
+* BeautifulSoup (production, status quo) (chosen)
+* Jina Reader, unpinned/default extraction
+* Jina Reader with a selective filtering pass
+
+## Decision Outcome
+
+Chosen option: "Keep the existing BeautifulSoup loader" — do not adopt Jina Reader — because the
+measured effect on topic extraction is negative, and the change would add an external API
+dependency, a third API key, rate limits and per-page latency to every ingestion.
+
+### Consequences
+
+* Neutral, because content loading stays out of the evaluation as a parameter. The harness
+  notebook is kept as the way to re-test it if a future loader is proposed.
+* Neutral, because `eval_configs/topics_jina_selective*.{yaml,txt}` are kept as the record of the
+  selectivity experiment. The result is a useful negative: on this task, telling the model to be
+  more selective loses more good topics than bad ones.
+* Neutral, because it remains untested whether markdown structure helps the *other* extraction
+  tasks (links, description), where document structure plausibly matters more than it does for
+  topic naming.
+
+## Pros and Cons of the Options
 
 All figures are the labelled `eval` split (25 rows), `mistral-small-2603` + the Exp 2 prompt
-(ADR 0002). Repeat runs at temperature 0 differ by ±0.011–0.022 precision and up to ±10 correct
+(ADR-0002). Repeat runs at temperature 0 differ by ±0.011–0.022 precision and up to ±10 correct
 topics, so treat smaller differences as noise.
 
 | Loader | Prompt | Temp | Precision | Recall | AP | Correct topics |
@@ -36,34 +61,17 @@ topics, so treat smaller differences as noise.
 
 Key findings:
 
-- **Jina costs ~0.04–0.05 precision and buys nothing.** Both loaders find the same number of
+* **Jina costs ~0.04–0.05 precision and buys nothing.** Both loaders find the same number of
   correct topics (122), but Jina's richer markdown draws 16 more predictions (7.16 → 7.80 per row)
   with zero additional hits — a mechanical precision loss. The gap clears the noise floor.
-- **Per-row results churn rather than improve**: 8 rows found fewer correct topics, 7 found more,
+* **Per-row results churn rather than improve**: 8 rows found fewer correct topics, 7 found more,
   10 were unchanged. There is no subset of content where Jina clearly wins.
-- **The over-enumeration is not a fixable prompt artifact.** The Exp 2 prompt asks the model to
+* **The over-enumeration is not a fixable prompt artifact.** The Exp 2 prompt asks the model to
   capture *all* named entities up to a cap of 10, so richer input pushes output toward the cap. A
   variant that keeps the exhaustive entity scan but adds a selection pass filtering candidates
   against the whole content did reduce output (7.80 → 6.6 topics/row) — and made everything worse
   (precision 0.620, 102 correct). The filter removed proportionally more correct topics than
   incorrect ones.
-- The extra topics Jina elicits are real named entities (`loguru`, `MinIO`, `Prometheus`,
+* The extra topics Jina elicits are real named entities (`loguru`, `MinIO`, `Prometheus`,
   `Grok 4`), not hallucinations. The labeller saw the same live page, used 7 of 10 available slots
   on average, and chose not to include them — they are genuinely marginal.
-
-## Decision
-
-Keep the existing `BeautifulSoup` loader. Do not adopt Jina Reader.
-
-The measured effect on topic extraction is negative, and the change would add an external API
-dependency, a third API key, rate limits and per-page latency to every ingestion.
-
-## Consequences
-
-- Content loading stays out of the evaluation as a parameter. The harness notebook is kept as the
-  way to re-test it if a future loader is proposed.
-- `eval_configs/topics_jina_selective*.{yaml,txt}` are kept as the record of the selectivity
-  experiment. The result is a useful negative: on this task, telling the model to be more selective
-  loses more good topics than bad ones.
-- Untested: whether markdown structure helps the *other* extraction tasks (links, description),
-  where document structure plausibly matters more than it does for topic naming.
