@@ -1,8 +1,10 @@
-# ADR 0005: `/ingest` dispatches on a timeout race, not content-loader type
+# ADR 0005: `/ingest` is fully asynchronous; clients must always poll `/ingest/status`
 
 ## Status
 
-Accepted. Supersedes ADR 0004.
+Accepted. Supersedes ADR 0004. Also revises this ADR's own original decision (a timeout race,
+described in Context below) in place, rather than as a new numbered ADR, since that design never
+shipped as a stable contract for external callers before being replaced.
 
 ## Context
 
@@ -10,63 +12,72 @@ ADR 0004 dispatched `/ingest` synchronously vs. in the background by checking
 `isinstance(get_content_loader(link), PdfUrlLoader)` up front. A review (GitHub issue #47) found
 this coupling caused real bugs: `ArxivContentLoader` subclasses `PdfUrlLoader` purely for code
 reuse, so every arXiv link took the async `202` path even when it resolves in under a second via
-alphaXiv — contradicting ADR 0004's own stated intent to keep arXiv-via-alphaXiv synchronous.
-Duplicate detection happened after dispatch, so a duplicate PDF/arXiv link returned `202` instead
-of the `409` every other content type got. The background task also reused the request's DB
-`Session`, which FastAPI closes before background tasks run (undocumented ordering, not the
-documented guarantee ADR 0004 assumed), and had no error handling around the vault push.
+alphaXiv. Duplicate detection happened after dispatch, so a duplicate PDF/arXiv link returned `202`
+instead of the `409` every other content type got. The background task also reused the request's
+DB `Session`, which FastAPI closes before background tasks run, and had no error handling around
+the vault push.
 
-More fundamentally, `isinstance(..., PdfUrlLoader)` makes the content-loader class hierarchy
-respons­ible for an API-layer scheduling decision. Any future slow content type would need another
-loader-type check wired into `/ingest`, repeating the coupling.
+This ADR originally replaced that with a **timeout race**: every link ran through the same code
+path, awaited with a bounded timeout (`INGEST_SYNC_TIMEOUT_SECONDS = 50.0`), returning
+`200`/`409`/`500` if the pipeline finished in time or `202` if it didn't. This fixed every bug above
+and removed all content-loader-type awareness from `dsview/api.py`.
 
-## Options considered
-
-1. **Patch in place**: fresh session per background task, wrap the vault push in try/except, add
-   a `get_content` pre-check for the 409 gap, and give loaders an explicit `IS_ASYNC` capability
-   flag so arXiv-via-alphaXiv can opt out of the PDF branch. Fixes every reported bug but keeps
-   the API layer inspecting content-loader type to decide how to run the pipeline — the
-   architectural coupling stays, just with one more flag to keep in sync per content type.
-2. **Timeout race**: every link runs through the exact same code path; the endpoint awaits the
-   pipeline with a bounded timeout and returns `200`/`409`/`500` if it finishes in time, or `202`
-   and lets it keep running detached if it doesn't. No content-loader type is consulted by
-   `/ingest` at all.
-3. **Message queue**: unavailable in this deployment (already ruled out in ADR 0004's context).
+In practice, that contract turned out to be **harder for API clients than the problem it solved**.
+A single endpoint that could non-deterministically return either a completed result
+(`200`/`409`/`500`) or an in-progress marker (`202`) for the *same link*, depending only on how
+close the pipeline happened to land to the timeout, meant every caller had to handle both response
+shapes on every call anyway — there was no way to know in advance which one a given request would
+get. The race removed the old PDF-vs-everything-else special case at the cost of a new, more subtle
+one: fast-today-slow-tomorrow non-determinism, per link, per request.
 
 ## Decision
 
-Adopt the timeout race (option 2). `dsview/api.py` runs every submitted link through
-`_run_ingest_and_sync`, awaited via `asyncio.wait({task}, timeout=INGEST_SYNC_TIMEOUT_SECONDS)`
-(`50.0`, comfortably under the nginx 60s read timeout from ADR 0004). If the task is still
-`pending` at the timeout, respond `202` and let it finish unattended; a module-level task set with
-done-callbacks keeps it alive and logs any exception it eventually raises. Otherwise map its
-outcome to `200`/`409`/`500` exactly as before.
+Drop the race. `POST /ingest` always returns `202` immediately — it never runs the pipeline
+in-request, regardless of content type or expected latency. Callers always poll
+`GET /ingest/status?link=<link>` to learn the eventual outcome (`pending` / `success` / `failed`).
+There is exactly one contract shape, always.
 
-`_run_ingest_and_sync` opens its own `Session(engine)` rather than reusing the request's, matching
-the pattern already used by every MCP server tool. `save_content`'s duplicate check runs as the
-pipeline's first statement, in milliseconds, so `ContentAlreadyExists` reliably lands within the
-race window and maps to `409` regardless of link type — no separate pre-check needed.
+Because there's no more wait window for the endpoint to observe the pipeline's own duplicate check
+through, duplicate detection moves to an explicit, synchronous pre-check —
+`IngestPipeline.get_existing_content(link, session)` — run before the background task is even
+created. If it finds a match, `/ingest` raises `HTTPException(409)` immediately and never starts
+the task. Without this pre-check, a duplicate submission would just return `202` like any other
+request, and the caller would only ever observe the *original* ingestion's outcome via
+`/ingest/status`, with no distinct signal that their submission was a no-op.
 
-Alongside this, `pull_changes`/`upload_changes` gained an `asyncio.Lock` (`async_pull_changes`/
-`async_upload_changes` in `dsview/obsidian/sync_vault.py`, shared with `/relevance`'s
-`api_sync_vault`), since concurrent ingests can now genuinely overlap in ways the old
-`background_tasks.add_task` sequencing made less likely to surface. `/ingest/status` now checks
-extraction results before a `FailedIngestion` row, so a link that failed once and later succeeded
-no longer reports `failed` forever.
+The background task (`_run_ingest_and_sync`) is unchanged from this ADR's original decision: its
+own `Session(engine)`, tracked in a module-level `_background_ingest_tasks` set with done-callbacks
+so it isn't garbage-collected mid-flight. Any exception it raises — including a genuine race
+condition where `ContentAlreadyExists` still reaches the pipeline despite the pre-check — is now
+logged as an error like any other background failure; there's no special-casing left, since the
+common case is caught synchronously beforehand and this path should be rare. A new
+`@app.exception_handler(HTTPException)` standardizes every raised `HTTPException` (the `409` above,
+`/relevance`'s `404`, `/health`'s `503`) into `{"status": "error", "detail": ...}`.
+`/ingest/status`'s failed response also dropped `error_type`, down to `{"status": "failed",
+"detail": failed.error_message}`.
 
 ## Consequences
 
-- `PdfUrlLoader`/`get_content_loader` are no longer imported by `dsview/api.py` — the API layer
-  has no knowledge of content-loader types. Any future slow content type is handled automatically
-  by the same race, with zero dispatch changes.
-- `INGEST_SYNC_TIMEOUT_SECONDS = 50.0` sits inside the 45-57s large-PDF range from ADR 0004, so
-  big PDFs will sometimes finish just under it (`200`) and sometimes just over (`202`),
-  non-deterministically. Both outcomes are correct; it's no longer a clean PDF/non-PDF split even
-  qualitatively.
+- There is now exactly one `/ingest` contract, always: `202` immediately, poll `/ingest/status` for
+  the real outcome. No caller — human, script, or the CLI/MCP server — can treat a `202` as "it's
+  still running, but it might have already finished" anymore; it never has finished by the time the
+  response comes back.
+- `PdfUrlLoader`/`get_content_loader` are still not imported by `dsview/api.py`, and this is now
+  even more true than under the timeout race: no content-loader type, and no timing behavior of any
+  kind, is ever consulted to decide how `/ingest` responds. Any future slow (or fast) content type
+  needs zero changes to the endpoint.
+- `INGEST_SYNC_TIMEOUT_SECONDS`, the `asyncio.wait` race, and the nginx 60s read-timeout margin from
+  ADR 0004 are no longer relevant to `/ingest` at all — the response is always near-instant
+  regardless of pipeline duration.
+- Duplicate detection is no longer "free": under the race, `save_content`'s duplicate check ran as
+  the pipeline's first statement and reliably landed within the race window, needing no separate
+  check. Now it's a deliberate, explicit pre-check duplicating (deliberately) the same lookup the
+  pipeline would otherwise do — a small amount of redundancy in exchange for a `409` the caller can
+  actually rely on seeing immediately.
 - In-process background work still isn't durable: if the API process restarts while a task is
-  running past the timeout, that ingestion is silently lost — no `FailedIngestion` row, and
-  `/ingest/status` reports `pending` forever for that link. Same structural limitation as ADR
-  0004, still out of scope.
-- The task-tracking set and vault lock are per-process/per-event-loop, fine at the current
-  `replicas: 1` but would need revisiting if that changes.
-- `pdf_api_plan.md` is removed; this ADR and ADR 0004 are now the record of the `/ingest` design.
+  running, that ingestion is silently lost — no `FailedIngestion` row, and `/ingest/status` reports
+  `pending` forever for that link. Same structural limitation as ADR 0004 and this ADR's original
+  version, still out of scope.
+- The task-tracking set and vault lock (`async_pull_changes`/`async_upload_changes`, an
+  `asyncio.Lock` shared with `/relevance`'s `api_sync_vault`) are per-process/per-event-loop, fine
+  at the current `replicas: 1` but would need revisiting if that changes.
