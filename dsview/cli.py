@@ -210,23 +210,31 @@ def reset_db():
     Reset database tables by dropping extraction results and related data.
     User will be prompted to confirm deletion of extraction results.
     """
+
+    tables_to_drop = [
+        schemas.ExtractionResult,
+        schemas.FailedIngestion,
+        schemas.ExtractionTopic,
+        schemas.ContentTopicRelation,
+        schemas.ERComparison,
+        schemas.ExtractionLink,
+        schemas.ExtractionTag,
+    ]
+
+    logger.info(
+        "This command will delete the following tables : %s",
+        ', '.join([t.__tablename__ for t in tables_to_drop])
+    )
+
     delete_extraction = typer.confirm("Clear extraction results ? ")
 
     if delete_extraction:
         logger.info("Deleting extraction results")
         schemas.drop_tables(
-            [
-                schemas.ExtractionResult,
-                schemas.FailedIngestion,
-                schemas.ExtractionTopic,
-                schemas.ContentTopicRelation,
-                schemas.ERComparison,
-                schemas.ExtractionLink,
-                schemas.ExtractionTag,
-            ],
+            tables_to_drop,
             db.engine,
+            reset=True
         )
-
 
 @app.command(help="Clear the entire Obsidian vault (DESTRUCTIVE)")
 def reset_vault():

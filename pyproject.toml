@@ -79,6 +79,7 @@ labels = [
 api = [
     "youtube-transcript-api>=1.2.4",
     "docling>=2.113.0",
+    "fastapi[standard]>=0.139.0",
 ]
 mcp = [
     "mcp>=1.27.0",

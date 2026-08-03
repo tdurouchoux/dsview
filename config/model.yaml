@@ -10,7 +10,7 @@ configs:
       token_limit: 256000
       model_specific_config:
         temperature: 0
-  - model_type: DESCRIPTION_GENERATION
+  - model_type: SUMMARY_GENERATION
     model_config:
       # host: https://llm.lab.sspcloud.fr/api
       # chat_model: mistral-small3.2:latest
@@ -19,8 +19,6 @@ configs:
       # provider: OPENAI
       provider: MISTRAL
       token_limit: 256000
-      model_specific_config:
-        temperature: 0
   - model_type: SEMANTIC_SCORE
     model_config:
       chat_model: smollm2:1.7b

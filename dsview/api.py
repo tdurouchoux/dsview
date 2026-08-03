@@ -3,7 +3,7 @@ import logging
 from typing import Annotated
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import HttpUrl
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
@@ -12,8 +12,8 @@ from tenacity import RetryError
 
 from dsview.config import setup_logger
 from dsview.db import engine, check_db_connection
-from dsview.db.ingest import ContentAlreadyExists, update_content
-from dsview.db.query import get_content, get_content_extraction, get_failed_ingestion
+from dsview.db.ingest import update_content
+from dsview.db.query import get_content_extraction, get_failed_ingestion
 from dsview.db.schemas import InputContent
 from dsview.ingest_source import IngestPipeline
 from dsview.obsidian.sync_vault import (
@@ -38,6 +38,14 @@ ingest_pipeline = IngestPipeline()
 app = FastAPI()
 
 
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"status": "error", "detail": exc.detail},
+    )
+
+
 # TODO Remove support for path content
 # TODO Add relevant images ???
 
@@ -49,13 +57,8 @@ def get_session():
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
-# nginx-ingress on this route has no proxy-read-timeout override (falls back to
-# nginx's 60s default). Stay comfortably under that so a response always beats the
-# proxy kill, leaving margin for check_db_connection/git pull/response serialization.
-INGEST_SYNC_TIMEOUT_SECONDS = 50.0
-
-# Strong references to ingest tasks still running past the sync timeout, so they
-# aren't garbage-collected while detached from the request/response cycle.
+# Strong references to background ingest tasks, so they aren't garbage-collected
+# while detached from the request/response cycle.
 _background_ingest_tasks: set[asyncio.Task] = set()
 
 
@@ -71,10 +74,6 @@ def _log_background_ingest_result(task: asyncio.Task) -> None:
 
     exc = task.exception()
     if exc is None:
-        return
-
-    if isinstance(exc, ContentAlreadyExists):
-        logger.info("Background ingest found link already existed: %s", exc)
         return
 
     logger.error("Background ingest task failed: %s", exc, exc_info=exc)
@@ -107,53 +106,33 @@ async def ingest(content: InputContent, session: SessionDep):
     if content.source == "None":
         content.source = None
 
+    if ingest_pipeline.get_existing_content(content.link, session) is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Content with link {content.link} already exists",
+        )
+
     if vault_config.github_vault.repository is not None:
         await async_pull_changes()
 
     task = asyncio.create_task(_run_ingest_and_sync(content))
     _track_background_ingest(task)
 
-    _done, pending = await asyncio.wait({task}, timeout=INGEST_SYNC_TIMEOUT_SECONDS)
-
-    if task in pending:
-        return JSONResponse(
-            status_code=202,
-            content={
-                "status": "processing",
-                "detail": (
-                    "Ingestion is running in the background; poll "
-                    "GET /ingest/status?link=<link> for progress."
-                ),
-            },
-        )
-
-    exc = task.exception()
-    if exc is not None:
-        if isinstance(exc, ContentAlreadyExists):
-            raise HTTPException(status_code=409, detail=str(exc))
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error_type": exc.__class__.__name__,
-                "error_message": str(exc),
-            },
-        )
-
-    error = task.result()
-    if error is not None:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error_type": error.__class__.__name__,
-                "error_message": str(error),
-            },
-        )
+    return JSONResponse(
+        status_code=202,
+        content={
+            "status": "processing",
+            "detail": (
+                "Ingestion is running in the background; poll "
+                "GET /ingest/status?link=<link> for progress."
+            ),
+        },
+    )
 
 
 @app.get("/ingest/status")
 async def ingest_status(link: HttpUrl, session: SessionDep):
-    clean_link = ingest_pipeline._clean_content_url(link)
-    content = get_content(clean_link, session)
+    content = ingest_pipeline.get_existing_content(link, session)
     if content is None:
         return {"status": "pending"}
 
@@ -165,8 +144,7 @@ async def ingest_status(link: HttpUrl, session: SessionDep):
     if failed is not None:
         return {
             "status": "failed",
-            "error_type": failed.error_type,
-            "error_message": failed.error_message,
+            "detail": failed.error_message,
         }
 
     return {"status": "pending"}

@@ -1100,6 +1100,7 @@ dependencies = [
 [package.dev-dependencies]
 api = [
     { name = "docling" },
+    { name = "fastapi", extra = ["standard"] },
     { name = "youtube-transcript-api" },
 ]
 dashboard = [
@@ -1158,6 +1159,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 api = [
     { name = "docling", specifier = ">=2.113.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.139.0" },
     { name = "youtube-transcript-api", specifier = ">=1.2.4" },
 ]
 dashboard = [

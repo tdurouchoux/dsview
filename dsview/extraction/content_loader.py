@@ -21,6 +21,8 @@ from youtube_transcript_api import (
 
 from dsview.config import load_model_config
 
+REQUEST_TIMEOUT = 60
+
 if TYPE_CHECKING:
     # docling pulls in torch/transformers - only imported for real inside the
     # lazily-cached factories below, so processes that never load a PDF (MCP,
@@ -35,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class WebRequestFailure(Exception):
     def __init__(self, url: str, status_code: int) -> None:
+        self.status_code = status_code
         super().__init__(f"Request for url {url} failed with status code {status_code}")
 
 
@@ -60,7 +63,7 @@ class WebContentLoader(ContentLoader):
 
     def _request_url(self, url: HttpUrl | None = None) -> requests.Response:
         url = url if url is not None else self.link
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
 
         if response.status_code != 200:
             raise WebRequestFailure(url, response.status_code)
@@ -231,19 +234,18 @@ class ArxivContentLoader(PdfUrlLoader):
 
         return re.sub(r"v\d+$", "", match.group(1))
 
-    def _load_content(self):
-        if self._load_alphaxiv_overview():
-            return
-
-        response = self._request_url(HttpUrl(f"https://arxiv.org/pdf/{self.paper_id}"))
-        self._load_pdf_response(response)
-
     def _load_alphaxiv_overview(self) -> bool:
+        logger.info("Attempting to load AlphaXiv overview")
         try:
             response = self._request_url(
                 HttpUrl(f"https://www.alphaxiv.org/overview/{self.paper_id}.md")
             )
-        except WebRequestFailure:
+        except WebRequestFailure as web_error:
+            if web_error.status_code == 404:
+                logger.info("AlphaXiv overview not found")
+            else:
+                logger.warning("Failed to load AlphaXiv overview", exc_info=web_error)
+
             return False
 
         content = response.text.strip()
@@ -252,6 +254,18 @@ class ArxivContentLoader(PdfUrlLoader):
 
         self.content = content
         return True
+
+
+    def _load_content(self):
+        if self._load_alphaxiv_overview():
+            return
+
+        logger.warning(
+            "Failed to load AlphaXiv overview, defaulting to full pdf extraction."
+        )
+
+        response = self._request_url(HttpUrl(f"https://arxiv.org/pdf/{self.paper_id}"))
+        self._load_pdf_response(response)
 
 
 class YoutubeTranscriptUnavailable(Exception):

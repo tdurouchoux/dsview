@@ -7,6 +7,7 @@ from rich.progress import track
 from sqlmodel import Session
 
 from dsview.db.ingest import save_content, save_failed_ingestion
+from dsview.db.query import get_content
 from dsview.db.schemas import InputContent
 from dsview.db.schemas.extraction_schema import ExtractionResult, ExtractionTopic
 from dsview.extraction.content_extraction import ContentExtractor
@@ -48,6 +49,11 @@ class IngestPipeline:
 
         return clean_url
 
+    def get_existing_content(
+        self, link: HttpUrl, session: Session
+    ) -> InputContent | None:
+        return get_content(self._clean_content_url(link), session)
+
     # make ingest_source load
     def _load(self, content: InputContent) -> ContentLoader:
         logger.info("Loading input content")
@@ -60,7 +66,7 @@ class IngestPipeline:
     async def _extract(
         self, content_loader: ContentLoader, content_id: int, session: Session
     ) -> ExtractionResult:
-        logging.info("Launching content extraction")
+        logger.info("Launching content extraction")
 
         extraction_result = await self.content_extractor.extract_content(
             content_loader,
