@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 import pytest
@@ -5,6 +6,7 @@ from pydantic import HttpUrl
 
 from dsview.extraction.content_loader import (
     ArxivContentLoader,
+    GithubContentLoader,
     JsonExtractionError,
     PdfUrlLoader,
     UrlLoader,
@@ -115,6 +117,19 @@ def test_select_representative_content_never_exceeds_budget():
             YoutubeContentLoader,
         ),
         (HttpUrl("https://youtu.be/jNQXAC9IVRw"), YoutubeContentLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch"), GithubContentLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch/"), GithubContentLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch/tree/main"), GithubContentLoader),
+        (
+            HttpUrl("https://github.com/pytorch/pytorch/tree/main/torch/nn"),
+            GithubContentLoader,
+        ),
+        # Not a repo-root or tree shape - falls back to UrlLoader instead of hard-failing.
+        (HttpUrl("https://github.com/pytorch/pytorch/blob/main/README.md"), UrlLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch/issues/123"), UrlLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch/pull/456"), UrlLoader),
+        (HttpUrl("https://github.com/pytorch/pytorch/wiki"), UrlLoader),
+        (HttpUrl("https://gist.github.com/octocat/6cad326836d38bd3a7ae"), UrlLoader),
     ],
 )
 def test_get_content_loader(link, expected_loader):
@@ -137,7 +152,34 @@ def test_get_content_loader(link, expected_loader):
     ],
 )
 def test_extract_arxiv_paper_id(path, expected_paper_id):
-    assert ArxivContentLoader._extract_paper_id(path) == expected_paper_id
+    assert ArxivContentLoader.extract_paper_id(path) == expected_paper_id
+
+
+@pytest.mark.parametrize(
+    "path,expected",
+    [
+        ("/pytorch/pytorch", ("pytorch", "pytorch", None)),
+        ("/pytorch/pytorch/", ("pytorch", "pytorch", None)),
+        ("/pytorch/pytorch/tree/main", ("pytorch", "pytorch", None)),
+        ("/pytorch/pytorch/tree/main/", ("pytorch", "pytorch", None)),
+        (
+            "/pytorch/pytorch/tree/main/torch/nn",
+            ("pytorch", "pytorch", "torch/nn"),
+        ),
+        (
+            "/pytorch/pytorch/tree/main/torch/nn/",
+            ("pytorch", "pytorch", "torch/nn"),
+        ),
+        ("/pytorch/pytorch/blob/main/README.md", None),
+        ("/pytorch/pytorch/issues/123", None),
+        ("/pytorch/pytorch/pull/456", None),
+        ("/pytorch/pytorch/wiki", None),
+        ("/pytorch", None),
+        (None, None),
+    ],
+)
+def test_parse_github_repo_path(path, expected):
+    assert GithubContentLoader.parse_repo_path(path) == expected
 
 
 @pytest.mark.parametrize(
@@ -256,6 +298,116 @@ def test_load_alphaxiv_overview_accepts_long_response(monkeypatch):
 
     assert content_loader._load_alphaxiv_overview() is True
     assert content_loader.content.startswith("# Paper title")
+
+
+def test_github_content_loader_readme():
+    content_loader = get_content_loader(
+        HttpUrl("https://github.com/huggingface/transformers")
+    )
+    content_loader.load()
+
+    assert len(content_loader.content) > 0
+    # README fetched via the API, not scraped from the rendered page.
+    assert "<html" not in content_loader.content.lower()
+
+
+def test_github_content_loader_directory_readme():
+    content_loader = get_content_loader(
+        HttpUrl("https://github.com/huggingface/transformers/tree/main/examples")
+    )
+    content_loader.load()
+
+    assert len(content_loader.content) > 0
+    assert "<html" not in content_loader.content.lower()
+
+
+def test_github_content_loader_fallback(monkeypatch):
+    monkeypatch.setattr(GithubContentLoader, "_load_readme", lambda self: False)
+
+    content_loader = get_content_loader(
+        HttpUrl("https://github.com/huggingface/transformers")
+    )
+    content_loader.load()
+
+    assert len(content_loader.content) > 0
+    assert len(content_loader.content_links) > 0
+
+
+def test_load_readme_rejects_blank_content(monkeypatch):
+    fake_content = base64.b64encode(b"   \n  ").decode()
+    fake_response = type(
+        "FakeResponse", (), {"json": lambda self: {"content": fake_content}}
+    )()
+    monkeypatch.setattr(
+        GithubContentLoader, "_request_url", lambda self, url=None: fake_response
+    )
+
+    content_loader = GithubContentLoader(HttpUrl("https://github.com/pytorch/pytorch"))
+
+    assert content_loader._load_readme() is False
+    assert content_loader.content is None
+
+
+def test_load_readme_accepts_real_content(monkeypatch):
+    readme_text = (
+        "# Title\n\n"
+        "Some real readme content. See [the docs](https://example.com/docs) "
+        "and [an issue](https://github.com/pytorch/pytorch/issues/1)."
+    )
+    fake_content = base64.b64encode(readme_text.encode()).decode()
+    fake_response = type(
+        "FakeResponse", (), {"json": lambda self: {"content": fake_content}}
+    )()
+    monkeypatch.setattr(
+        GithubContentLoader, "_request_url", lambda self, url=None: fake_response
+    )
+
+    content_loader = GithubContentLoader(HttpUrl("https://github.com/pytorch/pytorch"))
+
+    assert content_loader._load_readme() is True
+    assert content_loader.content.startswith("# Title")
+    assert sorted(content_loader.content_links) == [
+        "https://example.com/docs",
+        "https://github.com/pytorch/pytorch/issues/1",
+    ]
+
+
+@pytest.mark.parametrize(
+    "content,expected_links",
+    [
+        # Plain external link is kept.
+        (
+            "See [docs](https://example.com/docs) for more.",
+            ["https://example.com/docs"],
+        ),
+        # Relative link and anchor link are dropped (no scheme/host); further
+        # filtering (e.g. repo-self-referencing links) happens downstream, not here.
+        ("See [docs](./docs/guide.md) and [top](#top).", []),
+        # Absolute links back to the same repo are kept here - not this
+        # method's job to drop them.
+        (
+            (
+                "See [issues](https://github.com/owner/repo/issues) and "
+                "[wiki](https://github.com/owner/repo/wiki)."
+            ),
+            [
+                "https://github.com/owner/repo/issues",
+                "https://github.com/owner/repo/wiki",
+            ],
+        ),
+        # Badge-wrapped link: the outer target, not the inner badge image, is kept.
+        (
+            "[![Build](https://img.shields.io/badge.svg)](https://example.com/actions)",
+            ["https://example.com/actions"],
+        ),
+    ],
+)
+def test_extract_readme_links_drops_relative_links(content, expected_links):
+    content_loader = GithubContentLoader(HttpUrl("https://github.com/owner/repo"))
+
+    assert sorted(content_loader._extract_readme_links(content)) == sorted(
+        expected_links
+    )
 
 
 def test_extract_json_after_returns_none_when_marker_missing():

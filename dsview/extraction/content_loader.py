@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import math
@@ -6,7 +7,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from functools import cache
 from typing import TYPE_CHECKING, Callable
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote, urlparse
 
 import requests
 import tiktoken
@@ -255,7 +256,6 @@ class ArxivContentLoader(PdfUrlLoader):
         self.content = content
         return True
 
-
     def _load_content(self):
         if self._load_alphaxiv_overview():
             return
@@ -266,6 +266,116 @@ class ArxivContentLoader(PdfUrlLoader):
 
         response = self._request_url(HttpUrl(f"https://arxiv.org/pdf/{self.paper_id}"))
         self._load_pdf_response(response)
+
+
+class GithubContentLoader(UrlLoader):
+    GITHUB_HOST = "github.com"
+
+    # Matches /{owner}/{repo}/tree/{branch}(/{subdir...}), optional trailing slash.
+    # The branch segment itself is discarded - there's no reason to ever link to
+    # a non-default branch here, so the README is always fetched off the repo's
+    # default branch (the GitHub API's behavior when no ref is given). If a link
+    # does point at a non-default branch, the subdir readme lookup below simply
+    # 404s and falls back to a plain webpage load, which is an acceptable outcome.
+    _TREE_PATH_RE = re.compile(
+        r"^/(?P<owner>[^/]+)/(?P<repo>[^/]+)/tree/[^/]+(?:/(?P<subdir>.+?))?/?$"
+    )
+    # Matches /{owner}/{repo} (repo root), optional trailing slash.
+    _ROOT_PATH_RE = re.compile(r"^/(?P<owner>[^/]+)/(?P<repo>[^/]+)/?$")
+
+    # Markdown links. The first alternative handles a badge-style link, where the
+    # link text is itself an image, e.g. "[![Build](badge.svg)](target)" - a plain
+    # "[text](url)" pattern alone would stop at the image's closing "]" and extract
+    # the badge image url instead of the actual link target. The second alternative
+    # is a plain link; the negative lookbehind excludes bare (non-linked) images.
+    _MARKDOWN_LINK_RE = re.compile(
+        r"\[!\[[^\]]*\]\([^)]*\)\]\((?P<badge_url>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
+        r"|(?<!!)\[[^\]]*\]\((?P<url>[^)\s]+)(?:\s+\"[^\"]*\")?\)"
+    )
+
+    def __init__(self, link: HttpUrl) -> None:
+        super().__init__(link)
+
+        # get_content_loader only dispatches here when this already resolves,
+        # so parse_repo_path is guaranteed to return a match.
+        self.owner, self.repo, self.subdir = self.parse_repo_path(link.path)
+
+    @staticmethod
+    def parse_repo_path(
+        path: str | None,
+    ) -> tuple[str, str, str | None] | None:
+        # Anything that isn't a repo root or /tree/{branch}(/{subdir}) shape
+        # (/blob/..., /issues/..., /pull/..., /wiki, gist.github.com, ...) is not
+        # handled here - dispatch (get_content_loader) uses this same method to
+        # fall back to UrlLoader instead.
+        path = path or ""
+
+        match = GithubContentLoader._TREE_PATH_RE.match(path)
+        if match:
+            return match["owner"], match["repo"], match["subdir"]
+
+        match = GithubContentLoader._ROOT_PATH_RE.match(path)
+        if match:
+            return match["owner"], match["repo"], None
+
+        return None
+
+    @staticmethod
+    def _is_absolute_link(url: str) -> bool:
+        # Excludes relative links (files/anchors within the repo) - further
+        # filtering (e.g. dropping repo-self-referencing links) happens downstream.
+        parsed = urlparse(url)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+    def _extract_readme_links(self, content: str) -> list[str]:
+        urls = (
+            match["badge_url"] or match["url"]
+            for match in self._MARKDOWN_LINK_RE.finditer(content)
+        )
+        return list({url for url in urls if self._is_absolute_link(url)})
+
+    def _load_readme(self) -> bool:
+        logger.info("Attempting to load GitHub README via API")
+
+        api_path = f"repos/{self.owner}/{self.repo}/readme"
+        if self.subdir:
+            api_path += f"/{quote(self.subdir, safe='/')}"
+
+        api_url = f"https://api.github.com/{api_path}"
+
+        try:
+            response = self._request_url(HttpUrl(api_url))
+        except WebRequestFailure as web_error:
+            if web_error.status_code == 404:
+                logger.info("GitHub README not found via API")
+            else:
+                logger.warning("Failed to load GitHub README", exc_info=web_error)
+            return False
+
+        try:
+            content = base64.b64decode(response.json()["content"]).decode("utf-8")
+        except (KeyError, ValueError, UnicodeDecodeError) as decode_error:
+            logger.warning(
+                "Failed to decode GitHub README content", exc_info=decode_error
+            )
+            return False
+
+        content = content.strip()
+        if not content:
+            return False
+
+        self.content = content
+        self.content_links = self._extract_readme_links(content)
+        return True
+
+    def _load_content(self):
+        if self._load_readme():
+            return
+
+        logger.warning(
+            "Failed to load GitHub README via API, defaulting to full webpage load."
+        )
+        super()._load_content()
 
 
 class YoutubeTranscriptUnavailable(Exception):
@@ -405,6 +515,12 @@ def get_content_loader(link: HttpUrl) -> ContentLoader:
         and ArxivContentLoader.extract_paper_id(link.path) is not None
     ):
         return ArxivContentLoader(link)
+
+    if (
+        link.host == GithubContentLoader.GITHUB_HOST
+        and GithubContentLoader.parse_repo_path(link.path) is not None
+    ):
+        return GithubContentLoader(link)
 
     # ! Improve pdf detection
     if link.path.endswith(".pdf"):
