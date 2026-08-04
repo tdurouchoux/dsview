@@ -5,7 +5,6 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Union
 
-import mlflow
 import numpy as np
 from pydantic import BaseModel
 from tenacity import (
@@ -52,7 +51,7 @@ class MissingAPIKey(Exception):
         )
 
 
-class ModelConfigurationError(Exception):
+class ProviderConfigurationError(Exception):
     def __init__(self, provider: LLMProvider, model_name: str, error: str) -> None:
         super().__init__(
             f"Model {model_name} was not found for provider {provider}, "
@@ -90,7 +89,9 @@ class ModelProvider(ABC):
         try:
             self._retrieve_model(model_name)
         except Exception as error:
-            raise ModelConfigurationError(self.model_config.provider, model_name, error)
+            raise ProviderConfigurationError(
+                self.model_config.provider, model_name, error
+            )
 
     def _check_model_config(self):
         self._assert_model_exists(self.model_config.chat_model)
@@ -102,6 +103,8 @@ class ModelProvider(ABC):
             self._assert_model_exists(self.model_config.embedding_model)
 
     def log_params(self):
+        import mlflow
+
         mlflow.log_param("model_config", self.model_config)
 
     @abstractmethod

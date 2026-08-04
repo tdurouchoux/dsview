@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import frontmatter
-from sqlmodel import Session, inspect
+from sqlmodel import inspect
 
 from dsview.db.schemas import (
     ExtractionTopic,
@@ -28,7 +28,7 @@ class ObsidianNoteShouldNotExists(Exception):
 def write_note(note: frontmatter.Post, note_path: Path):
     note_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(note_path, "wb") as note_file:
+    with open(note_path, "w") as note_file:
         frontmatter.dump(note, note_file)
 
 
@@ -95,14 +95,14 @@ def write_and_update_topic_list_notes(topics: list[ExtractionTopic]):
 # ? What about jinja template for this
 def write_content_note(content: InputContent, extraction_result: ExtractionResult):
     # Need more than extracted content > query
-    note_content = str(content.link) + "\n"
+    note_content = str(content.link) + "\n\n"
     note_content += "## Summary\n\n" + extraction_result.summary
 
-    note_content += "\n## Links\n\n"
+    note_content += "\n\n## Links\n\n"
     for link in extraction_result.links:
         note_content += f"- [{link.name}]({link.url}) : {link.description}\n"
 
-    note_content += "\n## Topics\n\n"
+    note_content += "\n\n## Topics\n\n"
     for topic in extraction_result.topics:
         note_content += f"{get_topic_link(topic.name, topic.type)}\n\n"
 

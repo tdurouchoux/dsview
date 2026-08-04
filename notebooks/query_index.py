@@ -24,6 +24,7 @@ def _():
 
     from dsview.db.query import TopicsIndex
     from dsview.obsidian.obsidian_utils import get_content_url_link
+
     return TopicsIndex, get_content_url_link, mo
 
 

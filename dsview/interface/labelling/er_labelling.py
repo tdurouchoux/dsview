@@ -17,12 +17,9 @@ def main():
 
     st.title("ER comparison labelling")
 
-    topic_display_template = (
-        "## Topic {}\n\n **Name** : {}\n\n **Type** : {}"
-    )
+    topic_display_template = "## Topic {}\n\n **Name** : {}\n\n **Type** : {}"
 
     with Session(engine) as session:
-
         count_total_labeled, count_total_comparisons = count_er_labels(session)
 
         header_col_1, header_col_2 = st.columns([7, 3])
@@ -41,11 +38,12 @@ def main():
             header_col_1.info("No more comparisons to label")
             return
 
-
         col1, col2 = st.columns(2)
         col1.markdown(
             topic_display_template.format(
-                1, st.session_state.comparison.name_1, st.session_state.comparison.type_1,
+                1,
+                st.session_state.comparison.name_1,
+                st.session_state.comparison.type_1,
             )
         )
         exp1 = col1.expander("Description")
@@ -53,7 +51,9 @@ def main():
 
         col2.markdown(
             topic_display_template.format(
-                2, st.session_state.comparison.name_2, st.session_state.comparison.type_2
+                2,
+                st.session_state.comparison.name_2,
+                st.session_state.comparison.type_2,
             )
         )
         exp2 = col2.expander("Description")

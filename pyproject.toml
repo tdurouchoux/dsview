@@ -1,6 +1,6 @@
 [project]
 name = "dsview"
-version = "2.3.0"
+version = "2.4.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
@@ -8,24 +8,17 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi[standard]>=0.115.6",
-    "levenshtein>=0.26.1",
     "numpy>=1.26.4",
     "omegaconf>=2.3.0",
     "pandas>=2.2.3",
     "pydantic>=2.10.3",
-    "pypdf>=5.1.0",
     "python-dotenv>=1.0.1",
     "python-frontmatter>=1.1.0",
     "pyyaml>=6.0.2",
     "rich>=13.9.4",
-    "scikit-learn>=1.6.0",
     "sqlmodel>=0.0.22",
     "tiktoken>=0.8.0",
     "typer>=0.15.1",
-    "rouge>=1.0.1",
-    "scipy>=1.14.1",
-    "nltk>=3.9.1",
     "instructor[anthropic]>1.15",
     "ollama>=0.4.7",
     "openai>=1.63.0",
@@ -34,18 +27,20 @@ dependencies = [
     "tenacity>=9.0.0",
     "psycopg[binary]>=3.2.9",
     "duckdb>=1.3.2",
-    "sqlglot>=27.14.0",
     "beautifulsoup4>=4.13.5",
-    "mlflow[genai]>=3.10.1",
-    "mcp>=1.27.0",
     "igraph>=1.0.0",
-    "marimo>=0.23.14",
+    "markdown-it-py>=3.0.0",
 ]
 
 [tool.uv]
 # Keep numba modern: without this, a too-new numpy makes uv backtrack to
 # numba 0.53 / llvmlite 0.36, which no longer builds.
 constraint-dependencies = ["numba>=0.60"]
+# "dev" is uv's own implicit default; listed explicitly here because adding
+# "evaluation" means we must give the full list. Keeps `uv sync` (no --group)
+# covering local dev + `dsview evaluate` as before, while the 4 Dockerfiles
+# opt out with --no-default-groups and pull in only what each image needs.
+default-groups = ["dev", "evaluation"]
 
 [build-system]
 requires = ["hatchling"]
@@ -62,8 +57,18 @@ dev = [
     "nest-asyncio>=1.6.0",
     "wat>=0.5.1",
 ]
+# Only dsview/evaluation/* imports these - metric libraries for the `dsview evaluate`
+# CLI (mlflow tracking, ROUGE/BLEU-style scoring, sklearn clustering for entity
+# resolution). None of the 4 service Dockerfiles need this group.
+evaluation = [
+    "mlflow[genai]>=3.10.1",
+    "rouge>=1.0.1",
+    "scipy>=1.14.1",
+    "nltk>=3.9.1",
+    "scikit-learn>=1.6.0",
+]
 dashboard = [
-    "marimo>=0.13.11",
+    "marimo>=0.23.14",
     "altair>=5.5.0",
     "dayplot>=0.3.3",
     "networkx>=3.4.2",
@@ -72,4 +77,12 @@ dashboard = [
 labels = [
     "streamlit>=1.41.1",
 ]
-
+api = [
+    "youtube-transcript-api>=1.2.4",
+    "docling>=2.113.0",
+    "fastapi[standard]>=0.139.0",
+]
+mcp = [
+    "mcp>=1.27.0",
+    "fastapi[standard]>=0.115.6",
+]

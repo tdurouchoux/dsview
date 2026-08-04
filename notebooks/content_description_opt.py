@@ -10,6 +10,7 @@ app = marimo.App(
 @app.cell(column=0)
 def _():
     import marimo as mo
+
     return (mo,)
 
 
@@ -27,13 +28,15 @@ def _():
         load_extraction_config,
     )
     from dsview.db import engine
-    from dsview.model_utils.providers import OllamaProvider
+    from dsview.model_utils.providers.ollama import OllamaProvider
+
     return LLMProvider, ModelConfig, evaluate, load_extraction_config, mlflow
 
 
 @app.cell
 def _():
     from dsview.extraction.models.description_generation import TagsType
+
     return (TagsType,)
 
 
@@ -60,6 +63,7 @@ def _(load_extraction_config, mlflow):
 @app.cell
 def _():
     import os
+
     os.environ["PROMPT_DIR"] = "./prompts/"
     return
 
@@ -288,12 +292,9 @@ def _(
     run_name,
     system_prompt,
 ):
-    with mlflow.start_run(
-        run_name=run_name, experiment_id=experiment.experiment_id
-    ):
+    with mlflow.start_run(run_name=run_name, experiment_id=experiment.experiment_id):
         eval_results_mistral_small_prompt = evaluate(
-            model_config=mistral_small_config,
-            system_prompt=system_prompt
+            model_config=mistral_small_config, system_prompt=system_prompt
         )
     return (eval_results_mistral_small_prompt,)
 

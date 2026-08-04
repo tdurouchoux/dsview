@@ -6,7 +6,7 @@ COPY . /app
 ENV CONF_DIR="./config"
 
 WORKDIR /app
-RUN uv sync --group dashboard --frozen --no-cache
+RUN uv sync --no-default-groups --group dashboard --frozen --no-cache
 
 EXPOSE 2718
 

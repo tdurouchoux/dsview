@@ -24,6 +24,7 @@ def _():
         LLMProvider,
         load_extraction_config,
     )
+
     return (
         LLMProvider,
         Literal,
@@ -43,6 +44,7 @@ def _():
 @app.cell
 def _():
     import os
+
     os.environ["PROMPT_DIR"] = "./prompts/"
     return
 
@@ -84,26 +86,30 @@ def _(
     }
     RANDOM_STATE = 42
 
-    def evaluate_simple_er(simple_er: SimpleERModel, set_type: Literal["eval", "test"] = "eval"):
+    def evaluate_simple_er(
+        simple_er: SimpleERModel, set_type: Literal["eval", "test"] = "eval"
+    ):
 
         def get_simple_er_pred(eval_row: pd.Series) -> bool:
-            result = simple_er.predict({
-                "name_1": eval_row["name_1"],
-                "type_1": eval_row["type_1"],
-                "name_2": eval_row["name_2"],
-                "type_2": eval_row["type_2"],
-            })
+            result = simple_er.predict(
+                {
+                    "name_1": eval_row["name_1"],
+                    "type_1": eval_row["type_1"],
+                    "name_2": eval_row["name_2"],
+                    "type_2": eval_row["type_2"],
+                }
+            )
 
             return result.merge_topic
 
-
         er_labels = get_er_labels(SPLIT_RATIOS, RANDOM_STATE)
-        eval_data = er_labels[er_labels["row_type"]==set_type]
+        eval_data = er_labels[er_labels["row_type"] == set_type]
 
         simple_er.log_params()
 
         eval_data["merge_pred"] = eval_data.progress_apply(
-            get_simple_er_pred, axis=1,
+            get_simple_er_pred,
+            axis=1,
         )
 
         metrics = {
@@ -118,6 +124,7 @@ def _(
         print(metrics)
 
         return eval_data
+
     return (evaluate_simple_er,)
 
 
@@ -193,15 +200,15 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         run_name="Mistral medium 3.5",
         experiment_id=experiment.experiment_id,
     ):
-        eval_results = evaluate(
-            model_config=mistral_medium_config
-        )
+        eval_results = evaluate(model_config=mistral_medium_config)
     return (eval_results,)
 
 
 @app.cell
 def _(eval_results):
-    eval_results["pred_name"] = eval_results["pred_topics"].apply(lambda topics: [topic.name for topic in topics])
+    eval_results["pred_name"] = eval_results["pred_topics"].apply(
+        lambda topics: [topic.name for topic in topics]
+    )
     eval_results[["name", "pred_name", "count_correct_topic"]]
     return
 
@@ -281,7 +288,8 @@ def _(
     )
 
     with mlflow.start_run(
-        run_name=f"magistral small prompt {prompt_version}", experiment_id=experiment.experiment_id
+        run_name=f"magistral small prompt {prompt_version}",
+        experiment_id=experiment.experiment_id,
     ):
         eval_results_magistral_small = evaluate(
             user_prompt=user_prompt,
@@ -299,7 +307,9 @@ def _(eval_results_magistral_small, mo):
 
 @app.cell
 def _(eval_results_magistral_small):
-    eval_results_magistral_small["pred_name"] = eval_results_magistral_small["pred_topics"].apply(lambda topics: [topic.name for topic in topics])
+    eval_results_magistral_small["pred_name"] = eval_results_magistral_small[
+        "pred_topics"
+    ].apply(lambda topics: [topic.name for topic in topics])
     eval_results_magistral_small[["name", "pred_name"]]
     return
 
@@ -333,7 +343,8 @@ def _(
     )
 
     with mlflow.start_run(
-        run_name=f"mistral small prompt {prompt_version}", experiment_id=experiment.experiment_id
+        run_name=f"mistral small prompt {prompt_version}",
+        experiment_id=experiment.experiment_id,
     ):
         eval_results_mistral_small = evaluate(
             user_prompt=user_prompt,
@@ -344,7 +355,9 @@ def _(
 
 @app.cell
 def _(eval_results_mistral_small):
-    eval_results_mistral_small["pred_name"] = eval_results_mistral_small["pred_topics"].apply(lambda topics: [topic.name for topic in topics])
+    eval_results_mistral_small["pred_name"] = eval_results_mistral_small[
+        "pred_topics"
+    ].apply(lambda topics: [topic.name for topic in topics])
     eval_results_mistral_small
     return
 

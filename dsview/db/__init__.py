@@ -43,6 +43,7 @@ def __getattr__(name: str):
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
+
 # SQLModel.metadata.create_all(engine)
 
 

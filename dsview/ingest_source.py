@@ -7,10 +7,12 @@ from rich.progress import track
 from sqlmodel import Session
 
 from dsview.db.ingest import save_content, save_failed_ingestion
+from dsview.db.query import get_content
 from dsview.db.schemas import InputContent
 from dsview.db.schemas.extraction_schema import ExtractionResult, ExtractionTopic
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import (
+    YOUTUBE_HOSTS,
     ContentLoader,
     get_content_loader,
 )
@@ -21,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # TODO Add medium hosts as configuration
 MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com", "netflixtechblog.com"]
-IGNORE_CLEAN_HOSTS = ["www.youtube.com"]
+IGNORE_CLEAN_HOSTS = list(YOUTUBE_HOSTS)
 
 
 class IngestPipeline:
@@ -47,6 +49,11 @@ class IngestPipeline:
 
         return clean_url
 
+    def get_existing_content(
+        self, link: HttpUrl, session: Session
+    ) -> InputContent | None:
+        return get_content(self._clean_content_url(link), session)
+
     # make ingest_source load
     def _load(self, content: InputContent) -> ContentLoader:
         logger.info("Loading input content")
@@ -59,7 +66,7 @@ class IngestPipeline:
     async def _extract(
         self, content_loader: ContentLoader, content_id: int, session: Session
     ) -> ExtractionResult:
-        logging.info("Launching content extraction")
+        logger.info("Launching content extraction")
 
         extraction_result = await self.content_extractor.extract_content(
             content_loader,
@@ -80,7 +87,9 @@ class IngestPipeline:
         write_notes.write_content_note(content, extraction_result)
         write_notes.write_and_update_topic_list_notes(extraction_result.topics)
 
-    async def async_ingest_content(self, content: InputContent, session: Session):
+    async def async_ingest_content(
+        self, content: InputContent, session: Session
+    ) -> Exception | None:
         original_link = str(content.link)
 
         if isinstance(content.link, HttpUrl):
@@ -92,6 +101,7 @@ class IngestPipeline:
 
         logger.info("Ingesting content : %s", content.link)
 
+        error: Exception | None = None
         try:
             content_loader = self._load(content)
 
@@ -104,13 +114,15 @@ class IngestPipeline:
 
             logger.info("Ingestion successful.")
 
-        except Exception as error:
+        except Exception as caught_error:
             logger.exception("Failed to ingest content : %s", content.link)
             session.rollback()
 
-            save_failed_ingestion(content, original_link, error, session)
+            save_failed_ingestion(content, original_link, caught_error, session)
+            error = caught_error
 
         session.commit()
+        return error
 
     def ingest_content(self, content: InputContent, session: Session):
         asyncio.run(self.async_ingest_content(content, session))
@@ -122,4 +134,4 @@ class IngestPipeline:
         for content in track(content_list):
             logger.info("Content number : %s", i)
             self.ingest_content(content, session)
-            i+=1
+            i += 1

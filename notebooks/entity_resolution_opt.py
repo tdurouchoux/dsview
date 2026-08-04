@@ -46,7 +46,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM labels.erlabels
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -57,7 +57,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM extraction.ercomparison
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -77,8 +77,7 @@ def _(eval_result):
 @app.cell
 def _(evaluate, experiment, mlflow):
     with mlflow.start_run(
-        run_name="Default config",
-        experiment_id=experiment.experiment_id
+        run_name="Default config", experiment_id=experiment.experiment_id
     ):
         eval_results = evaluate()
     return (eval_results,)
@@ -92,7 +91,7 @@ def _(eval_results):
 
 @app.cell
 def _(eval_results):
-    eval_results[eval_results["merge"]!=eval_results["merge_pred"]]
+    eval_results[eval_results["merge"] != eval_results["merge_pred"]]
     return
 
 
@@ -270,8 +269,9 @@ def _(
     )
 
     with mlflow.start_run(
-            run_name=f"Mistral small prompt {prompt_version}", experiment_id=experiment.experiment_id
-        ):
+        run_name=f"Mistral small prompt {prompt_version}",
+        experiment_id=experiment.experiment_id,
+    ):
         eval_results_mistral_small = evaluate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -283,8 +283,8 @@ def _(
 @app.cell
 def _(evaluate, experiment, mistral_small_config, mlflow):
     with mlflow.start_run(
-            run_name=f"Mistral small default", experiment_id=experiment.experiment_id
-        ):
+        run_name=f"Mistral small default", experiment_id=experiment.experiment_id
+    ):
         eval_results_mistral_small_default = evaluate(
             # system_prompt=system_prompt,
             # user_prompt=user_prompt,
@@ -295,21 +295,21 @@ def _(evaluate, experiment, mistral_small_config, mlflow):
 
 @app.cell
 def _(eval_results, eval_results_mistral_small_default):
-    eval_results[(eval_results_mistral_small_default["merge_pred"] != eval_results["merge_pred"])]
+    eval_results[
+        (eval_results_mistral_small_default["merge_pred"] != eval_results["merge_pred"])
+    ]
     return
 
 
 @app.cell
 def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
     anthropic_config = ModelConfig(
-        chat_model='claude-sonnet-4-20250514',
+        chat_model="claude-sonnet-4-20250514",
         provider=LLMProvider.ANTHROPIC,
         model_specific_config={"max_tokens": 1_024},
     )
 
-    with mlflow.start_run(
-            run_name="Anthropic", experiment_id=experiment.experiment_id
-        ):
+    with mlflow.start_run(run_name="Anthropic", experiment_id=experiment.experiment_id):
         evaluate(
             model_config=anthropic_config,
         )
@@ -327,15 +327,14 @@ app._unparsable_cell(
     user_prompt = f\"\"'
     \"\"\"
     """,
-    name="_"
+    name="_",
 )
 
 
 @app.cell
 def _(evaluate, experiment, mlflow):
     with mlflow.start_run(
-        run_name="Default config",
-        experiment_id=experiment.experiment_id
+        run_name="Default config", experiment_id=experiment.experiment_id
     ):
         evaluate()
     return

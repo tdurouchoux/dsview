@@ -15,7 +15,7 @@ uv sync --group labels           # streamlit labelling extras
 pytest tests/test_config.py      # safe: no network, no LLM calls
 pytest                           # CAUTION: see "Testing" below before running the full suite
 
-ruff format . && ruff check .    # formatting / linting
+uvx ruff format . && uvx ruff check .   # formatting / linting (must be run via uvx)
 dsview --help                    # CLI (ingest, rebuild, backup, regen-vault, ...)
 
 # evaluation — costs real API money, see "Model evaluation" below
@@ -189,6 +189,10 @@ Rules for tests you write:
 
 ## Conventions
 
+- Prefer an existing, well-established library over hand-rolled parsing/extraction logic (regex,
+  manual string processing, ...) when one already does the job — check `pyproject.toml`/`uv.lock`
+  first, including transitive dependencies (e.g. `markdown-it-py` comes in via `rich`), before
+  writing custom logic or reaching for a new dependency.
 - Python ≥ 3.11, `uv` for dependency management, `ruff` for format + lint, `pyright` configured.
 - SQLModel tables live in per-domain schema modules under `dsview/db/schemas/`; Postgres schemas
   are `content`, `extraction`, `labels`.

@@ -174,11 +174,9 @@ def _(MAX_N_TOPICS, eval_data, to_pred_topics, tqdm, yake):
         n=YAKE_NGRAM_MAX, top=MAX_N_TOPICS, dedup_lim=YAKE_DEDUP_LIM
     )
 
-
     def extract_yake(content: str):
         keywords = yake_extractor.extract_keywords(content)
         return to_pred_topics([name for name, _score in keywords])
-
 
     yake_data = eval_data.copy()
     yake_data["pred_topics"] = [
@@ -198,7 +196,8 @@ def _(
     yake_data,
 ):
     with mlflow.start_run(
-        run_name=f"YAKE_dedup{YAKE_DEDUP_LIM}_eval", experiment_id=experiment.experiment_id
+        run_name=f"YAKE_dedup{YAKE_DEDUP_LIM}_eval",
+        experiment_id=experiment.experiment_id,
     ):
         yake_results = score_predictions(
             yake_data,
@@ -241,7 +240,6 @@ def _(MAX_N_TOPICS, eval_data, keybert_model, to_pred_topics, tqdm):
     # where distinct labelled entities (dbt-core, open-source model) start surfacing.
     KEYBERT_DIVERSITY = 0.5
 
-
     def extract_keybert(content: str):
         keywords = keybert_model.extract_keywords(
             content,
@@ -252,7 +250,6 @@ def _(MAX_N_TOPICS, eval_data, keybert_model, to_pred_topics, tqdm):
             diversity=KEYBERT_DIVERSITY,
         )
         return to_pred_topics([name for name, _score in keywords])
-
 
     keybert_data = eval_data.copy()
     keybert_data["pred_topics"] = [
@@ -329,7 +326,6 @@ def _(MAX_N_TOPICS, SimpleNamespace, TopicType, eval_data, gliner_model, tqdm):
     # ~300 tokens, kept under GLiNER's ~384-token window.
     GLINER_CHUNK_CHARS = 1200
 
-
     def chunk_text(text: str, size: int) -> list[str]:
         """Split text into <=size-char chunks on word boundaries."""
         chunks, current, length = [], [], 0
@@ -343,14 +339,14 @@ def _(MAX_N_TOPICS, SimpleNamespace, TopicType, eval_data, gliner_model, tqdm):
             chunks.append(" ".join(current))
         return chunks
 
-
-    def to_typed_pred_topics(ranked: list[tuple[float, str, str]]) -> list[SimpleNamespace]:
+    def to_typed_pred_topics(
+        ranked: list[tuple[float, str, str]],
+    ) -> list[SimpleNamespace]:
         """Build pred_topics carrying GLiNER's predicted type (no placeholder needed)."""
         return [
             SimpleNamespace(name=name, type=TopicType(label))
             for _score, name, label in ranked[:MAX_N_TOPICS]
         ]
-
 
     def extract_gliner(content: str) -> list[SimpleNamespace]:
         # Dedupe spans across chunks case-insensitively, keeping the best-scoring hit.
@@ -369,7 +365,6 @@ def _(MAX_N_TOPICS, SimpleNamespace, TopicType, eval_data, gliner_model, tqdm):
         # score_row scores by rank, so order by confidence before truncating.
         _ranked = sorted(best.values(), key=lambda item: item[0], reverse=True)
         return to_typed_pred_topics(_ranked)
-
 
     gliner_data = eval_data.copy()
     gliner_data["pred_topics"] = [

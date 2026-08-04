@@ -11,6 +11,7 @@ def _():
 
     from dsview.config import ModelConfig, LLMProvider
     from dsview.evaluation.entity_resolution import evaluate, get_er_labels
+
     return LLMProvider, ModelConfig, evaluate, mlflow, mo
 
 
@@ -48,8 +49,9 @@ def _(LLMProvider, ModelConfig):
 
 @app.cell
 def _():
-    from tqdm import tqdm 
+    from tqdm import tqdm
     import time
+
     return
 
 
@@ -68,6 +70,7 @@ def _(mo):
 @app.cell
 def _():
     import dspy
+
     return (dspy,)
 
 
@@ -83,6 +86,7 @@ def _(dspy):
         type_2: str = dspy.InputField()
         description_2: str = dspy.InputField()
         merge_topic: bool = dspy.OutputField()
+
     return (EntityResolution,)
 
 
@@ -112,6 +116,7 @@ def _(dspy):
             )
 
         return example_set
+
     return (get_example_set,)
 
 
@@ -154,9 +159,7 @@ def _(dspy, er_classifier, train_set):
     )
 
     with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):
-        er_classifier_opt_1 = optimizer_1.compile(
-            er_classifier, trainset=train_set
-        )
+        er_classifier_opt_1 = optimizer_1.compile(er_classifier, trainset=train_set)
     return (er_classifier_opt_1,)
 
 
@@ -169,7 +172,6 @@ def _(mlflow):
         recall_score,
     )
     from tqdm import tqdm
-
 
     def evaluate_dspy(classifier, eval_set):
         merge_example = []
@@ -190,6 +192,7 @@ def _(mlflow):
         print(metrics)
 
         mlflow.log_metrics(metrics)
+
     return (evaluate_dspy,)
 
 
@@ -219,9 +222,7 @@ def _(dspy, er_classifier, train_set):
     )
 
     with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):
-        er_classifier_opt_2 = optimizer_2.compile(
-            er_classifier, trainset=train_set
-        )
+        er_classifier_opt_2 = optimizer_2.compile(er_classifier, trainset=train_set)
     return (er_classifier_opt_2,)
 
 

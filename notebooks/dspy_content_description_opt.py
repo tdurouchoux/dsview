@@ -10,13 +10,15 @@ app = marimo.App(
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
 @app.cell
 def _():
     from dsview.config import ModelConfig, LLMProvider, get_sqlite_url
-    from dsview.model_utils.providers import OllamaProvider
+    from dsview.model_utils.providers.ollama import OllamaProvider
+
     return (
         LLMProvider,
         ModelConfig,
@@ -32,6 +34,7 @@ def _():
     import dspy
 
     from dsview.config import load_extraction_config
+
     return Literal, dspy, load_extraction_config
 
 
@@ -56,6 +59,7 @@ def _(Literal, dspy, extraction_config):
             dspy.OutputField()
         )
         tags: list[Literal[*extraction_config.tags.values()]] = dspy.OutputField()
+
     return (ContentDescription,)
 
 
@@ -148,6 +152,7 @@ def _(mo):
 @app.cell
 def _():
     from dsview.evaluation.semantic_score import semantic_score
+
     return (semantic_score,)
 
 
@@ -179,7 +184,7 @@ app._unparsable_cell(
 
         return (title_semantic_f1 + correct_content_type + tag_f1) / 3
     """,
-    name="_"
+    name="_",
 )
 
 
@@ -234,7 +239,6 @@ def _(datasets):
 def _(aggregate_f1_score, dspy):
     from tqdm import tqdm
 
-
     def evaluate_set(dataset, predictor, batch_size: int = 5):
         scores = []
         batch = []
@@ -245,6 +249,7 @@ def _(aggregate_f1_score, dspy):
                 scores.append(aggregate_f1_score(example, test_result))
 
         return sum(scores) / len(scores)
+
     return evaluate_set, tqdm
 
 
@@ -286,7 +291,6 @@ def _(content_descriptor_opt, eval_set, evaluate_set):
 @app.cell(disabled=True)
 def _(aggregate_f1_score, content_descriptor, dspy, train_set):
     from dspy.teleprompt import MIPROv2
-
 
     miprov2_optimizer = MIPROv2(
         metric=aggregate_f1_score,

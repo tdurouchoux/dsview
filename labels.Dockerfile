@@ -7,7 +7,7 @@ ENV CONF_DIR="./config"
 ENV PROMPT_DIR="./prompts"
 
 WORKDIR /app
-RUN uv sync --group labels --frozen --no-cache
+RUN uv sync --no-default-groups --group labels --frozen --no-cache
 
 EXPOSE 8501
 
