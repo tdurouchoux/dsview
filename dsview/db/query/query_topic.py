@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pandas as pd
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..schemas import ExtractionTopic
@@ -71,7 +72,9 @@ class TopicsIndex(DuckDBIndex):
 
 
 def get_topic_by_name(name: str, session: Session) -> DataScienceTopic:
-    statement = select(ExtractionTopic).where(ExtractionTopic.name == name)
+    statement = select(ExtractionTopic).where(
+        func.lower(ExtractionTopic.name) == name.lower()
+    )
 
     return session.exec(statement).first()
 
