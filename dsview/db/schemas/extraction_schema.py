@@ -35,7 +35,7 @@ class ExtractionTag(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     content_id: int = Field(
-        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id"
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_zid"
     )
     name: str
 

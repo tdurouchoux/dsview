@@ -54,8 +54,14 @@ def _(extraction_results):
     return
 
 
-@app.cell
-def _():
+@app.cell(hide_code=True)
+def _(engine, mo):
+    _df = mo.sql(
+        f"""
+        SELECT * FROM content.inputcontent WHERE id IN (307, 543)
+        """,
+        engine=engine
+    )
     return
 
 
