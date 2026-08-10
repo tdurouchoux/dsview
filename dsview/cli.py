@@ -1,19 +1,20 @@
 import logging
+import os
+import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Type
 
-import pandas as pd
 import typer
 from dotenv import load_dotenv
-from sqlmodel import Session, SQLModel
+from sqlmodel import Session
 
 from dsview import db
-from dsview.config import setup_logger
+from dsview.config import load_postgres_config, setup_logger
 from dsview.db import schemas
 from dsview.db.query import get_content_list, get_failed_ingestions, get_topic_list
 from dsview.db.schemas.extraction_schema import ExtractionResult
 from dsview.evaluation.cli import evaluate_app
+from dsview.obsidian.sync_vault import run_cmd
 from dsview.obsidian.write_notes import (
     write_content_note,
     write_topic_note,
@@ -37,36 +38,62 @@ def cli_setup():
 
 app.add_typer(evaluate_app, name="evaluate")
 
-BACKUP_TABLES = [
-    schemas.InputContent,
-    schemas.LabelledContent,
-    schemas.TitleLabels,
-    schemas.ContentTypeLabels,
-    schemas.TagLabels,
-    schemas.TopicsLabels,
-    schemas.LinksLabels,
-    schemas.ERLabels,
-]
+
+class MissingPostgresTool(Exception):
+    """Exception raised when pg_dump/pg_restore is not installed."""
+
+    def __init__(self, tool: str) -> None:
+        super().__init__(
+            f"'{tool}' not found on PATH. Install the postgresql-client package."
+        )
 
 
-@app.command(help="Backup database tables to parquet files in the backup directory")
+def _require_pg_tool(tool: str) -> str:
+    path = shutil.which(tool)
+    if path is None:
+        raise MissingPostgresTool(tool)
+    return path
+
+
+def _pg_connection_args() -> tuple[list[str], dict]:
+    pg_config = load_postgres_config()
+    args = [
+        "-h",
+        pg_config.host,
+        "-p",
+        str(pg_config.port),
+        "-U",
+        pg_config.user,
+        "-d",
+        pg_config.database,
+    ]
+    env = {**os.environ, "PGPASSWORD": pg_config.password}
+    return args, env
+
+
+@app.command(help="Backup the whole database to a pg_dump file in the backup directory")
 def backup():
     """
-    Create backup files for all important database tables.
-    Saves data as parquet files in a 'backup' directory.
+    Dump the entire database (all schemas/tables) with pg_dump so the backup
+    is exhaustive by construction and restore preserves ids/foreign keys.
     """
+    pg_dump = _require_pg_tool("pg_dump")
+
     backup_path = Path("backup")
+    backup_path.mkdir(exist_ok=True)
 
-    if not backup_path.exists():
-        backup_path.mkdir()
+    output_file = backup_path / f"dsview_{datetime.now():%Y%m%d_%H%M%S}.dump"
+    connection_args, env = _pg_connection_args()
 
-    for table in BACKUP_TABLES:
-        df = pd.read_sql(
-            f"SELECT * FROM {table.__table__}",
-            con=db.engine,
-        ).drop(columns=["id"])
+    run_cmd(
+        [pg_dump, "-Fc", "--no-owner", "--no-privileges"]
+        + connection_args
+        + ["-f", str(output_file)],
+        "pg_dump backup",
+        env=env,
+    )
 
-        df.to_parquet(backup_path / f"{table.__tablename__}.parquet")
+    logger.info("Backup written to %s", output_file)
 
 
 @app.command(help="Ingest a single piece of content from a URL or link")
@@ -358,44 +385,58 @@ class MissingBackupDirectory(Exception):
         super().__init__(f"No backup directory found at {path}")
 
 
-def restore_one_table(
-    backup_path: Path,
-    table: Type[SQLModel],
-    session,
-):
-    """
-    Restore a single table from a parquet backup file.
+class NoBackupFileFound(Exception):
+    """Exception raised when no dump file is found in the backup directory."""
 
-    Args:
-        backup_path: Path to the backup directory
-        table: SQLModel table class to restore
-        session: Database session
-    """
-    df = pd.read_parquet(backup_path / f"{table.__tablename__}.parquet")
-
-    instances = []
-    for _, row in df.iterrows():
-        instances.append(table(**row))
-    session.add_all(instances)
-    session.commit()
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"No '*.dump' file found in {path}")
 
 
-@app.command(help="Restore database tables from parquet backup files")
+def _latest_backup_file(backup_path: Path) -> Path:
+    dump_files = sorted(backup_path.glob("*.dump"), key=lambda f: f.stat().st_mtime)
+    if not dump_files:
+        raise NoBackupFileFound(backup_path)
+    return dump_files[-1]
+
+
+@app.command(help="Restore the database from a pg_dump backup file (DESTRUCTIVE)")
 def restore_db(
+    backup_file: str = typer.Option(
+        None,
+        help="Dump file to restore. Defaults to the most recent '*.dump' in --backup-dir",
+    ),
     backup_dir: str = typer.Option("backup", help="Directory containing backup files"),
 ):
     """
-    Restore database tables from parquet backup files.
-    This will restore all tables listed in BACKUP_TABLES from the specified directory.
+    Restore the database from a pg_dump backup file.
+    WARNING: this drops existing objects (pg_restore --clean) before recreating them.
     """
     backup_path = Path(backup_dir)
-
     if not backup_path.exists():
         raise MissingBackupDirectory(backup_path)
 
-    with Session(db.engine) as session:
-        for table in BACKUP_TABLES:
-            restore_one_table(backup_path, table, session)
+    dump_file = Path(backup_file) if backup_file else _latest_backup_file(backup_path)
+
+    delete = typer.confirm(
+        f"This will drop and recreate existing database objects from {dump_file}. "
+        "Are you sure you want to restore ?"
+    )
+    if not delete:
+        logger.info("Aborting restore")
+        raise typer.Abort()
+
+    pg_restore = _require_pg_tool("pg_restore")
+    connection_args, env = _pg_connection_args()
+
+    run_cmd(
+        [pg_restore, "--clean", "--if-exists", "--no-owner", "--no-privileges"]
+        + connection_args
+        + [str(dump_file)],
+        "pg_restore restore",
+        env=env,
+    )
+
+    logger.info("Database restored from %s", dump_file)
 
 
 @app.command(help="Export extraction results as a graph")

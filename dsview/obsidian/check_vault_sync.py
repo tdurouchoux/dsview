@@ -209,21 +209,26 @@ def check_topic_content_relations(session: Session) -> list[Discrepancy]:
         )
     ).all()
 
-    # One entry per content: its note path, and its expected embeds keyed to their topic id.
-    info_by_content: dict[int, tuple[Path, dict[tuple[str, str], int]]] = {}
-    for content_id, title, content_type, topic_id, topic_type, topic_name in rows:
-        path = get_content_path(title, content_type)
-        _, expected = info_by_content.setdefault(content_id, (path, {}))
-        if topic_id is not None:
-            expected[(topic_type, clean_note_title(topic_name))] = topic_id
+    rows_by_content = defaultdict(list)
+    for row in rows:
+        rows_by_content[row[0]].append(row)
 
     embed_pattern = _topic_embed_pattern()
+    discrepancies = []
 
-    return [
-        d
-        for content_id, (path, expected) in info_by_content.items()
-        for d in _diff_content_relations(content_id, path, expected, embed_pattern)
-    ]
+    for content_id, content_rows in rows_by_content.items():
+        _, title, content_type, *_ = content_rows[0]
+        path = get_content_path(title, content_type)
+        expected = {
+            (topic_type, clean_note_title(topic_name)): topic_id
+            for _, _, _, topic_id, topic_type, topic_name in content_rows
+            if topic_id is not None
+        }
+        discrepancies += _diff_content_relations(
+            content_id, path, expected, embed_pattern
+        )
+
+    return discrepancies
 
 
 def check_vault_sync(session: Session) -> tuple[list[Discrepancy], dict]:
