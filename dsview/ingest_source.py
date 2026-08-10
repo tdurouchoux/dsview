@@ -123,6 +123,7 @@ class IngestPipeline:
 
         session.commit()
         return error
+        
 
     def ingest_content(self, content: InputContent, session: Session):
         asyncio.run(self.async_ingest_content(content, session))

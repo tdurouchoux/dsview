@@ -204,6 +204,75 @@ def regen_vault():
             write_topic_note(topic)
 
 
+@app.command(
+    help="Check coherence between the database and the Obsidian vault (read-only)"
+)
+def check_vault_sync(
+    details: str = typer.Option(
+        None,
+        help="Print every discrepancy for a single category "
+        "(missing_note, orphan_file, missing_edge, extra_edge, unreadable_note)",
+    ),
+    kind: str = typer.Option(
+        None,
+        help="Restrict --details to one kind of node (content, topic, relation)",
+    ),
+    output: Path = typer.Option(
+        None,
+        help="Optional path to write the full itemized report to (not just the summary)",
+    ),
+):
+    """
+    Compare every content/topic note the database implies with what is actually on
+    disk in the vault. The database is always assumed correct; this only reports
+    discrepancies, it never modifies the database or the vault.
+    """
+    from rich.console import Console
+
+    from dsview.obsidian.check_vault_sync import check_vault_sync as run_check
+    from dsview.obsidian.check_vault_sync import (
+        format_report,
+        render_category_table,
+        render_summary_table,
+    )
+
+    with Session(db.engine) as session:
+        discrepancies, stats = run_check(session)
+
+    console = Console()
+
+    if stats.get("content_missing_extraction"):
+        console.print(
+            f"[dim]{stats['content_missing_extraction']} content row(s) have no "
+            "extraction yet - no note is expected for them, not counted below.[/dim]"
+        )
+
+    console.print(render_summary_table(discrepancies))
+
+    if details:
+        matching = [
+            d
+            for d in discrepancies
+            if d.category == details and (not kind or d.kind == kind)
+        ]
+        if not matching:
+            console.print(f"No discrepancies found in category '{details}'.")
+        else:
+            console.print(render_category_table(discrepancies, kind, details))
+    elif discrepancies:
+        console.print(
+            "[dim]Use --details <category> (optionally with --kind) to list "
+            "individual discrepancies.[/dim]"
+        )
+
+    if output:
+        output.write_text(format_report(discrepancies, stats))
+        console.print(f"Full itemized report written to {output}")
+
+    if discrepancies:
+        raise typer.Exit(code=1)
+
+
 @app.command(help="Reset database tables (with confirmation prompts)")
 def reset_db():
     """
@@ -223,18 +292,15 @@ def reset_db():
 
     logger.info(
         "This command will delete the following tables : %s",
-        ', '.join([t.__tablename__ for t in tables_to_drop])
+        ", ".join([t.__tablename__ for t in tables_to_drop]),
     )
 
     delete_extraction = typer.confirm("Clear extraction results ? ")
 
     if delete_extraction:
         logger.info("Deleting extraction results")
-        schemas.drop_tables(
-            tables_to_drop,
-            db.engine,
-            reset=True
-        )
+        schemas.drop_tables(tables_to_drop, db.engine, reset=True)
+
 
 @app.command(help="Clear the entire Obsidian vault (DESTRUCTIVE)")
 def reset_vault():
