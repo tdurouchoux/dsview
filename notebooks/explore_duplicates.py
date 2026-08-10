@@ -58,7 +58,7 @@ def _(extraction_results):
 def _(engine, mo):
     _df = mo.sql(
         f"""
-        SELECT * FROM content.inputcontent WHERE id IN (307, 543)
+        SELECT * FROM content.inputcontent WHERE id IN (643, 744, 745)
         """,
         engine=engine
     )
@@ -105,6 +105,12 @@ def _(mo):
     mo.md(r"""
     update date > Max date linked contents
     """)
+    return
+
+
+@app.cell
+def _():
+    708 > 740
     return
 
 
