@@ -1,29 +1,9 @@
 from datetime import date
 
-import pytest
-from sqlalchemy import event
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session
 
 from dsview.db.query import get_failed_ingestion
 from dsview.db.schemas import FailedIngestion, InputContent
-
-
-@pytest.fixture
-def session():
-    engine = create_engine("sqlite:///:memory:")
-
-    @event.listens_for(engine, "connect")
-    def attach_content_schema(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("ATTACH DATABASE ':memory:' AS content")
-        cursor.close()
-
-    SQLModel.metadata.create_all(
-        engine, tables=[InputContent.__table__, FailedIngestion.__table__]
-    )
-
-    with Session(engine) as session:
-        yield session
 
 
 def _saved_content(session: Session) -> InputContent:

@@ -36,7 +36,7 @@ class ExtractionTag(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     content_id: int = Field(
-        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_zid"
+        foreign_key=f"{EXTRACTION_SCHEMA}.extractionresult.content_id"
     )
     name: str
 
@@ -61,15 +61,9 @@ class ExtractionLink(SQLModel, table=True):
 class ExtractionTopic(SQLModel, table=True):
     __tablename__ = "extractiontopic"
     __table_args__ = (
-        Index(
-            "ix_extraction_topic_name_lower",
-            text("lower(name)"),
-            unique=True    
-        ),
+        Index("ix_extraction_topic_name_lower", text("lower(name)"), unique=True),
         {"schema": EXTRACTION_SCHEMA},
     )
-
-
 
     id: int | None = Field(default=None, primary_key=True)
     type: str
@@ -89,13 +83,12 @@ class ExtractionResult(SQLModel, table=True):
             "ix_extraction_result_title_type",
             text("lower(title)"),
             "content_type",
-            unique=True    
+            unique=True,
         ),
         {"schema": EXTRACTION_SCHEMA},
     )
 
     # CREATE UNIQUE INDEX ix_extraction_result_title_type ON extraction.extractionresult (lower(title), content_type);
-
 
     content_id: int = Field(foreign_key="content.inputcontent.id", primary_key=True)
     title: str

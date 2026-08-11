@@ -101,17 +101,14 @@ async def embed_and_update_topic(
     return session.get(ExtractionTopic, topic_id)
 
 
-def save_er_comparison(
+def build_er_comparison(
     topic_1: DataScienceTopic,
     topic_2: DataScienceTopic,
     fts_score: float,
     vss_distance: float,
     result: ERResult,
-    session: Session,
-):
-    # Check if the comparison already exists in the database
-
-    er_comparison = ERComparison(
+) -> ERComparison:
+    return ERComparison(
         name_1=topic_1.name,
         type_1=topic_1.type,
         description_1=topic_1.description,
@@ -126,5 +123,3 @@ def save_er_comparison(
         merge_type=(result.topic.type if result.topic else None),
         merge_description=(result.topic.description if result.topic else None),
     )
-
-    session.add(er_comparison)

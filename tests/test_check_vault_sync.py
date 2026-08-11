@@ -1,18 +1,10 @@
 from datetime import date, datetime
 
-import pytest
-from sqlalchemy import ARRAY, event, text
-from sqlalchemy.ext.compiler import compiles
-from sqlmodel import Session, SQLModel, create_engine
+from sqlalchemy import text
+from sqlmodel import Session
 
-from dsview.config import ObsidianConfig
 from dsview.db.schemas import InputContent
-from dsview.db.schemas.extraction_schema import (
-    ContentTopicRelation,
-    ExtractionResult,
-    ExtractionTopic,
-)
-from dsview.obsidian import obsidian_utils
+from dsview.db.schemas.extraction_schema import ContentTopicRelation
 from dsview.obsidian.check_vault_sync import (
     check_content_notes,
     check_topic_content_relations,
@@ -27,57 +19,6 @@ from dsview.obsidian.obsidian_utils import (
     get_topic_link,
     get_topic_path,
 )
-
-
-# ExtractionResult/ExtractionTopic.embedding is a Postgres ARRAY(Float) column;
-# SQLite has no array binding, but check_vault_sync never reads .embedding, so
-# DDL just needs a renderable type and rows are inserted with a NULL embedding.
-@compiles(ARRAY, "sqlite")
-def _compile_array_sqlite(element, compiler, **kw):
-    return "JSON"
-
-
-@pytest.fixture
-def session():
-    engine = create_engine("sqlite:///:memory:")
-
-    @event.listens_for(engine, "connect")
-    def attach_schemas(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("ATTACH DATABASE ':memory:' AS content")
-        cursor.execute("ATTACH DATABASE ':memory:' AS extraction")
-        cursor.close()
-
-    SQLModel.metadata.create_all(
-        engine,
-        tables=[
-            InputContent.__table__,
-            ExtractionResult.__table__,
-            ExtractionTopic.__table__,
-            ContentTopicRelation.__table__,
-        ],
-    )
-
-    with Session(engine) as session:
-        yield session
-
-
-@pytest.fixture
-def vault(tmp_path, monkeypatch):
-    vault_path = tmp_path / "vault"
-    (vault_path / "contents").mkdir(parents=True)
-    (vault_path / "topics").mkdir(parents=True)
-
-    monkeypatch.setattr(
-        obsidian_utils,
-        "config",
-        ObsidianConfig(
-            vault_path=vault_path,
-            content_directory="contents",
-            topic_directory="topics",
-        ),
-    )
-    return vault_path
 
 
 def _add_content(session: Session, link: str) -> InputContent:
