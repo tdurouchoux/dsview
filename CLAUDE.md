@@ -187,6 +187,21 @@ Rules for tests you write:
 - Don't test LLM output *quality* in pytest — that's what the evaluation modules + MLflow are for.
   Tests assert plumbing (types, schemas, prompt formatting, metric math), evals assert quality.
 
+## Code style
+
+Bare-bones but modular: the minimal implementation that solves the task, structured so it's easy
+to extend later — not padded with flexibility for that later.
+
+- No speculative surface: no "might be useful later" parameters, return values, branches, or
+  abstractions. If nothing calls it, delete it — don't keep it "just in case."
+- Modular means correct boundaries, not extra options: a function owns one concern and queries its
+  own inputs rather than accepting precomputed state threaded in from a sibling. That's what makes
+  it reusable later without a refactor, not extra configurability now.
+- Two near-identical blocks (same shape, one differing parameter) become one parameterized
+  function/factory, not copy-paste-and-tweak.
+- Push work to the layer that does it best — e.g. a SQL join over hand-rolled Python-side
+  cross-referencing — instead of building intermediate structures to compensate.
+
 ## Conventions
 
 - Prefer an existing, well-established library over hand-rolled parsing/extraction logic (regex,

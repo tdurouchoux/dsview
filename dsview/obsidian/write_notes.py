@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import frontmatter
-from sqlmodel import inspect
 
 from dsview.db.schemas import (
     ExtractionTopic,
@@ -11,6 +13,11 @@ from dsview.db.schemas import (
 from dsview.db.schemas.extraction_schema import ExtractionResult
 
 from .obsidian_utils import get_content_path, get_topic_link, get_topic_path
+
+if TYPE_CHECKING:
+    # Imported here: topic_er pulls in the extraction models, whose enums are
+    # built from config at import time, and cli.py imports this module
+    from dsview.extraction.topic_er import TopicMerge
 
 logger = logging.getLogger(__name__)
 
@@ -44,52 +51,61 @@ def write_topic_note(topic: ExtractionTopic):
     write_note(note, topic_path)
 
 
-def update_topic_note(topic: ExtractionTopic):
-    topic_inspection = inspect(topic)
+def update_topic_note(topic: ExtractionTopic, old_name: str, old_type: str):
+    """Rewrite the vault after a merge renamed `topic` from (old_name, old_type).
 
-    old_topic_name = topic_inspection.attrs.name.history.non_added()[0]
-    old_topic_type = topic_inspection.attrs.type.history.non_added()[0]
+    The pre-merge identity is passed in rather than read back from the SQLAlchemy
+    attribute history, which any flush resets (see #55).
+    """
+    logger.warning("Updating topic note %s to %s", old_name, topic.name)
 
-    logger.warning("Updating topic note %s to %s", old_topic_name, topic.name)
+    # Deleting old note. A merge often keeps the name and type, in which case
+    # this is the note write_topic_note is about to write again
+    old_topic_path = get_topic_path(old_name, old_type)
 
-    # Deleting old note
-    old_topic_path = get_topic_path(
-        old_topic_name,
-        old_topic_type,
-    )
     if old_topic_path.exists():
         old_topic_path.unlink()
     else:
-        logger.error(
-            "Could not find topic note : %s. Continuing anyway", old_topic_name
-        )
+        logger.error("Could not find topic note : %s. Continuing anyway", old_name)
 
     write_topic_note(topic)
 
-    # Writing updated note
-    old_topic_link = get_topic_link(old_topic_name, old_topic_type)
+    old_topic_link = get_topic_link(old_name, old_type)
     new_topic_link = get_topic_link(topic.name, topic.type)
 
     for extraction in topic.extractions:
         content_path = get_content_path(extraction.title, extraction.content_type)
+
+        if not content_path.exists():
+            logger.error(
+                "Could not find content note : %s. Continuing anyway", extraction.title
+            )
+            continue
+
         content_note = frontmatter.load(content_path)
 
+        # Matching the bare link: frontmatter strips trailing newlines, so the
+        # last embed of a note has no "\n\n" after it
         content_note.content = content_note.content.replace(
-            f"{old_topic_link}\n\n",
-            f"{new_topic_link}\n\n",
+            old_topic_link,
+            new_topic_link,
         )
 
         write_note(content_note, content_path)
 
 
-def write_and_update_topic_list_notes(topics: list[ExtractionTopic]):
-    for topic in topics:
-        topic_inspection = inspect(topic)
+def write_and_update_topic_list_notes(
+    topics: list[ExtractionTopic], merges: list[TopicMerge]
+):
+    merged_topics = {merge.topic_id: merge for merge in merges}
 
-        if topic_inspection.modified and topic_inspection.has_identity:
-            update_topic_note(topic)
-        else:
+    for topic in topics:
+        merge = merged_topics.get(topic.id)
+
+        if merge is None:
             write_topic_note(topic)
+        else:
+            update_topic_note(topic, merge.old_name, merge.old_type)
 
 
 # ? What about jinja template for this

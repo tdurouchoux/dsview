@@ -2,6 +2,7 @@ import importlib.metadata
 import logging
 from datetime import datetime
 
+from sqlalchemy import Index, text
 from sqlmodel import ARRAY, Column, Field, Float, Relationship, SQLModel
 
 logger = logging.getLogger(__name__)
@@ -59,7 +60,10 @@ class ExtractionLink(SQLModel, table=True):
 
 class ExtractionTopic(SQLModel, table=True):
     __tablename__ = "extractiontopic"
-    __table_args__ = {"schema": EXTRACTION_SCHEMA}
+    __table_args__ = (
+        Index("ix_extraction_topic_name_lower", text("lower(name)"), unique=True),
+        {"schema": EXTRACTION_SCHEMA},
+    )
 
     id: int | None = Field(default=None, primary_key=True)
     type: str
@@ -74,7 +78,17 @@ class ExtractionTopic(SQLModel, table=True):
 
 class ExtractionResult(SQLModel, table=True):
     __tablename__ = "extractionresult"
-    __table_args__ = {"schema": EXTRACTION_SCHEMA}
+    __table_args__ = (
+        Index(
+            "ix_extraction_result_title_type",
+            text("lower(title)"),
+            "content_type",
+            unique=True,
+        ),
+        {"schema": EXTRACTION_SCHEMA},
+    )
+
+    # CREATE UNIQUE INDEX ix_extraction_result_title_type ON extraction.extractionresult (lower(title), content_type);
 
     content_id: int = Field(foreign_key="content.inputcontent.id", primary_key=True)
     title: str

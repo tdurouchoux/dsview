@@ -9,14 +9,14 @@ from sqlmodel import Session
 from dsview.db.ingest import save_content, save_failed_ingestion
 from dsview.db.query import get_content
 from dsview.db.schemas import InputContent
-from dsview.db.schemas.extraction_schema import ExtractionResult, ExtractionTopic
+from dsview.db.schemas.extraction_schema import ExtractionResult
 from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import (
     YOUTUBE_HOSTS,
     ContentLoader,
     get_content_loader,
 )
-from dsview.extraction.models.topics_extraction import DataScienceTopic
+from dsview.extraction.topic_er import TopicMerge
 from dsview.obsidian import write_notes
 
 logger = logging.getLogger(__name__)
@@ -65,27 +65,28 @@ class IngestPipeline:
 
     async def _extract(
         self, content_loader: ContentLoader, content_id: int, session: Session
-    ) -> ExtractionResult:
+    ) -> tuple[ExtractionResult, list[TopicMerge]]:
         logger.info("Launching content extraction")
 
-        extraction_result = await self.content_extractor.extract_content(
+        return await self.content_extractor.extract_content(
             content_loader,
             session,
             content_id,
         )
 
-        return extraction_result
-
     def _write(
         self,
         content: InputContent,
         extraction_result: ExtractionResult,
+        topic_merges: list[TopicMerge],
     ):
         logger.info("Writing extraction to Obsidian notes")
 
         # must be done before
         write_notes.write_content_note(content, extraction_result)
-        write_notes.write_and_update_topic_list_notes(extraction_result.topics)
+        write_notes.write_and_update_topic_list_notes(
+            extraction_result.topics, topic_merges
+        )
 
     async def async_ingest_content(
         self, content: InputContent, session: Session
@@ -105,11 +106,14 @@ class IngestPipeline:
         try:
             content_loader = self._load(content)
 
-            extraction_result = await self._extract(content_loader, content.id, session)
+            extraction_result, topic_merges = await self._extract(
+                content_loader, content.id, session
+            )
 
             self._write(
                 content,
                 extraction_result,
+                topic_merges,
             )
 
             logger.info("Ingestion successful.")
