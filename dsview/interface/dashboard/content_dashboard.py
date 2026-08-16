@@ -209,7 +209,7 @@ def fetch_note_summary(engine, mo, selected_content):
         WHERE content_id = {selected_content["id"]}
         """,
         output=False,
-        engine=engine
+        engine=engine,
     )
     return (note_summary,)
 
