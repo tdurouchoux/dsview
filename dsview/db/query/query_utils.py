@@ -1,5 +1,6 @@
 import logging
 
+import logfire
 import duckdb
 import pandas as pd
 
@@ -108,12 +109,12 @@ class DuckDBIndex:
         self.conn.execute(create_index_query)
 
     def build(self):
-        self.conn = self._init_duckdb()
-        self._create_index_table()
+        with logfire.span("Building indexes"):
+            self.conn = self._init_duckdb()
+            self._create_index_table()
 
-        logger.info("Creating indexes")
-        self._build_fts_index()
-        self._build_vss_index()
+            self._build_fts_index()
+            self._build_vss_index()
 
     def close(self):
         self.conn.close()

@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.16"
+__generated_with = "0.23.14"
 app = marimo.App(
     width="medium",
     layout_file="layouts/content_dashboard.grid.json",
@@ -44,7 +44,9 @@ def _(get_sidebar):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Sources""")
+    mo.md(r"""
+    ## Sources
+    """)
     return
 
 
@@ -55,7 +57,7 @@ def _(mo):
 
 
 @app.cell
-def _(engine, extractionresult, get_refresh, inputcontent, mo):
+def _(engine, get_refresh, mo):
     get_refresh()
 
     sources = mo.sql(
@@ -84,7 +86,9 @@ def _(engine, extractionresult, get_refresh, inputcontent, mo):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Display and filter""")
+    mo.md(r"""
+    ## Display and filter
+    """)
     return
 
 
@@ -165,7 +169,9 @@ def _(filtered_priority_sources, relevance_chart):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Display sources""")
+    mo.md(r"""
+    ## Display sources
+    """)
     return
 
 
@@ -193,7 +199,7 @@ def _(mo, sources_table):
 
 
 @app.cell
-def fetch_note_summary(engine, extractionresult, mo, selected_content):
+def fetch_note_summary(engine, mo, selected_content):
     note_summary = mo.sql(
         f"""
         Select
@@ -203,7 +209,7 @@ def fetch_note_summary(engine, extractionresult, mo, selected_content):
         WHERE content_id = {selected_content["id"]}
         """,
         output=False,
-        engine=engine,
+        engine=engine
     )
     return (note_summary,)
 
@@ -226,7 +232,9 @@ def _(mo, note_summary):
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Update form""")
+    mo.md(r"""
+    ## Update form
+    """)
     return
 
 
@@ -303,6 +311,7 @@ def _(
             read_priority=read_priority.value,
             relevance=content_relevance.value,
         )
+        session.commit()
 
     set_refresh(0)
     return

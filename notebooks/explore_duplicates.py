@@ -25,7 +25,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM extraction.extractionresult
         """,
-        engine=engine
+        engine=engine,
     )
     return (extraction_results,)
 
@@ -44,7 +44,9 @@ def _(extraction_results):
 
 @app.cell
 def _(extraction_results):
-    extraction_results[extraction_results.duplicated(subset=["title_lower"], keep=False)]
+    extraction_results[
+        extraction_results.duplicated(subset=["title_lower"], keep=False)
+    ]
     return
 
 
@@ -60,7 +62,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM content.inputcontent WHERE id IN (643, 744, 745)
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -71,7 +73,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM extraction.extractiontopic
         """,
-        engine=engine
+        engine=engine,
     )
     return (extraction_topics,)
 
@@ -130,7 +132,7 @@ def _(engine, mo):
         LIMIT
             100
         """,
-        engine=engine
+        engine=engine,
     )
     return
 
@@ -141,7 +143,7 @@ def _(engine, mo):
         f"""
         SELECT * FROM content.failedingestion
         """,
-        engine=engine
+        engine=engine,
     )
     return
 

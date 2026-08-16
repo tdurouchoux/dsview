@@ -2,6 +2,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
+import logfire
 from sqlmodel import Session
 
 from dsview.db.ingest import (
@@ -48,7 +49,7 @@ def _dedup_resolved(topics: list[ExtractionTopic]) -> list[ExtractionTopic]:
             seen_ids.add(topic.id)
         deduped.append(topic)
 
-    logger.info("Number of topics after ER dedup : %s", len(deduped))
+    # logger.info("Number of topics after ER dedup : %s", len(deduped))
 
     return deduped
 
@@ -79,7 +80,7 @@ class TopicResolver:
             )
 
             if result.merge_topic:
-                logger.warning(
+                logger.info(
                     "Merging topics %s and %s into %s ",
                     topic.name,
                     candidate_topic.name,
@@ -114,6 +115,7 @@ class TopicResolver:
 
         return await embed_and_save_topic(decision.topic, session)
 
+    @logfire.instrument("Resolving topics")
     async def resolve_topics(
         self, topics: list[DataScienceTopic], session: Session
     ) -> tuple[list[ExtractionTopic], list[TopicMerge]]:
@@ -129,7 +131,7 @@ class TopicResolver:
                 existing_topic = get_topic_by_name(topic.name, session)
 
                 if existing_topic is not None:
-                    logger.warning("Topic %s already exists", topic.name)
+                    logger.info("Topic %s already exists", topic.name)
                     existing_topics.append(existing_topic)
                     continue
 
@@ -146,4 +148,9 @@ class TopicResolver:
             decision.merge for decision in decisions if decision.merge is not None
         ]
 
-        return _dedup_resolved(extraction_topics + existing_topics), merges
+        resolved_topics = _dedup_resolved(extraction_topics + existing_topics)
+
+        n_resolved_topics = len(resolved_topics)
+        logfire.info(f"Number of topics after ER : {n_resolved_topics}")
+
+        return resolved_topics, merges

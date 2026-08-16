@@ -7,13 +7,17 @@ import numpy as np
 from mistralai.client import Mistral
 from mistralai.client.models import File
 from mistralai.extra import response_format_from_pydantic_model
+from openinference.instrumentation.mistralai import MistralAIInstrumentor
 from pydantic import BaseModel, ValidationError
 
 from dsview.config import ModelConfig
 
 from ..model_provider import ModelProvider, native_batch_disabled
+from ..observability import embedding_span
 
 logger = logging.getLogger(__name__)
+
+MistralAIInstrumentor().instrument()
 
 # Parity with the max_tokens previously configured on the instructor client.
 STRUCTURED_OUTPUT_MAX_TOKENS = 10_000
@@ -41,18 +45,22 @@ class MistralProvider(ModelProvider):
         self.client.models.retrieve(model_id=model_name)
 
     def _embed(self, input: str) -> np.ndarray:
-        response = self.client.embeddings.create(
-            model=self.model_config.embedding_model,
-            inputs=[input],
-        )
+        with embedding_span(self.model_config.embedding_model, input) as record:
+            response = self.client.embeddings.create(
+                model=self.model_config.embedding_model,
+                inputs=[input],
+            )
+            record(response)
 
         return np.array(response.data[0].embedding)
 
     async def _async_embed(self, input: str) -> np.ndarray:
-        response = await self.client.embeddings.create_async(
-            model=self.model_config.embedding_model,
-            inputs=[input],
-        )
+        with embedding_span(self.model_config.embedding_model, input) as record:
+            response = await self.client.embeddings.create_async(
+                model=self.model_config.embedding_model,
+                inputs=[input],
+            )
+            record(response)
 
         return np.array(response.data[0].embedding)
 

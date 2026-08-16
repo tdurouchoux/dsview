@@ -22,6 +22,18 @@ def client(monkeypatch):
     monkeypatch.setattr(
         api.ingest_pipeline, "get_existing_content", lambda link, session: None
     )
+    # /ingest now commits the content row before returning 202 and the background
+    # task re-reads it by id; stub both so no real DB access happens.
+    monkeypatch.setattr(
+        api.ingest_pipeline, "register_content", lambda content, session: content
+    )
+    monkeypatch.setattr(
+        api,
+        "get_content_by_id",
+        lambda content_id, session: type(
+            "FakeContent", (), {"id": content_id, "link": "https://example.com/post"}
+        )(),
+    )
     monkeypatch.setattr(
         api.ingest_pipeline, "async_ingest_content", AsyncMock(return_value=None)
     )
@@ -50,10 +62,16 @@ def test_ingest_returns_202_immediately(client):
     assert response.json()["status"] == "processing"
 
 
-def test_ingest_completes_in_background_and_uploads_vault_changes(client):
+def test_ingest_completes_in_background_and_uploads_vault_changes(client, monkeypatch):
+    # The vault push only happens when a github vault is configured, which is a
+    # local-config detail; pin it so the test doesn't depend on config/storage.yaml.
+    monkeypatch.setattr(
+        api.vault_config.github_vault, "repository", "owner/dsview_vault"
+    )
+
     done = threading.Event()
 
-    async def slow_ingest(content, session):
+    async def slow_ingest(content, session, already_saved=False):
         await asyncio.sleep(0.05)
 
     async def upload_and_signal(commit_message):
@@ -103,10 +121,29 @@ def test_log_background_ingest_result_logs_any_exception(caplog):
     assert "Background ingest task failed" in caplog.text
 
 
-def test_ingest_status_pending_when_content_unknown(client):
+def test_ingest_status_unknown_when_link_was_never_submitted(client):
+    # /ingest commits the content row before returning, so a missing row can only
+    # mean this link was never submitted.
     response = client.get("/ingest/status", params={"link": "https://example.com/post"})
 
-    assert response.status_code == 200
+    assert response.status_code == 404
+    assert response.json()["status"] == "unknown"
+
+
+def test_ingest_status_pending_while_ingestion_is_running(client, monkeypatch):
+    fake_content = type("FakeContent", (), {"id": 1})()
+
+    monkeypatch.setattr(
+        api.ingest_pipeline, "get_existing_content", lambda link, session: fake_content
+    )
+    monkeypatch.setattr(api, "get_failed_ingestion", lambda content_id, session: None)
+    monkeypatch.setattr(
+        api, "get_content_extraction", lambda content_id, session: [[], [], []]
+    )
+
+    response = client.get("/ingest/status", params={"link": "https://example.com/post"})
+
+    assert response.status_code == 202
     assert response.json() == {"status": "pending"}
 
 

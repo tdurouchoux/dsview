@@ -1,4 +1,23 @@
 configs:
+  # - model_type: DEFAULT
+  #   model_config:
+  #     chat_model: claude-sonnet-5
+  #     provider: ANTHROPIC
+  #     token_limit: 256000
+  #     model_specific_config:
+  #       max_tokens: 10000
+  #       # temperature: 0
+  # - model_type: INDEX
+  #   model_config:
+  #     # host: https://llm.lab.sspcloud.fr/api
+  #     # chat_model: mistral-small3.2:latest
+  #     chat_model: mistral-small-2603
+  #     embedding_model: mistral-embed
+  #     # provider: OPENAI
+  #     provider: MISTRAL
+  #     token_limit: 256000
+  #     model_specific_config:
+  #       temperature: 0
   - model_type: DEFAULT
     model_config:
       # host: https://llm.lab.sspcloud.fr/api

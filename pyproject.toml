@@ -30,6 +30,9 @@ dependencies = [
     "beautifulsoup4>=4.13.5",
     "igraph>=1.0.0",
     "markdown-it-py>=3.0.0",
+    "logfire[fastapi,requests,sqlalchemy]>=4.40.0",
+    "openinference-instrumentation-mistralai>=2.0",
+    "youtube-transcript-api>=1.2.4",
 ]
 
 [tool.uv]
@@ -78,7 +81,6 @@ labels = [
     "streamlit>=1.41.1",
 ]
 api = [
-    "youtube-transcript-api>=1.2.4",
     "docling>=2.113.0",
     "fastapi[standard]>=0.139.0",
 ]

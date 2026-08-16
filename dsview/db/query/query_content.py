@@ -12,6 +12,13 @@ def get_content(
     return session.exec(select(InputContent).where(InputContent.link == link)).first()
 
 
+def get_content_by_id(
+    content_id: int,
+    session: Session,
+) -> InputContent | None:
+    return session.get(InputContent, content_id)
+
+
 def get_content_list(
     session: Session,
     start_id: int = 1,

@@ -4,6 +4,7 @@ from typing import Annotated
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
+import logfire
 from pydantic import HttpUrl
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
@@ -13,7 +14,11 @@ from tenacity import RetryError
 from dsview.config import setup_logger
 from dsview.db import engine, check_db_connection
 from dsview.db.ingest import update_content
-from dsview.db.query import get_content_extraction, get_failed_ingestion
+from dsview.db.query import (
+    get_content_by_id,
+    get_content_extraction,
+    get_failed_ingestion,
+)
 from dsview.db.schemas import InputContent
 from dsview.ingest_source import IngestPipeline
 from dsview.obsidian.sync_vault import (
@@ -28,14 +33,33 @@ from dsview.obsidian.sync_vault import (
 # TODO merge setup and sync_vault
 
 load_dotenv()
-setup_logger()
+setup_logger(enable_logfire=True, service_name="dsview-api")
 init_vault()
 
 logger = logging.getLogger(__name__)
 
+# Built after logfire.configure(): constructing a Mistral provider imports
+# providers/mistral.py, which runs MistralAIInstrumentor().instrument() at import
+# and binds whatever tracer provider is current.
 ingest_pipeline = IngestPipeline()
 
 app = FastAPI()
+
+logfire.instrument_fastapi(app)
+# logfire.instrument_sqlalchemy(engine=engine)
+# Instrumenting sqlalchemy won't be really usefull because the
+# database is tiny
+
+session_content_request = logfire.metric_counter(
+    name="session_content_request",
+    unit="1",
+    description="Number of api ingestion request since last deployment",
+)
+session_failed_ingestion = logfire.metric_counter(
+    name="session_failed_ingestion",
+    unit="1",
+    description="Number of failed ingestion since last deployment",
+)
 
 
 @app.exception_handler(HTTPException)
@@ -79,27 +103,37 @@ def _log_background_ingest_result(task: asyncio.Task) -> None:
     logger.error("Background ingest task failed: %s", exc, exc_info=exc)
 
 
-async def _run_ingest_and_sync(content: InputContent) -> Exception | None:
+async def _run_ingest_and_sync(content_id: int) -> None:
+    # The row was committed by the request handler, so it is re-read by id here
+    # rather than carried over: the request session is closed by now and the
+    # instance detached from it.
     with Session(engine) as session:
-        error = await ingest_pipeline.async_ingest_content(content, session)
-        # ContentAlreadyExists, if raised, propagates out of this block and out of
-        # this function to whoever is awaiting/tracking the task.
+        content = get_content_by_id(content_id, session)
+        link = str(content.link)
+
+        error = await ingest_pipeline.async_ingest_content(
+            content, session, already_saved=True
+        )
 
     if error is None and vault_config.github_vault.repository is not None:
         try:
             await async_upload_changes("Adding content")
         except CommandFailed:
-            logger.exception(
-                "Failed to push vault changes after ingesting %s", content.link
-            )
+            logger.exception("Failed to push vault changes after ingesting %s", link)
 
-    return error
+    # Re-raised so the task records it and it surfaces as a failure rather than
+    # being swallowed by the background task.
+    if error is not None:
+        session_failed_ingestion.add(1)
+        raise error
 
 
 @app.post("/ingest")
 async def ingest(content: InputContent, session: SessionDep):
     # validate content
     check_db_connection(session)
+
+    session_content_request.add(1)
 
     content = InputContent.model_validate(content)
 
@@ -115,7 +149,11 @@ async def ingest(content: InputContent, session: SessionDep):
     if vault_config.github_vault.repository is not None:
         await async_pull_changes()
 
-    task = asyncio.create_task(_run_ingest_and_sync(content))
+    # Committed before returning 202 so that polling /ingest/status immediately
+    # reports "pending" rather than 404-ing on a row the task hasn't written yet.
+    content = ingest_pipeline.register_content(content, session)
+
+    task = asyncio.create_task(_run_ingest_and_sync(content.id))
     _track_background_ingest(task)
 
     return JSONResponse(
@@ -134,13 +172,24 @@ async def ingest(content: InputContent, session: SessionDep):
 async def ingest_status(link: HttpUrl, session: SessionDep):
     content = ingest_pipeline.get_existing_content(link, session)
 
+    # /ingest commits the content row before returning, so a missing row means
+    # the link was never submitted. Returned rather than raised: the
+    # HTTPException handler would rewrite the body to status "error".
     if content is None:
-        return {"status": "pending"}
+        return JSONResponse(
+            status_code=404,
+            content={
+                "status": "unknown",
+                "detail": f"No ingestion found for link {link}",
+            },
+        )
 
     extraction_results, _, _ = get_content_extraction(content.id, session)
     if extraction_results:
         return {"status": "success"}
 
+    # The ingestion failed, but reporting that status is a success: the state
+    # belongs in the body, not in the status code.
     failed = get_failed_ingestion(content.id, session)
     if failed is not None:
         return {
@@ -148,7 +197,7 @@ async def ingest_status(link: HttpUrl, session: SessionDep):
             "detail": failed.error_message,
         }
 
-    return {"status": "pending"}
+    return JSONResponse(status_code=202, content={"status": "pending"})
 
 
 @app.patch("/relevance")

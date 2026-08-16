@@ -2,6 +2,7 @@ import asyncio
 import logging
 import time
 
+import logfire
 from sqlmodel import Session
 
 from dsview.db.ingest import embed_and_format_extraction_results
@@ -34,6 +35,7 @@ class ContentExtractor:
         self.link_extractor = LinksExtractor()
         self.topic_resolver = TopicResolver()
 
+    @logfire.instrument("Extraction LLM calls")
     async def run_extraction(
         self, content_loader: ContentLoader
     ) -> tuple[str, ContentDescription, list[DataScienceTopic], list[RelevantLink]]:
@@ -63,11 +65,10 @@ class ContentExtractor:
             result = await asyncio.gather(*tasks)
             return result[0], result[1], result[2].topics, None
 
+    @logfire.instrument("Content extraction")
     async def extract_content(
         self, content_loader: ContentLoader, session: Session, content_id: int
     ) -> tuple[ExtractionResult, list[TopicMerge]]:
-        starting_time = time.perf_counter()
-
         (
             summary,
             content_description,
@@ -75,21 +76,14 @@ class ContentExtractor:
             content_links,
         ) = await self.run_extraction(content_loader)
 
-        logger.info("Saving extraction results")
-
-        extraction_result = await embed_and_format_extraction_results(
-            summary,
-            content_description,
-            content_links,
-            content_id,
-            session,
-        )
-
-        logger.info(
-            f"Total time for extraction: {time.perf_counter() - starting_time:.1f} seconds"
-        )
-
-        logger.info("Launching topic ER")
+        with logfire.span("Saving extraction results"):
+            extraction_result = await embed_and_format_extraction_results(
+                summary,
+                content_description,
+                content_links,
+                content_id,
+                session,
+            )
 
         (
             extraction_result.topics,

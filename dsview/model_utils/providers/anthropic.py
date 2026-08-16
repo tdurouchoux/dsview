@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Union
 
+import logfire
 import instructor
 import numpy as np
 from anthropic import Anthropic, AsyncAnthropic
@@ -14,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 # Fixed name is fine: each batch request carries its own independent tool scope.
 BATCH_TOOL_NAME = "extract_data"
+
+logfire.instrument_anthropic()
 
 
 class AnthropicProvider(ModelProvider):
@@ -39,14 +42,18 @@ class AnthropicProvider(ModelProvider):
         messages: list[dict[str, str]],
         structured_output_class: type[BaseModel] = None,
     ) -> Union[str, BaseModel]:
+        system, other_messages = self._split_system_message(messages)
+        system_kwargs = {"system": system} if system is not None else {}
+
         if structured_output_class is not None:
             struct_client = instructor.from_anthropic(self.client)
 
             chat_response = struct_client.messages.create(
                 model=self.model_config.chat_model,
-                messages=messages,
+                messages=other_messages,
                 # max_tokens=1_024,
                 response_model=structured_output_class,
+                **system_kwargs,
                 **self.model_config.model_specific_config,
             )
 
@@ -55,7 +62,8 @@ class AnthropicProvider(ModelProvider):
             chat_response = self.client.messages.create(
                 model=self.model_config.chat_model,
                 # max_tokens=1_024,
-                messages=messages,
+                messages=other_messages,
+                **system_kwargs,
                 **self.model_config.model_specific_config,
             )
 
@@ -66,21 +74,26 @@ class AnthropicProvider(ModelProvider):
         messages: list[dict[str, str]],
         structured_output_class: type[BaseModel] = None,
     ) -> Union[str, BaseModel]:
+        system, other_messages = self._split_system_message(messages)
+        system_kwargs = {"system": system} if system is not None else {}
+
         if structured_output_class is not None:
             struct_client = instructor.AsyncInstructor(
                 client=self.async_client,
                 create=instructor.patch(
                     create=self.async_client.messages.create,
                     mode=instructor.Mode.ANTHROPIC_TOOLS,
+                    provider=instructor.Provider.ANTHROPIC,
                 ),
                 mode=instructor.Mode.ANTHROPIC_TOOLS,
             )
 
             chat_response = await struct_client.chat.completions.create(
                 model=self.model_config.chat_model,
-                messages=messages,
+                messages=other_messages,
                 # max_tokens=1_024,
                 response_model=structured_output_class,
+                **system_kwargs,
                 **self.model_config.model_specific_config,
             )
 
@@ -89,7 +102,8 @@ class AnthropicProvider(ModelProvider):
             chat_response = await self.async_client.messages.create(
                 model=self.model_config.chat_model,
                 # max_tokens=1_024,
-                messages=messages,
+                messages=other_messages,
+                **system_kwargs,
                 **self.model_config.model_specific_config,
             )
 

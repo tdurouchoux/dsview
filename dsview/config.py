@@ -231,7 +231,27 @@ def load_postgres_config() -> PostgresConfig:
     return load_storage_config().postgres
 
 
-def setup_logger():
+def setup_logger(enable_logfire: bool = False, service_name: str | None = None):
     with open(Path(os.getenv("CONF_DIR")) / "logging.yaml") as config_file:
         logging_config = yaml.safe_load(config_file)
     logging.config.dictConfig(logging_config)
+
+    if enable_logfire:
+        if service_name is None:
+            raise ValueError("service_name must be provided if enable_logfire is True")
+
+        # Imported here rather than at module scope: anything under `model_utils`
+        # pulls in its `__init__`, which imports this module back. By call time
+        # `dsview.config` is fully initialized, so the cycle never forms.
+        import logfire
+
+        from dsview.model_utils.observability import MistralUsageSpanProcessor
+
+        logfire.configure(
+            console=False,
+            send_to_logfire="if-token-present",
+            service_name=service_name,
+            additional_span_processors=[MistralUsageSpanProcessor()],
+        )
+
+        logging.getLogger().addHandler(logfire.LogfireLoggingHandler())

@@ -4,6 +4,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
+import logfire
 import typer
 from dotenv import load_dotenv
 from sqlmodel import Session
@@ -33,7 +34,7 @@ app = typer.Typer(
 def cli_setup():
     # Runs before any command (but not for --help), so a bare `dsview --help`
     # works without CONF_DIR or database environment variables.
-    setup_logger()
+    setup_logger(enable_logfire=True, service_name="dsview_cli")
 
 
 app.add_typer(evaluate_app, name="evaluate")
@@ -97,6 +98,7 @@ def backup():
 
 
 @app.command(help="Ingest a single piece of content from a URL or link")
+@logfire.instrument("Manual ingestion")
 def ingest(
     link: str = typer.Argument(..., help="URL or link to the content to ingest"),
     already_read: bool = typer.Option(False, help="Mark content as already read"),
@@ -133,6 +135,7 @@ def ingest(
 
 
 @app.command(help="Retry processing of previously failed ingestions")
+@logfire.instrument("Retrying failed ingestions ")
 def retry_failed(
     ignore: list[str] = ["WebRequestFailure"],
 ):
@@ -142,23 +145,24 @@ def retry_failed(
     """
     from .ingest_source import IngestPipeline
 
-    logger.info("Retrying failed ingestions ...")
+    logger.info("Retrying failed ingestions excluding : %s", ",".join(ignore))
 
     with Session(db.engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
         content_list = get_failed_ingestions(session, ignore_errors=ignore)
 
-        logger.info("Found %s failed ingestions", len(content_list))
+        n_failed_content = len(content_list)
+        logfire.info(f"Found {n_failed_content} failed ingestions")
 
     schemas.drop_tables([schemas.FailedIngestion], db.engine, reset=True)
 
     with Session(db.engine) as session:
-        logger.info("Starting ingestions ...")
         ingest_pipeline.ingest_content_list(content_list, session)
 
 
 @app.command(help="Rebuild content processing for a range of content IDs")
+@logfire.instrument("Full knowledge base rebuild")
 def rebuild(
     start: int = typer.Option(0, help="Starting content ID (inclusive)"),
     end: int = typer.Option(
@@ -171,8 +175,6 @@ def rebuild(
     """
     from .ingest_source import IngestPipeline
 
-    # mlflow.set_experiment(experiment_name="Rebuild tasks")
-
     ingest_pipeline = IngestPipeline(rebuild_mode=True)
 
     with Session(db.engine) as session:
@@ -181,6 +183,9 @@ def rebuild(
             start_id=start,
             end_id=end,
         )
+
+        n_content = len(content_list)
+        logfire.info(f"Rebuilding extraction for {n_content} content")
 
         ingest_pipeline.ingest_content_list(content_list, session)
 

@@ -1,7 +1,9 @@
 import asyncio
+from functools import lru_cache
 import logging
 from urllib.parse import urlunparse
 
+import logfire
 from pydantic import HttpUrl
 from rich.progress import track
 from sqlmodel import Session
@@ -26,38 +28,34 @@ MEDIUM_HOSTS = ["medium.com", "towardsdatascience.com", "netflixtechblog.com"]
 IGNORE_CLEAN_HOSTS = list(YOUTUBE_HOSTS)
 
 
+@lru_cache(maxsize=100)
+def clean_content_url(link: HttpUrl) -> HttpUrl:
+    # remove query and fragment from url
+
+    if link.host not in IGNORE_CLEAN_HOSTS:
+        clean_url = HttpUrl(urlunparse((link.scheme, link.host, link.path, "", "", "")))
+    else:
+        clean_url = link
+
+    if clean_url.host in MEDIUM_HOSTS:
+        logger.info("Received a medium link, redirecting to readmedium")
+        clean_url = HttpUrl("https://readmedium.com/" + link.path)
+
+    return clean_url
+
+
 class IngestPipeline:
     def __init__(self, rebuild_mode: bool = False):
         self.content_extractor = ContentExtractor()
         self.rebuild_mode = rebuild_mode
 
-    def _clean_content_url(self, link: HttpUrl) -> HttpUrl:
-        # remove query and fragment from url
-
-        logger.info("Cleaning content url")
-
-        if link.host not in IGNORE_CLEAN_HOSTS:
-            clean_url = HttpUrl(
-                urlunparse((link.scheme, link.host, link.path, "", "", ""))
-            )
-        else:
-            clean_url = link
-
-        if clean_url.host in MEDIUM_HOSTS:
-            logger.info("Received a medium link, redirecting to readmedium")
-            clean_url = HttpUrl("https://readmedium.com/" + link.path)
-
-        return clean_url
-
     def get_existing_content(
         self, link: HttpUrl, session: Session
     ) -> InputContent | None:
-        return get_content(self._clean_content_url(link), session)
+        return get_content(clean_content_url(link), session)
 
     # make ingest_source load
     def _load(self, content: InputContent) -> ContentLoader:
-        logger.info("Loading input content")
-
         content_loader = get_content_loader(content.link)
         content_loader.load()
 
@@ -66,7 +64,6 @@ class IngestPipeline:
     async def _extract(
         self, content_loader: ContentLoader, content_id: int, session: Session
     ) -> tuple[ExtractionResult, list[TopicMerge]]:
-        logger.info("Launching content extraction")
 
         return await self.content_extractor.extract_content(
             content_loader,
@@ -74,6 +71,7 @@ class IngestPipeline:
             content_id,
         )
 
+    @logfire.instrument("Updating vault")
     def _write(
         self,
         content: InputContent,
@@ -88,15 +86,30 @@ class IngestPipeline:
             extraction_result.topics, topic_merges
         )
 
+    def register_content(self, content: InputContent, session: Session) -> InputContent:
+        """Persist the content row before any ingestion work happens.
+
+        Lets a caller that ingests in the background commit the row up front, so
+        that a later status lookup can tell an unknown link apart from an
+        ingestion that simply hasn't written anything yet.
+        """
+        if isinstance(content.link, HttpUrl):
+            content.link = clean_content_url(content.link)
+
+        content = save_content(content, session)
+        session.commit()
+
+        return content
+
     async def async_ingest_content(
-        self, content: InputContent, session: Session
+        self, content: InputContent, session: Session, already_saved: bool = False
     ) -> Exception | None:
         original_link = str(content.link)
 
         if isinstance(content.link, HttpUrl):
-            content.link = self._clean_content_url(content.link)
+            content.link = clean_content_url(content.link)
 
-        if not self.rebuild_mode:
+        if not self.rebuild_mode and not already_saved:
             content = save_content(content, session)
             session.commit()
 
@@ -128,6 +141,7 @@ class IngestPipeline:
         session.commit()
         return error
 
+    @logfire.instrument("Ingestion pipeline")
     def ingest_content(self, content: InputContent, session: Session):
         asyncio.run(self.async_ingest_content(content, session))
 
