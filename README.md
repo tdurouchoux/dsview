@@ -5,9 +5,6 @@ and methodologies. It implements a similar concept to Karpathy's LLM wiki, a kno
 interconnected markdown serving at a knowledge base. It was mostly inspired by Obsidian, but aimed to 
 circumvent the time consuming manual construction of the graph.
 
-The need of DSview from the growing AI and data ecosystem, and the never stopping flow of information. 
-It is not supposed to represent what a DS actually knows, but efficiently store concepts and tools so they
-can be reused later.
-
 The user workflow has also been optimized to be as easy to use as possible, so that it is never in the way.
 Adding some new content is just a few click away and runs in the background.
+Retrieving and exploring the knowledge base is also supposed to be painless and fast, a lot of the heavy lifting on this topic comes from obsidian. The project also implements a MCP server, that allows agents to autonomously explore and retrieve informatino for the vault.
