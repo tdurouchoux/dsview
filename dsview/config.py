@@ -247,9 +247,11 @@ def setup_logger(enable_logfire: bool = False, service_name: str | None = None):
 
         from dsview.model_utils.observability import MistralUsageSpanProcessor
 
+        send_to_logfire = False if "PYTEST_VERSION" in os.environ else "if-token-present"
+
         logfire.configure(
             console=False,
-            send_to_logfire="if-token-present",
+            send_to_logfire=send_to_logfire,
             service_name=service_name,
             additional_span_processors=[MistralUsageSpanProcessor()],
         )

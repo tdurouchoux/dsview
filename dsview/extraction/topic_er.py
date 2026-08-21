@@ -49,8 +49,6 @@ def _dedup_resolved(topics: list[ExtractionTopic]) -> list[ExtractionTopic]:
             seen_ids.add(topic.id)
         deduped.append(topic)
 
-    # logger.info("Number of topics after ER dedup : %s", len(deduped))
-
     return deduped
 
 

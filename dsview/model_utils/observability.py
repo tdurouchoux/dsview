@@ -115,7 +115,21 @@ class MistralUsageSpanProcessor(SpanProcessor):
         # pipeline in a MainSpanProcessorWrapper that rebuilds every span through
         # `span_to_dict`, which reads the immutable `ReadableSpan.attributes`
         # property, so the span we get here holds a mappingproxy.
-        span._attributes = {**attributes, **new_attributes}
+        #
+        # `_attributes` is a private opentelemetry-sdk attribute, not a published
+        # API - assert the assumption instead of silently no-op'ing if it ever
+        # stops holding. `on_end` runs inline in the real Mistral call path
+        # (`SynchronousMultiSpanProcessor` has no try/except around processors), so
+        # the assertion failure must not propagate into a live call - only observability
+        # breaks, not ingestion.
+        try:
+            assert hasattr(span, "_attributes"), (
+                "ReadableSpan has no _attributes to rewrite; "
+                "opentelemetry-sdk's internals may have changed"
+            )
+            span._attributes = {**attributes, **new_attributes}
+        except AssertionError:
+            logger.error("Could not rewrite Mistral span attributes", exc_info=True)
 
 
 # A plain OTel tracer rather than `logfire.span()`: the entrypoints that never call

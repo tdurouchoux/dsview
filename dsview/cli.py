@@ -135,7 +135,7 @@ def ingest(
 
 
 @app.command(help="Retry processing of previously failed ingestions")
-@logfire.instrument("Retrying failed ingestions ")
+@logfire.instrument("Retrying failed ingestions")
 def retry_failed(
     ignore: list[str] = ["WebRequestFailure"],
 ):
