@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, quote, urlparse
 
 import requests
 import tiktoken
+import logfire
 from bs4 import BeautifulSoup
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
@@ -27,6 +28,8 @@ from dsview.config import load_model_config
 REQUEST_TIMEOUT = 60
 
 _MARKDOWN_PARSER = MarkdownIt()
+
+logfire.instrument_requests()
 
 if TYPE_CHECKING:
     # docling pulls in torch/transformers - only imported for real inside the
@@ -56,9 +59,11 @@ class ContentLoader(ABC):
         pass
 
     def load(self):
-        logger.info("Loading content with %s", self.__class__.__name__)
+        if self.content is not None:
+            return
 
-        if self.content is None:
+        with logfire.span("Content loading"):
+            logger.info("Loading content with %s", self.__class__.__name__)
             self._load_content()
 
 
@@ -126,11 +131,13 @@ class PdfUrlLoader(WebContentLoader):
             temp_pdf.write(response.content)
             temp_pdf.flush()
 
-            result = self._get_pdf_converter().convert(temp_pdf.name)
-            self._extract_pdf_content(result)
+            with logfire.span("Exporting pdf to markdown"):
+                result = self._get_pdf_converter().convert(temp_pdf.name)
+                self._extract_pdf_content(result)
 
     def _extract_pdf_content(self, result: "ConversionResult"):
         token_limit = load_model_config().token_limit / 2
+
         full_content = result.document.export_to_markdown()
 
         chunker, count_tokens = self._get_pdf_chunker()
@@ -503,9 +510,6 @@ class YoutubeContentLoader(WebContentLoader):
             raise YoutubeTranscriptUnavailable(self.video_id, str(error)) from error
 
         return " ".join(snippet.text for snippet in fetched)
-
-
-# ? How to deal with token_limit
 
 
 YOUTUBE_HOSTS = YoutubeContentLoader.WATCH_HOSTS | {YoutubeContentLoader.SHORT_HOST}

@@ -11,4 +11,4 @@ RUN uv sync --no-default-groups --group mcp --frozen --no-cache
 
 EXPOSE 8000
 
-CMD ["uv", "run", "python", "dsview/mcp/server.py"]
+CMD ["uv", "run", "dsview/mcp/server.py"]

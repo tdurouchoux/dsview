@@ -430,6 +430,11 @@ spec:
                 secretKeyRef:
                   name: dsview-secret
                   key: GITHUB_TOKEN
+            - name: LOGFIRE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: LOGFIRE_TOKEN
 
 ---
 # Dashboard Deployment
@@ -655,3 +660,8 @@ spec:
                 secretKeyRef:
                   name: dsview-secret
                   key: MISTRAL_API_KEY
+            - name: LOGFIRE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dsview-secret
+                  key: LOGFIRE_TOKEN

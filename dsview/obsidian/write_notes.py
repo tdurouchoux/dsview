@@ -57,7 +57,7 @@ def update_topic_note(topic: ExtractionTopic, old_name: str, old_type: str):
     The pre-merge identity is passed in rather than read back from the SQLAlchemy
     attribute history, which any flush resets (see #55).
     """
-    logger.warning("Updating topic note %s to %s", old_name, topic.name)
+    logger.info("Updating topic note %s to %s", old_name, topic.name)
 
     # Deleting old note. A merge often keeps the name and type, in which case
     # this is the note write_topic_note is about to write again

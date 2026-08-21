@@ -5,6 +5,7 @@ from datetime import date
 from functools import lru_cache
 from typing import Annotated, Literal, Optional
 
+import logfire
 import igraph as ig
 from mcp.server.fastmcp import FastMCP, Icon
 from pydantic import BaseModel, Field
@@ -12,17 +13,21 @@ from sqlmodel import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from dsview.config import lazy, load_extraction_config
+from dsview.config import lazy, load_extraction_config, setup_logger
 from dsview.db import engine
 from dsview.db.query import ExtractionIndex, TopicsIndex, get_filtered_content
 from dsview.db.schemas import ExtractionResult, ExtractionTopic, InputContent
 from dsview.graph import build_graph, get_node_neighborhood, get_ranked_nodes
 
+INDEX_TTL = 3_600
+
+setup_logger(enable_logfire=True, service_name="dsview_mcp")
+
 # TODO maybe should handle async calls ?
 logger = logging.getLogger(__name__)
 extraction_config = lazy(load_extraction_config)
 
-INDEX_TTL = 3_600
+logfire.instrument_mcp()
 
 
 def get_ttl_hash(seconds: int):
