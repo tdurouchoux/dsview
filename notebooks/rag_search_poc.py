@@ -328,7 +328,6 @@ def _(mo, sqlite_db, topics_ingest):
         CREATE INDEX idx ON topics_index USING HNSW (embedding);
         """
     )
-    return (topics_index,)
 
 
 @app.cell
