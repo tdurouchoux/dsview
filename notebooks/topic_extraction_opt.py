@@ -66,6 +66,7 @@ def _(mlflow):
 
 @app.cell
 def _(
+    Literal,
     SimpleERModel,
     accuracy_score,
     f1_score,
@@ -75,8 +76,6 @@ def _(
     precision_score,
     recall_score,
 ):
-    from typing import Literal
-
     SPLIT_RATIOS = {
         "example": 0.4,
         "eval": 0.5,
@@ -143,7 +142,7 @@ def _(evaluate_simple_er, mlflow, simple_er, simple_er_experiment):
         run_name="default config",
         experiment_id=simple_er_experiment.experiment_id,
     ):
-        evaluate_simple_er(simple_er)
+        eval_results_simple_er = evaluate_simple_er(simple_er)
 
 
 @app.cell

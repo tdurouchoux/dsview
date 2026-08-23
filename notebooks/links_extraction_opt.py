@@ -51,7 +51,7 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
     with mlflow.start_run(
         run_name="Mistral small", experiment_id=experiment.experiment_id
     ):
-        evaluate(
+        eval_results_mistral_small = evaluate(
             model_config=mistral_small_config,
         )
     return (mistral_small_config,)
@@ -85,7 +85,7 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
     with mlflow.start_run(
         run_name="Mistral large", experiment_id=experiment.experiment_id
     ):
-        evaluate(
+        eval_results_mistral_large = evaluate(
             model_config=mistral_large_config,
         )
 
