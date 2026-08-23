@@ -89,7 +89,7 @@ class ModelProvider(ABC):
     def _assert_model_exists(self, model_name: str):
         try:
             self._retrieve_model(model_name)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - each provider SDK raises its own exception type here
             raise ProviderConfigurationError(
                 self.model_config.provider, model_name, error
             )

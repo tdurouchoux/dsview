@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import logfire
@@ -83,7 +83,7 @@ def backup():
     backup_path = Path("backup")
     backup_path.mkdir(exist_ok=True)
 
-    output_file = backup_path / f"dsview_{datetime.now():%Y%m%d_%H%M%S}.dump"
+    output_file = backup_path / f"dsview_{datetime.now(UTC):%Y%m%d_%H%M%S}.dump"
     connection_args, env = _pg_connection_args()
 
     run_cmd(
@@ -103,7 +103,7 @@ def ingest(
     link: str = typer.Argument(..., help="URL or link to the content to ingest"),
     already_read: bool = typer.Option(False, help="Mark content as already read"),
     upload_date: datetime = typer.Option(
-        datetime.now(), help="Date when content was uploaded"
+        datetime.now(UTC), help="Date when content was uploaded"
     ),
     read_priority: int = typer.Option(
         0, help="Reading priority (higher numbers = higher priority)"

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import threading
-from datetime import date
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
@@ -49,7 +49,7 @@ def client(monkeypatch):
 def _input_content(link: str) -> dict:
     return {
         "link": link,
-        "upload_date": date.today().isoformat(),
+        "upload_date": datetime.now(UTC).date().isoformat(),
     }
 
 
