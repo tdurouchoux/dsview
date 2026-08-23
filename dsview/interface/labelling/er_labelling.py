@@ -12,7 +12,7 @@ st.set_page_config(page_title="ER comparison labelling", page_icon="small_icon.p
 
 
 def main():
-    if not "comparison" in st.session_state:
+    if "comparison" not in st.session_state:
         st.session_state["comparison"] = None
 
     st.title("ER comparison labelling")

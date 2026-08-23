@@ -263,24 +263,24 @@ def _(
 ):
     with mlflow.start_run(run_name="default_adj_2_er_pipeline", experiment_id = experiment.experiment_id):
 
-    	mlflow.log_param("system_prompt", system_prompt)
+        mlflow.log_param("system_prompt", system_prompt)
         mlflow.log_param("user_prompt", user_prompt)
 
-    	eval_data["merge_pred"] = eval_data.apply(lambda row: predict_merge(
-    		name_1=row["name_1"],
-    		type_1=row["type_1"],
-    		name_2=row["name_2"],
-    		type_2=row["type_2"],
-    	).merge_topic, axis=1)
+        eval_data["merge_pred"] = eval_data.apply(lambda row: predict_merge(
+            name_1=row["name_1"],
+            type_1=row["type_1"],
+            name_2=row["name_2"],
+            type_2=row["type_2"],
+        ).merge_topic, axis=1)
 
-    	metrics = {
+        metrics = {
             "accuracy": accuracy_score(eval_data["merge"], eval_data["merge_pred"]),
             "precision": precision_score(eval_data["merge"], eval_data["merge_pred"]),
             "recall": recall_score(eval_data["merge"], eval_data["merge_pred"]),
             "f1": f1_score(eval_data["merge"], eval_data["merge_pred"]),
         }
 
-    	mlflow.log_metrics(metrics)
+        mlflow.log_metrics(metrics)
     return (metrics,)
 
 

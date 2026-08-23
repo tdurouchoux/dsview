@@ -265,7 +265,7 @@ def _(
         run_name=f"Mistral small prompt {prompt_version}",
         experiment_id=experiment.experiment_id,
     ):
-        eval_results_mistral_small = evaluate(
+        evaluate(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             model_config=mistral_small_config,

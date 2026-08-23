@@ -231,7 +231,6 @@ def _(aggregate_f1_score, dspy):
 
     def evaluate_set(dataset, predictor, batch_size: int = 5):
         scores = []
-        batch = []
 
         for example in tqdm(dataset):
             with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):

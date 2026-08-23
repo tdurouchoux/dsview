@@ -50,8 +50,6 @@ def _(mo):
 @app.cell
 def _(load_extraction_config, mlflow):
     experiment = mlflow.set_experiment("Content description mistral")
-
-    extraction_config = load_extraction_config()
     return (experiment,)
 
 
