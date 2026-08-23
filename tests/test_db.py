@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, datetime
 
 from sqlmodel import Session
 
@@ -7,7 +7,7 @@ from dsview.db.schemas import FailedIngestion, InputContent
 
 
 def _saved_content(session: Session) -> InputContent:
-    content = InputContent(link="https://example.com/a", upload_date=date.today())
+    content = InputContent(link="https://example.com/a", upload_date=datetime.now(UTC).date())
     session.add(content)
     session.commit()
     return content

@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import text
 from sqlmodel import Session
@@ -22,7 +22,7 @@ from dsview.obsidian.obsidian_utils import (
 
 
 def _add_content(session: Session, link: str) -> InputContent:
-    content = InputContent(link=link, upload_date=date.today())
+    content = InputContent(link=link, upload_date=datetime.now(UTC).date())
     session.add(content)
     session.commit()
     session.refresh(content)
@@ -40,7 +40,7 @@ def _add_extraction(session: Session, content_id: int, title: str, content_type:
             "content_id": content_id,
             "title": title,
             "content_type": content_type,
-            "extraction_time": datetime.now().isoformat(),
+            "extraction_time": datetime.now(UTC).isoformat(),
         },
     )
     session.commit()
