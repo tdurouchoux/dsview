@@ -88,3 +88,7 @@ mcp = [
     "mcp>=1.27.0",
     "fastapi[standard]>=0.115.6",
 ]
+
+
+[tool.ruff.lint]
+ignore = ["B008", "B018", "RUF012"]

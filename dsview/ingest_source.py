@@ -1,6 +1,6 @@
 import asyncio
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from urllib.parse import urlunparse
 
 import logfire

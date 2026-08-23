@@ -11,13 +11,11 @@ app = marimo.App(
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
 def _(mo):
     mo.center(mo.md(r"""# Extraction dashboard"""))
-    return
 
 
 @app.cell
@@ -26,7 +24,6 @@ def _():
 
     import altair as alt
     import marimo as mo
-    import numpy as np
     from pydantic import HttpUrl
 
     from dsview.db import engine
@@ -38,13 +35,12 @@ def _():
 @app.cell
 def _(mo):
     mo.md(r"""## Content""")
-    return
 
 
 @app.cell
 def _(engine, extraction, extractionresult, mo):
     count_content_type = mo.sql(
-        f"""
+        """
         SELECT
             content_type,
             count(content_id) as nb_content
@@ -76,7 +72,7 @@ def _(alt, count_content_type):
 @app.cell
 def _(engine, extraction, extractiontag, mo):
     count_tags_name = mo.sql(
-        f"""
+        """
         SELECT
             name,
             count(id) as nb_content
@@ -108,7 +104,7 @@ def _(alt, count_tags_name):
 @app.cell
 def _(engine, extraction, extractiontag, mo):
     count_content_tag = mo.sql(
-        f"""
+        """
         SELECT
             count(id) as nb_tags
         FROM
@@ -140,7 +136,7 @@ def _(alt, count_content_tag):
 @app.cell
 def _(engine, extraction, extractionresult, mo):
     summary_size = mo.sql(
-        f"""
+        """
         SELECT
             LENGTH(summary) as len_summary
         FROM
@@ -188,13 +184,12 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""## Topics""")
-    return
 
 
 @app.cell
 def _(engine, extraction, extractiontopic, mo):
     topics = mo.sql(
-        f"""
+        """
         SELECT
             type,
             name
@@ -230,7 +225,7 @@ def _(topic_type_chart):
 @app.cell
 def _(contenttopicrelation, engine, extraction, mo):
     topic_per_content = mo.sql(
-        f"""
+        """
         SELECT
             count(topic_id) as nb_link
         FROM
@@ -271,13 +266,12 @@ def _(mo, selected_topic, topic_per_content_chart, topic_type_chart):
 @app.cell
 def _(mo):
     mo.md(r"""## ER comparisons""")
-    return
 
 
 @app.cell
 def _(engine, ercomparison, extraction, mo):
     er_decision_stat = mo.sql(
-        f"""
+        """
         SELECT
             sum(CASE WHEN merge_topic THEN 1 ELSE 0 END) as count_pos,
             count(id) as nb_comparison
@@ -293,7 +287,7 @@ def _(engine, ercomparison, extraction, mo):
 @app.cell
 def _(engine, extraction, extractionresult, mo):
     count_content = mo.sql(
-        f"""
+        """
         SELECT
             COUNT(DISTINCT content_id) as nb_content
         FROM
@@ -338,7 +332,7 @@ def _(count_content, er_decision_stat, mo):
 @app.cell
 def _(engine, ercomparison, extraction, mo):
     er_topic_distance = mo.sql(
-        f"""
+        """
         SELECT
             name_1,
             name_2,
@@ -378,7 +372,7 @@ def _():
 @app.cell
 def _(engine, ercomparison, extraction, mo):
     count_er_name = mo.sql(
-        f"""
+        """
         SELECT
             name_2,
             COUNT(id) as nb_comparison
@@ -428,13 +422,12 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""## Content link""")
-    return
 
 
 @app.cell
 def _(engine, extraction, extractionlink, mo):
     link_per_content = mo.sql(
-        f"""
+        """
         SELECT
             count(id) as nb_link
         FROM
@@ -464,7 +457,7 @@ def _(alt, link_per_content):
 @app.cell
 def _(engine, extraction, extractionlink, mo):
     links_url = mo.sql(
-        f"""
+        """
         SELECT
             url
         FROM
@@ -482,7 +475,6 @@ def _(HttpUrl, links_url, urlunparse):
     links_url["clean_url"] = links_url["url"].apply(
         lambda url: HttpUrl(urlunparse((url.scheme, url.host, url.path, "", "", "")))
     )
-    return
 
 
 @app.cell
@@ -501,7 +493,7 @@ def _(alt, links_url):
 @app.cell
 def _(content, engine, inputcontent, mo):
     input_content_link = mo.sql(
-        f"""
+        """
         SELECT
             link
         FROM content.inputcontent
@@ -517,7 +509,6 @@ def _(HttpUrl, input_content_link):
     input_content_link["link"] = input_content_link["link"].apply(
         lambda link: HttpUrl(link)
     )
-    return
 
 
 @app.cell
@@ -563,13 +554,11 @@ def _(
 @app.cell
 def _(content_links_layout):
     content_links_layout
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Full layout""")
-    return
 
 
 @app.cell
@@ -583,7 +572,6 @@ def _(content_layout, content_links_layout, er_layout, mo, topic_layout):
         }
     )
 
-    return
 
 
 @app.cell

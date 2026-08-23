@@ -41,11 +41,11 @@ def save_failed_ingestion(
 
 def update_content(
     session: Session,
-    content_id: int = None,
-    content_link: str = None,
-    already_read: bool = None,
-    read_priority: int = None,
-    relevance: int = None,
+    content_id: int | None = None,
+    content_link: str | None = None,
+    already_read: bool | None = None,
+    read_priority: int | None = None,
+    relevance: int | None = None,
 ):
     if all((already_read is None, read_priority is None, relevance is None)):
         raise ValueError("No value to update")

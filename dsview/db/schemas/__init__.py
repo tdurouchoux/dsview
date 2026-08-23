@@ -18,3 +18,23 @@ from .labels_schema import (
     TopicsLabels,
 )
 from .schema_utils import drop_tables
+
+__all__ = [
+    "LABELS_SCHEMA",
+    "ContentTopicRelation",
+    "ContentTypeLabels",
+    "ERComparison",
+    "ERLabels",
+    "ExtractionLink",
+    "ExtractionResult",
+    "ExtractionTag",
+    "ExtractionTopic",
+    "FailedIngestion",
+    "InputContent",
+    "LabelledContent",
+    "LinksLabels",
+    "TagLabels",
+    "TitleLabels",
+    "TopicsLabels",
+    "drop_tables",
+]

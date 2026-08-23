@@ -18,7 +18,7 @@ def _():
 @app.cell
 def _(contenttopicrelation, engine, mo):
     relations = mo.sql(
-        f"""
+        """
         SELECT 
          *
         FROM contenttopicrelation
@@ -41,7 +41,6 @@ def _(relations):
 @app.cell
 def _(relations_prep):
     relations_prep
-    return
 
 
 @app.cell
@@ -63,14 +62,12 @@ def _(nx, topic_graph):
 @app.cell
 def _(comp):
     [c for c in comp]
-    return
 
 
 @app.cell
 def _(nx, plt, topic_graph):
     nx.draw(topic_graph)
     plt.show()
-    return
 
 
 @app.cell
@@ -82,19 +79,17 @@ def _(nx, topic_graph):
 @app.cell
 def _(pr):
     pr
-    return
 
 
 @app.cell
 def _(pr):
     dict(sorted(pr.items(), key=lambda item: item[1]))
-    return
 
 
 @app.cell
 def _(engine, extractiontopic, mo):
     _df = mo.sql(
-        f"""
+        """
         SELECT
             *
         FROM extractiontopic
@@ -102,7 +97,6 @@ def _(engine, extractiontopic, mo):
         """,
         engine=engine,
     )
-    return
 
 
 @app.cell

@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from sqlmodel import Session, select
 
@@ -22,7 +22,7 @@ def get_content_by_id(
 def get_content_list(
     session: Session,
     start_id: int = 1,
-    end_id: int = None,
+    end_id: int | None = None,
 ) -> list[InputContent]:
     statement = select(InputContent).where(InputContent.id >= start_id)
 
@@ -36,7 +36,7 @@ def get_content_list(
 
 def get_failed_ingestions(
     session: Session,
-    ignore_errors: list[str] = None,
+    ignore_errors: list[str] | None = None,
 ) -> list[InputContent]:
     failed_content_stmt = select(FailedIngestion.content_id)
 
@@ -63,11 +63,11 @@ def get_failed_ingestion(
 
 def get_filtered_content(
     session: Session,
-    already_read: Optional[bool] = None,
-    read_priority: Optional[int] = None,
-    relevance: Optional[int] = None,
-    source: Optional[str] = None,
-    date_ordering: Optional[Literal["asc", "desc"]] = "desc",
+    already_read: bool | None = None,
+    read_priority: int | None = None,
+    relevance: int | None = None,
+    source: str | None = None,
+    date_ordering: Literal["asc", "desc"] | None = "desc",
     limit: int = 20,
 ) -> list[InputContent]:
 

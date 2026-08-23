@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-import dsview.api as api
+from dsview import api
 from dsview.db.ingest import ContentAlreadyExists
 
 

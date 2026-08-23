@@ -9,14 +9,12 @@ def _():
     import marimo as mo
     import mlflow
 
+    from dsview.config import (
+        LLMProvider,
+        ModelConfig,
+    )
     from dsview.evaluation.links_extraction import (
         evaluate,
-        get_links_extraction_data,
-    )
-    from dsview.config import (
-        ModelConfig,
-        LLMProvider,
-        load_extraction_config,
     )
 
     return LLMProvider, ModelConfig, evaluate, mlflow, mo
@@ -31,7 +29,6 @@ def _(mlflow):
 @app.cell
 def _(mo):
     mo.md(r"""## Compare models""")
-    return
 
 
 @app.cell
@@ -91,31 +88,26 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         eval_results_mistral_large = evaluate(
             model_config=mistral_large_config,
         )
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results["pred_hyperlink"].apply(len).hist()
-    return
 
 
 @app.cell
 def _(eval_results_mistral_medium):
     eval_results_mistral_medium
-    return
 
 
 @app.cell
 def _(eval_results_mistral_medium):
     eval_results_mistral_medium["pred_hyperlink"].apply(len).hist()
-    return
 
 
 @app.cell(column=1)
@@ -204,13 +196,11 @@ def _(
 @app.cell
 def _(eval_results_prompt):
     eval_results_prompt["pred_hyperlink"].apply(len).hist()
-    return
 
 
 @app.cell
 def _(eval_results_prompt):
     eval_results_prompt
-    return
 
 
 @app.cell

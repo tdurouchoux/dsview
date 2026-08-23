@@ -1,6 +1,5 @@
 from datetime import date
 from pathlib import Path
-from typing import Dict
 
 from pydantic import HttpUrl, field_serializer
 from sqlalchemy.types import String, TypeDecorator
@@ -40,7 +39,7 @@ class InputContent(SQLModel, table=True):
     def url_to_string(self, value: HttpUrl) -> str:
         return str(value)
 
-    def get_str_dict(self) -> Dict:
+    def get_str_dict(self) -> dict:
         instance_dict = self.model_dump()
         instance_dict["link"] = str(self.link)
         instance_dict["upload_date"] = self.upload_date.isoformat()

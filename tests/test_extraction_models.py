@@ -1,21 +1,17 @@
 import pytest
 from pydantic import HttpUrl
 
-from dsview.extraction.content_extraction import ContentExtractor
 from dsview.extraction.content_loader import get_content_loader
 from dsview.extraction.models.description_generation import (
     ContentDescription,
-    DataScienceTag,
     DescriptionGenerator,
 )
 from dsview.extraction.models.links_extraction import (
     LinkList,
     LinksExtractor,
-    RelevantLink,
 )
 from dsview.extraction.models.summary_generation import SummaryGenerator
 from dsview.extraction.models.topics_extraction import (
-    DataScienceTopic,
     TopicList,
     TopicsExtractor,
 )

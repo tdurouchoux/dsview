@@ -9,8 +9,8 @@ def _():
     import marimo as mo
     import mlflow
 
-    from dsview.config import ModelConfig, LLMProvider
-    from dsview.evaluation.entity_resolution import evaluate, get_er_labels
+    from dsview.config import LLMProvider, ModelConfig
+    from dsview.evaluation.entity_resolution import evaluate
 
     return LLMProvider, ModelConfig, evaluate, mlflow, mo
 
@@ -18,7 +18,6 @@ def _():
 @app.cell
 def _(mo):
     mo.md(r"""## Current model""")
-    return
 
 
 @app.cell
@@ -33,7 +32,6 @@ def _(evaluate, experiment, mlflow):
         run_name="refresh benchmark", experiment_id=experiment.experiment_id
     ):
         evaluate()
-    return
 
 
 @app.cell
@@ -49,8 +47,6 @@ def _(LLMProvider, ModelConfig):
 
 @app.cell
 def _():
-    from tqdm import tqdm
-    import time
 
     return
 
@@ -58,13 +54,11 @@ def _():
 @app.cell
 def _(evaluate, ollama_model_config):
     evaluate(model_config=ollama_model_config)
-    return
 
 
 @app.cell
 def _(mo):
     mo.md("""## Dspy implementation""")
-    return
 
 
 @app.cell
@@ -140,7 +134,6 @@ def _(dspy, er_classifier, train_set):
         test_result = er_classifier(**train_set[0].inputs())
 
     test_result
-    return
 
 
 @app.function
@@ -201,13 +194,11 @@ def _(dspy, er_classifier_opt_1, eval_set, evaluate_dspy, mlflow):
     with mlflow.start_run(run_name="dspy boostrap random search"):
         with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):
             evaluate_dspy(er_classifier_opt_1, eval_set)
-    return
 
 
 @app.cell
 def _(er_classifier_opt_1):
     er_classifier_opt_1.save("er_classifier_opt_1.json")
-    return
 
 
 @app.cell(disabled=True)
@@ -231,13 +222,11 @@ def _(dspy, er_classifier_opt_2, eval_set, evaluate_dspy, mlflow):
     with mlflow.start_run(run_name="dspy miprov2 medium"):
         with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):
             evaluate_dspy(er_classifier_opt_2, eval_set)
-    return
 
 
 @app.cell
 def _(er_classifier_opt_2):
     er_classifier_opt_2.save("er_classifier_miprov2_medium.json")
-    return
 
 
 @app.cell
@@ -252,7 +241,6 @@ def _(dspy, er_classifier_load, eval_set, evaluate_dspy, mlflow):
     with mlflow.start_run(run_name="dspy miprov2 medium"):
         with dspy.context(lm=dspy.LM("openai/gpt-4o-mini")):
             evaluate_dspy(er_classifier_load, eval_set)
-    return
 
 
 if __name__ == "__main__":

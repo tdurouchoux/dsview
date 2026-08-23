@@ -15,7 +15,6 @@ def _(mo):
     - some kind of display ?
     """
     )
-    return
 
 
 @app.cell
@@ -37,7 +36,6 @@ def _(TopicsIndex):
 @app.cell
 def _(index):
     index.build()
-    return
 
 
 @app.cell
@@ -75,7 +73,6 @@ def _(fts_query_result, mo):
         freeze_columns_left=["name"],
         label="FTS results",
     )
-    return
 
 
 @app.cell
@@ -86,7 +83,6 @@ def _(mo, vss_query_result):
         freeze_columns_left=["name"],
         label="VSS results",
     )
-    return
 
 
 if __name__ == "__main__":

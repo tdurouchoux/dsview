@@ -1,8 +1,8 @@
 import asyncio
-from functools import wraps
 import logging
-from pathlib import Path
 import subprocess
+from functools import wraps
+from pathlib import Path
 
 from dsview.config import lazy, load_obsidian_config
 

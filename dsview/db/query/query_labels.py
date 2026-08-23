@@ -1,10 +1,9 @@
-from typing import Literal, Type
 import hashlib
 import random
+from typing import Literal
 
 import pandas as pd
-from sqlalchemy.sql import schema
-from sqlmodel import Session, select, text, func
+from sqlmodel import Session, func, select, text
 from sqlmodel.main import SQLModel
 
 from ..schemas import LABELS_SCHEMA, ERComparison, ERLabels, LabelledContent
@@ -65,7 +64,7 @@ def get_labeled_content(
 
 
 def get_labels_data(
-    labels_tables: list[Type[SQLModel]],
+    labels_tables: list[type[SQLModel]],
     set_type: Literal["eval", "test"],
     session: Session,
 ) -> pd.DataFrame:

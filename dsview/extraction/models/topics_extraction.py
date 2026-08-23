@@ -1,5 +1,4 @@
 import enum
-from typing import List
 
 from pydantic import BaseModel
 
@@ -26,13 +25,14 @@ class TopicList(BaseModel):
     # (what it is about, which mentions are genuine topics vs. themes to
     # exclude) before committing to the topic list. Mirrors ERResult.analysis.
     analysis: str
-    topics: List[DataScienceTopic]
+    topics: list[DataScienceTopic]
 
+tags_format_dict = {"tags": ", ".join(TagsType)}
 
 class TopicsExtractor(LLMModel):
     DEFAULT_MODEL_CONFIG = lazy_model_config(ModelType.TOPICS_EXTRACTION)
     DEFAULT_SYSTEM_PROMPT_FILE = "system_topics_extraction.txt"
     DEFAULT_USER_PROMPT_FILE = "user_topics_extraction.txt"
     # DEFAULT_SYSTEM_PROMPT_FORMAT = [", ".join(TagsType)]
-    DEFAULT_USER_PROMPT_ADD_FORMAT = {"tags": ", ".join(TagsType)}
+    DEFAULT_USER_PROMPT_ADD_FORMAT = tags_format_dict
     DEFAULT_STRUCTURED_OUTPUT_CLASS = TopicList

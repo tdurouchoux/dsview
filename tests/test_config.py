@@ -151,7 +151,7 @@ def test_extraction_config():
 def test_obsidian_config():
     with generate_config(
         "storage.yaml",
-        f"""obsidian:
+        """obsidian:
   vault_path: dsview_vault
   content_directory: contents
   topic_directory: topics

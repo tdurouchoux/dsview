@@ -19,13 +19,11 @@ def _():
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
 def _(mo):
     mo.center(mo.md(r"""# Database explorer"""))
-    return
 
 
 @app.cell
@@ -52,7 +50,6 @@ def _(engine, mo, select_table):
         """,
         engine=engine,
     )
-    return
 
 
 if __name__ == "__main__":

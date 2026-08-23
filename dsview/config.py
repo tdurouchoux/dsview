@@ -1,10 +1,11 @@
 import logging.config
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache, partial
 from pathlib import Path
-from typing import Callable, Optional, TypeVar, Union, cast
+from typing import TypeVar, cast
 
 import yaml
 from dotenv import load_dotenv
@@ -42,13 +43,13 @@ class ModelType(Enum):
 
 @dataclass
 class ModelConfig:
-    host: Optional[str] = None
+    host: str | None = None
     chat_model: str = MISSING
-    embedding_model: Optional[str] = None
+    embedding_model: str | None = None
     provider: LLMProvider = LLMProvider.OPENAI
     token_limit: int = MISSING
-    model_specific_config: Optional[dict[str, Union[int, str]]] = field(
-        default_factory=lambda: {}
+    model_specific_config: dict[str, int | str] | None = field(
+        default_factory=dict
     )
 
 
@@ -147,9 +148,9 @@ def lazy_model_config(model_type: ModelType = ModelType.DEFAULT) -> ModelConfig:
 
 @dataclass
 class EvaluationConfig:
-    model_config: Optional[ModelConfig] = None
-    system_prompt_file: Optional[Path] = None
-    user_prompt_file: Optional[Path] = None
+    model_config: ModelConfig | None = None
+    system_prompt_file: Path | None = None
+    user_prompt_file: Path | None = None
 
 
 def load_evaluation_config(config_file: Path) -> EvaluationConfig:

@@ -1,4 +1,3 @@
-from typing import Union
 
 import instructor
 import numpy as np
@@ -80,8 +79,8 @@ class OllamaProvider(ModelProvider):
     def _complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             response = self.struct_client.chat.completions.create(
                 messages=messages,
@@ -104,8 +103,8 @@ class OllamaProvider(ModelProvider):
     async def _async_complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             response = await self.async_struct_client.chat.completions.create(
                 messages=messages,

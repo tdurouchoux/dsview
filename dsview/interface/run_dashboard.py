@@ -1,9 +1,9 @@
 from pathlib import Path
 
 import marimo
-from fastapi import FastAPI
-import uvicorn
 import typer
+import uvicorn
+from fastapi import FastAPI
 
 INTERFACE_DIR = Path("dsview/interface/")
 

@@ -7,14 +7,12 @@ app = marimo.App(width="medium", css_file="layouts/marimo_style.css")
 @app.cell
 def _(mo):
     mo.center(mo.md("# Embedding dashboard"))
-    return
 
 
 @app.cell
 def _():
     import altair as alt
     import marimo as mo
-    import numpy as np
     import pandas as pd
     import umap
 
@@ -28,7 +26,6 @@ def _():
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
@@ -39,7 +36,7 @@ def _(alt, mo, pd, umap):
         embedding_col: str,
         n_neighbors: int,
         tooltip_cols: list[str],
-        color_col: str = None,
+        color_col: str | None = None,
     ):
         embeddings = data[embedding_col].to_list()
 
@@ -68,13 +65,12 @@ def _(alt, mo, pd, umap):
 @app.cell
 def _(mo):
     mo.md(r"""## Content embeddings""")
-    return
 
 
 @app.cell
 def _(engine, extraction, extractionresult, mo):
     extracted_content = mo.sql(
-        f"""
+        """
         SELECT
             title,
             content_type,
@@ -124,19 +120,17 @@ def _(get_content_url_link, mo, umap_content_mo_chart):
             f"[Go to obsidian note]({get_content_url_link(selected_content['title'])})"
         )
     )
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Topics embeddings""")
-    return
 
 
 @app.cell
 def _(engine, extraction, extractiontopic, mo):
     topics = mo.sql(
-        f"""
+        """
         SELECT
             type,
             name,
@@ -197,7 +191,6 @@ def _(mo, umap_topic_mo_chart):
         display_markdown += "- " + "\n- ".join(umap_topic_mo_chart.value["name"].values)
 
     mo.md(display_markdown)
-    return
 
 
 if __name__ == "__main__":

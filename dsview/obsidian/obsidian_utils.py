@@ -1,7 +1,6 @@
 import shutil
 import urllib.parse
 from pathlib import Path
-from typing import List
 
 import regex as re
 
@@ -55,7 +54,7 @@ class InvalidNoteDirectory(Exception):
         )
 
 
-def retrieve_notes_path(note_dir: str) -> List[Path]:
+def retrieve_notes_path(note_dir: str) -> list[Path]:
     notes_directory = config.vault_path / note_dir
 
     notes_path = []
@@ -66,11 +65,11 @@ def retrieve_notes_path(note_dir: str) -> List[Path]:
     return notes_path
 
 
-def retrieve_topics_path() -> List[Path]:
+def retrieve_topics_path() -> list[Path]:
     return retrieve_notes_path(config.topic_directory)
 
 
-def retrieve_contents_path() -> List[Path]:
+def retrieve_contents_path() -> list[Path]:
     return retrieve_notes_path(config.content_directory)
 
 

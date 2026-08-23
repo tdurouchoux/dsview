@@ -117,7 +117,6 @@ def _(mo):
     > `content_loader.py` is a separate, explicitly requested task — nothing here edits
     > production code.
     """)
-    return
 
 
 @app.cell
@@ -125,7 +124,6 @@ def _(mo):
     mo.md(r"""
     ## Load the labelled eval split
     """)
-    return
 
 
 @app.cell
@@ -178,7 +176,6 @@ def _(HttpUrl, PdfUrlLoader, df, get_content_loader):
     df.loc[8, "fetch_link"] = (
         "https://web.archive.org/web/20251216015402/https://neptune.ai/blog/arima-vs-prophet-vs-lstm"
     )
-    return
 
 
 @app.cell
@@ -187,7 +184,6 @@ def _(df, mo):
     Eval split: **{len(df)}** labelled rows — {(~df["is_pdf"]).sum()} web pages (Jina
     arm), {df["is_pdf"].sum()} PDFs (stored content, unchanged).
     """)
-    return
 
 
 @app.cell
@@ -199,7 +195,6 @@ def _(mo):
     `dsview/model_utils/model_provider.py` so 429s and transient 5xx are absorbed. One
     failure never aborts the sweep: the status is recorded per row and dealt with below.
     """)
-    return
 
 
 @app.cell
@@ -340,7 +335,6 @@ def _(df, jina_content, jina_status):
             df["content_source"], df["jina_content"], df["content"]
         )
     ]
-    return
 
 
 @app.cell
@@ -351,13 +345,11 @@ def _(mo):
     A broken Jina config (paywall page, JS shell, error body returned with 200) is much
     cheaper to catch here than after a full eval + judge fan-out.
     """)
-    return
 
 
 @app.cell
 def _(df):
     df["jina_status"].value_counts()
-    return
 
 
 @app.cell
@@ -370,7 +362,6 @@ def _(df):
         df["content_source"] == "jina", ["stored_chars", "jina_chars", "char_ratio"]
     ].describe()
     length_stats
-    return
 
 
 @app.cell
@@ -384,7 +375,6 @@ def _(df, pd):
     ].sort_values("char_ratio")
 
     pd.concat([_ranked.head(5), _ranked.tail(5)])
-    return
 
 
 @app.cell
@@ -420,7 +410,6 @@ def _(df, mo, row_picker):
         ],
         widths="equal",
     )
-    return
 
 
 @app.cell
@@ -432,7 +421,6 @@ def _(mo):
     explicitly and note its `run_id` — it gets logged as a param on the new run, so the
     pairing stays recoverable later.
     """)
-    return
 
 
 @app.cell
@@ -465,7 +453,6 @@ def _(experiment, mlflow):
             if column in past_runs.columns
         ]
     ]
-    return
 
 
 @app.cell
@@ -553,7 +540,6 @@ def _(mo):
     **This costs real API money** (one extraction per row, plus the LLM-judge fan-out over
     every predicted × labelled topic pair).
     """)
-    return
 
 
 @app.cell
@@ -655,7 +641,6 @@ def _(mo):
 
     Reading a logged artifact costs nothing — never re-run an eval just to inspect it.
     """)
-    return
 
 
 @app.cell
@@ -670,7 +655,6 @@ def _(baseline_run_id, jina_run_id, mlflow, mo, pd):
     ).dropna()
     comparison["delta"] = comparison["jina"] - comparison["baseline"]
     comparison
-    return
 
 
 @app.cell
@@ -717,7 +701,6 @@ def _(baseline_df, baseline_run_id, df, mo):
         per_row[f"{_metric}_delta"] = per_row[_metric] - per_row[f"{_metric}_baseline"]
 
     per_row.sort_values("average_precision_delta")
-    return
 
 
 @app.cell
@@ -731,19 +714,16 @@ def _(mo):
     everything else
     went to the LLM judge, so an unmarked topic is not necessarily wrong.
     """)
-    return
 
 
 @app.cell
 def _(df):
     df["pred_topics"].apply(len).sum()
-    return
 
 
 @app.cell
 def _(baseline_df):
     baseline_df["pred_topics"].apply(len).sum()
-    return
 
 
 @app.cell
@@ -802,7 +782,6 @@ def _(baseline_df, baseline_run_id, df, mo, row_picker):
         widths="equal",
         gap=2,
     )
-    return
 
 
 if __name__ == "__main__":

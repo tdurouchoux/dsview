@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 import numpy as np
 from openai import AsyncOpenAI, OpenAI
@@ -49,8 +48,8 @@ class OpenAIProvider(ModelProvider):
     def _complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             response = self.client.beta.chat.completions.parse(
                 model=self.model_config.chat_model,
@@ -73,8 +72,8 @@ class OpenAIProvider(ModelProvider):
     async def _async_complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             response = await self.async_client.beta.chat.completions.parse(
                 model=self.model_config.chat_model,

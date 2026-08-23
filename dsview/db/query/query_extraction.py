@@ -31,7 +31,7 @@ def get_content_extraction(
     result = []
 
     for table in [ExtractionResult, ExtractionLink, ExtractionTag]:
-        statement = select(table).where(getattr(table, "content_id") == content_id)
+        statement = select(table).where(table.content_id == content_id)
         result.append(session.exec(statement).all())
 
     return result

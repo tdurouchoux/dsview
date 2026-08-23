@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from typing import Union
 
 import numpy as np
 from mistralai.client import Mistral
@@ -67,8 +66,8 @@ class MistralProvider(ModelProvider):
     def _complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             chat_response = self.client.chat.parse(
                 model=self.model_config.chat_model,
@@ -91,8 +90,8 @@ class MistralProvider(ModelProvider):
     async def _async_complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         if structured_output_class is not None:
             chat_response = await self.client.chat.parse_async(
                 model=self.model_config.chat_model,
@@ -115,7 +114,7 @@ class MistralProvider(ModelProvider):
     def _build_batch_file(
         self,
         batch_messages: list[list[dict[str, str]]],
-        structured_output_class: type[BaseModel] = None,
+        structured_output_class: type[BaseModel] | None = None,
     ) -> bytes:
         response_format = (
             response_format_from_pydantic_model(structured_output_class)
@@ -138,7 +137,7 @@ class MistralProvider(ModelProvider):
         self,
         output: bytes,
         results: list,
-        structured_output_class: type[BaseModel] = None,
+        structured_output_class: type[BaseModel] | None = None,
     ):
         for line in output.decode().splitlines():
             entry = json.loads(line)
@@ -166,8 +165,8 @@ class MistralProvider(ModelProvider):
     def batch_send_messages(
         self,
         batch_messages: list[list[dict[str, str]]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> list[Union[str, BaseModel]]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> list[str | BaseModel]:
         if native_batch_disabled():
             return super().batch_send_messages(batch_messages, structured_output_class)
 

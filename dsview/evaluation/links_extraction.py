@@ -6,7 +6,6 @@ from pydantic import HttpUrl
 from sqlmodel import Session
 from tqdm import tqdm
 
-
 from dsview.config import ModelConfig
 from dsview.db import engine
 from dsview.db.query import get_labels_data
@@ -70,9 +69,9 @@ def score_row(row: pd.Series) -> pd.Series:
 
 
 def evaluate(
-    model_config: ModelConfig = None,
-    system_prompt: str = None,
-    user_prompt: str = None,
+    model_config: ModelConfig | None = None,
+    system_prompt: str | None = None,
+    user_prompt: str | None = None,
     set_type: Literal["eval", "test"] = "eval",
 ):
     links_extractor = LinksExtractor(

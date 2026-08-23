@@ -16,7 +16,7 @@ def _():
 
 @app.cell
 def _():
-    from dsview.config import ModelConfig, LLMProvider, get_sqlite_url
+    from dsview.config import LLMProvider, ModelConfig, get_sqlite_url
     from dsview.model_utils.providers.ollama import OllamaProvider
 
     return (
@@ -41,7 +41,6 @@ def _():
 @app.cell
 def _(mo):
     mo.md(r"""### Model definition""")
-    return
 
 
 @app.cell
@@ -87,19 +86,16 @@ def _(content_descriptor, dspy, test_content):
 @app.cell
 def _(content_description):
     content_description
-    return
 
 
 @app.cell
 def _(eval_data):
     eval_data.drop(columns=["content"]).loc[0]
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""### Generate data""")
-    return
 
 
 @app.cell
@@ -127,13 +123,11 @@ def _(dspy, eval_data):
 @app.cell
 def _(datasets):
     len(datasets)
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""### Metric definition""")
-    return
 
 
 @app.cell
@@ -146,7 +140,6 @@ def _(mo):
         - F1 for tags
         """
     )
-    return
 
 
 @app.cell
@@ -208,19 +201,16 @@ def _(aggregate_f1_score, content_descriptor, datasets, dspy):
 @app.cell
 def _(test_example):
     test_example.labels()
-    return
 
 
 @app.cell
 def _(test_result):
     test_result
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""### Test optimization""")
-    return
 
 
 @app.cell
@@ -256,13 +246,11 @@ def _(aggregate_f1_score, dspy):
 @app.cell
 def _(content_descriptor, evaluate_set, train_set):
     evaluate_set(train_set, content_descriptor)
-    return
 
 
 @app.cell
 def _(content_descriptor, eval_set, evaluate_set):
     evaluate_set(eval_set, content_descriptor)
-    return
 
 
 @app.cell(disabled=True)
@@ -279,13 +267,11 @@ def _(aggregate_f1_score, content_descriptor, dspy, train_set):
 @app.cell
 def _(content_descriptor_opt, evaluate_set, train_set):
     evaluate_set(train_set, content_descriptor_opt)
-    return
 
 
 @app.cell
 def _(content_descriptor_opt, eval_set, evaluate_set):
     evaluate_set(eval_set, content_descriptor_opt)
-    return
 
 
 @app.cell(disabled=True)
@@ -310,19 +296,16 @@ def _(aggregate_f1_score, content_descriptor, dspy, train_set):
 @app.cell
 def _(content_descriptor_miprov2_opt, evaluate_set, train_set):
     evaluate_set(train_set, content_descriptor_miprov2_opt)
-    return
 
 
 @app.cell
 def _(content_descriptor_miprov2_opt, eval_set, evaluate_set):
     evaluate_set(eval_set, content_descriptor_miprov2_opt)
-    return
 
 
 @app.cell
 def _(content_descriptor_miprov2_opt):
     content_descriptor_miprov2_opt.save("content_description_miprov2_opt.json")
-    return
 
 
 @app.cell

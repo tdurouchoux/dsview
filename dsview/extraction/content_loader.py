@@ -5,13 +5,14 @@ import math
 import re
 import tempfile
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import cache
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, urlparse
 
+import logfire
 import requests
 import tiktoken
-import logfire
 from bs4 import BeautifulSoup
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
@@ -52,7 +53,7 @@ class WebRequestFailure(Exception):
 class ContentLoader(ABC):
     def __init__(self, link: HttpUrl) -> None:
         self.link = link
-        self.content: str = None
+        self.content: str | None = None
 
     @abstractmethod
     def _load_content(self):

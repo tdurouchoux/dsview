@@ -28,20 +28,18 @@ def _():
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
 def _(mo):
     mo.center(mo.md(r"""# Upload dashboard"""))
 
-    return
 
 
 @app.cell
 def _(content, engine, inputcontent, mo):
     min_date = mo.sql(
-        f"""
+        """
         SELECT
             min(upload_date) as min_date
         FROM
@@ -84,7 +82,7 @@ def _(content, engine, inputcontent, mo, selected_year):
             source
         FROM
             content.inputcontent
-        WHERE upload_date > \'{str(selected_year)}-01-01\' and upload_date < \'{str(selected_year + 1)}-01-01\'
+        WHERE upload_date > \'{selected_year!s}-01-01\' and upload_date < \'{selected_year + 1!s}-01-01\'
 
 
         """,
@@ -98,7 +96,7 @@ def _(content, engine, inputcontent, mo, selected_year):
 def _(content_upload, dp, plt, selected_year):
     content_upload_dates = content_upload.value_counts("upload_date").reset_index()
 
-    fig, ax = plt.subplots(figsize=(15, 6))
+    _, ax = plt.subplots(figsize=(15, 6))
     dp.calendar(
         dates=content_upload_dates["upload_date"],
         values=content_upload_dates["count"],
@@ -107,7 +105,6 @@ def _(content_upload, dp, plt, selected_year):
         boxstyle="circle",
         ax=ax,
     )
-    return
 
 
 @app.cell
@@ -124,7 +121,6 @@ def _(alt, content_upload):
     )
 
     time_chart
-    return
 
 
 @app.cell
@@ -136,7 +132,6 @@ def _(HttpUrl, content_upload, mo):
         selection=None,
         label="Most frequent content link host",
     )
-    return
 
 
 @app.cell
@@ -147,13 +142,12 @@ def _(mo):
     ## Failed ingestion
     """
     )
-    return
 
 
 @app.cell
 def _(content, engine, failedingestion, inputcontent, mo):
     failed_ingestion = mo.sql(
-        f"""
+        """
         SELECT
             link,
             upload_date,
@@ -174,7 +168,7 @@ def _(content, engine, failedingestion, inputcontent, mo):
 @app.cell
 def _(engine, extraction, extractionresult, mo):
     count_success = mo.sql(
-        f"""
+        """
         SELECT
             count(*) as count
         FROM
@@ -206,7 +200,6 @@ def _(alt, count_success, failed_ingestion, pd):
         color="status:N",
         tooltip="status:N",
     )
-    return
 
 
 @app.cell
@@ -218,7 +211,6 @@ def _(alt, failed_ingestion):
         alt.Y("error_type:N"),
         tooltip=["error_type"],
     )
-    return
 
 
 @app.cell
@@ -228,7 +220,6 @@ def _(failed_ingestion, mo):
         selection=None,
         page_size=5,
     )
-    return
 
 
 if __name__ == "__main__":

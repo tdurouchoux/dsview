@@ -129,7 +129,7 @@ class MistralUsageSpanProcessor(SpanProcessor):
             )
             span._attributes = {**attributes, **new_attributes}
         except AssertionError:
-            logger.error("Could not rewrite Mistral span attributes", exc_info=True)
+            logger.exception("Could not rewrite Mistral span attributes")
 
 
 # A plain OTel tracer rather than `logfire.span()`: the entrypoints that never call

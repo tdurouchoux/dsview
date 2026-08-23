@@ -11,7 +11,6 @@ app = marimo.App(
 @app.cell
 def _(mo):
     mo.center(mo.md(r"""# Content dashboard"""))
-    return
 
 
 @app.cell
@@ -22,8 +21,8 @@ def _():
 
     from dsview.db import engine
     from dsview.db.ingest import update_content
-    from dsview.obsidian.obsidian_utils import get_content_url_link
     from dsview.interface.dashboard.marimo_sidebar import get_sidebar
+    from dsview.obsidian.obsidian_utils import get_content_url_link
 
     return (
         Session,
@@ -39,7 +38,6 @@ def _():
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
@@ -47,7 +45,6 @@ def _(mo):
     mo.md(r"""
     ## Sources
     """)
-    return
 
 
 @app.cell
@@ -61,7 +58,7 @@ def _(engine, get_refresh, mo):
     get_refresh()
 
     sources = mo.sql(
-        f"""
+        """
         SELECT
             inputcontent.id,
             title,
@@ -89,7 +86,6 @@ def _(mo):
     mo.md(r"""
     ## Display and filter
     """)
-    return
 
 
 @app.function
@@ -172,7 +168,6 @@ def _(mo):
     mo.md(r"""
     ## Display sources
     """)
-    return
 
 
 @app.cell
@@ -221,13 +216,11 @@ def _(get_content_url_link, mo, selected_content):
             f"[Go to obsidian note]({get_content_url_link(selected_content['title'])})"
         )
     )
-    return
 
 
 @app.cell
 def _(mo, note_summary):
     mo.accordion({"Note summary": note_summary.loc[0, "summary"]})
-    return
 
 
 @app.cell
@@ -235,7 +228,6 @@ def _(mo):
     mo.md(r"""
     ## Update form
     """)
-    return
 
 
 @app.cell
@@ -314,7 +306,6 @@ def _(
         session.commit()
 
     set_refresh(0)
-    return
 
 
 if __name__ == "__main__":

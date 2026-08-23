@@ -1,8 +1,7 @@
 import logging
-from typing import Optional, Union
 
-import logfire
 import instructor
+import logfire
 import numpy as np
 from anthropic import Anthropic, AsyncAnthropic
 from pydantic import BaseModel, ValidationError
@@ -40,8 +39,8 @@ class AnthropicProvider(ModelProvider):
     def _complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         system, other_messages = self._split_system_message(messages)
         system_kwargs = {"system": system} if system is not None else {}
 
@@ -72,8 +71,8 @@ class AnthropicProvider(ModelProvider):
     async def _async_complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         system, other_messages = self._split_system_message(messages)
         system_kwargs = {"system": system} if system is not None else {}
 
@@ -111,7 +110,7 @@ class AnthropicProvider(ModelProvider):
 
     def _split_system_message(
         self, messages: list[dict[str, str]]
-    ) -> tuple[Optional[str], list[dict[str, str]]]:
+    ) -> tuple[str | None, list[dict[str, str]]]:
         # The Messages API takes the system prompt as a top-level `system`
         # param, not as a "system"-role entry in `messages`.
         system_parts = [m["content"] for m in messages if m["role"] == "system"]
@@ -123,7 +122,7 @@ class AnthropicProvider(ModelProvider):
     def _build_batch_params(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
+        structured_output_class: type[BaseModel] | None = None,
     ) -> dict:
         system, other_messages = self._split_system_message(messages)
 
@@ -153,8 +152,8 @@ class AnthropicProvider(ModelProvider):
     def _parse_batch_result(
         self,
         result,
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel, None]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel | None:
         if result.type != "succeeded":
             return None
 
@@ -180,8 +179,8 @@ class AnthropicProvider(ModelProvider):
     def batch_send_messages(
         self,
         batch_messages: list[list[dict[str, str]]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> list[Union[str, BaseModel]]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> list[str | BaseModel]:
         if native_batch_disabled():
             return super().batch_send_messages(batch_messages, structured_output_class)
 
