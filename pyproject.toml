@@ -90,5 +90,8 @@ mcp = [
 ]
 
 
+[tool.ruff]
+extend-exclude = ["notebooks"]
+
 [tool.ruff.lint]
 ignore = ["B008", "B018", "RUF012"]
