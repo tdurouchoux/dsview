@@ -1,10 +1,10 @@
-from typing import Any, Type
+from typing import Any
 
 from sqlmodel import Session, SQLModel, select
 
 
 class UpdateQueryError(Exception):
-    def __init__(self, table: Type[SQLModel], query: str, n_results: int):
+    def __init__(self, table: type[SQLModel], query: str, n_results: int):
         super().__init__(
             f"Update query found {n_results} for "
             f"table {table} and query {query}. "
@@ -14,9 +14,9 @@ class UpdateQueryError(Exception):
 
 def update_instance(
     session: Session,
-    table: Type[SQLModel],
+    table: type[SQLModel],
     row_id: Any = None,
-    filter_attributes: dict[str, Any] = None,
+    filter_attributes: dict[str, Any] | None = None,
     **update_attributes,
 ):
     if row_id is not None:

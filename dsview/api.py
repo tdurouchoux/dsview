@@ -2,9 +2,9 @@ import asyncio
 import logging
 from typing import Annotated
 
+import logfire
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
-import logfire
 from pydantic import HttpUrl
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
@@ -12,7 +12,7 @@ from starlette.responses import JSONResponse
 from tenacity import RetryError
 
 from dsview.config import setup_logger
-from dsview.db import engine, check_db_connection
+from dsview.db import check_db_connection, engine
 from dsview.db.ingest import update_content
 from dsview.db.query import (
     get_content_by_id,
@@ -26,8 +26,10 @@ from dsview.obsidian.sync_vault import (
     api_sync_vault,
     async_pull_changes,
     async_upload_changes,
-    config as vault_config,
     init_vault,
+)
+from dsview.obsidian.sync_vault import (
+    config as vault_config,
 )
 
 # TODO merge setup and sync_vault
@@ -100,7 +102,7 @@ def _log_background_ingest_result(task: asyncio.Task) -> None:
     if exc is None:
         return
 
-    logger.error("Background ingest task failed: %s", exc, exc_info=exc)
+    logger.exception("Background ingest task failed", exc_info=exc)
 
 
 async def _run_ingest_and_sync(content_id: int) -> None:
@@ -233,8 +235,8 @@ async def health_check(session: SessionDep):
         return {"status": "healthy", "database": "connected"}
 
     except RetryError as e:
-        logger.error(f"Health check failed: {e}")
+        logger.exception("Health check failed")
         raise HTTPException(
             status_code=503,
-            detail=f"Service unhealthy: {str(e)}",
+            detail=f"Service unhealthy: {e!s}",
         )

@@ -1,12 +1,11 @@
 import logging
-from typing import Type
 
 from sqlmodel import Session, SQLModel
 
 logger = logging.getLogger(__name__)
 
 
-def delete_rows(table: Type[SQLModel], engine, row_ids: list[int]):
+def delete_rows(table: type[SQLModel], engine, row_ids: list[int]):
     # Implementation of delete_row function
 
     with Session(engine) as session:

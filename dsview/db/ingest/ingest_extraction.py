@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, datetime
 
 from sqlmodel import Session
 
@@ -117,7 +117,7 @@ def build_er_comparison(
         description_2=topic_2.description,
         fts_score=fts_score,
         vss_distance=vss_distance,
-        decision_date=date.today().isoformat(),
+        decision_date=datetime.now(UTC).date().isoformat(),
         merge_topic=result.merge_topic,
         merge_name=(result.topic.name if result.topic else None),
         merge_type=(result.topic.type if result.topic else None),

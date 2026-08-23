@@ -13,16 +13,16 @@ def _():
     import pandas as pd
     from tqdm import tqdm
 
-    from dsview.evaluation.topics_extraction import (
-        evaluate,
-        get_topics_extraction_data,
-        SimpleERModel,
+    from dsview.config import (
+        LLMProvider,
+        ModelConfig,
+        load_extraction_config,
     )
     from dsview.db.query import get_er_labels
-    from dsview.config import (
-        ModelConfig,
-        LLMProvider,
-        load_extraction_config,
+    from dsview.evaluation.topics_extraction import (
+        SimpleERModel,
+        evaluate,
+        get_topics_extraction_data,
     )
 
     return (
@@ -46,19 +46,16 @@ def _():
     import os
 
     os.environ["PROMPT_DIR"] = "./prompts/"
-    return
 
 
 @app.cell
 def _(tqdm):
     tqdm.pandas()
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Simple ER eval""")
-    return
 
 
 @app.cell
@@ -137,7 +134,6 @@ def _(SimpleERModel):
 @app.cell
 def _(evaluate_simple_er, simple_er):
     evaluate_simple_er(simple_er, "test")
-    return
 
 
 @app.cell
@@ -147,13 +143,11 @@ def _(evaluate_simple_er, mlflow, simple_er, simple_er_experiment):
         experiment_id=simple_er_experiment.experiment_id,
     ):
         eval_results_simple_er = evaluate_simple_er(simple_er)
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Compare models""")
-    return
 
 
 @app.cell
@@ -173,19 +167,16 @@ def _(get_topics_extraction_data):
 @app.cell
 def _(eval_data):
     eval_data.loc[14]
-    return
 
 
 @app.cell
 def _(eval_data):
     eval_data["len_content"] = eval_data["content"].apply(len)
-    return
 
 
 @app.cell
 def _(eval_data):
     eval_data.sort_values("len_content", ascending=False)
-    return
 
 
 @app.cell
@@ -210,13 +201,11 @@ def _(eval_results):
         lambda topics: [topic.name for topic in topics]
     )
     eval_results[["name", "pred_name", "count_correct_topic"]]
-    return
 
 
 @app.cell
 def _(extraction_config):
     ", ".join(extraction_config.tags.values())
-    return
 
 
 @app.cell
@@ -311,19 +300,16 @@ def _(eval_results_magistral_small):
         "pred_topics"
     ].apply(lambda topics: [topic.name for topic in topics])
     eval_results_magistral_small[["name", "pred_name"]]
-    return
 
 
 @app.cell
 def _(magistral_results):
     magistral_results.value
-    return
 
 
 @app.cell
 def _(eval_results_magistral_small):
     eval_results_magistral_small["pred_topics"].apply(len).sum()
-    return
 
 
 @app.cell
@@ -359,19 +345,16 @@ def _(eval_results_mistral_small):
         "pred_topics"
     ].apply(lambda topics: [topic.name for topic in topics])
     eval_results_mistral_small
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small):
     eval_results_mistral_small["pred_topics"].apply(len).sum()
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results
-    return
 
 
 @app.cell

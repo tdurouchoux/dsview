@@ -23,9 +23,9 @@ SPLIT_RATIOS = {
 
 
 def evaluate(
-    model_config: ModelConfig = None,
-    system_prompt: str = None,
-    user_prompt: str = None,
+    model_config: ModelConfig | None = None,
+    system_prompt: str | None = None,
+    user_prompt: str | None = None,
     set_type: str = "eval",
     remove_descr=False,
 ):

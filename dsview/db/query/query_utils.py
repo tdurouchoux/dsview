@@ -1,7 +1,7 @@
 import logging
 
-import logfire
 import duckdb
+import logfire
 import pandas as pd
 
 from dsview.config import ModelType, lazy, lazy_model_config, load_postgres_config

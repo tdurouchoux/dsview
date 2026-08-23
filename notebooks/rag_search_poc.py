@@ -32,7 +32,6 @@ def _():
 @app.cell
 def _(mo):
     mo.md(r"""## Retrieve topics""")
-    return
 
 
 @app.cell
@@ -124,7 +123,6 @@ def _(DataScienceTopic, OpenAI, tqdm):
 @app.cell
 def _(mo):
     mo.md(r"""## export to parquet""")
-    return
 
 
 @app.cell
@@ -158,13 +156,11 @@ def _(Path, embed_topics, pd, topics):
 @app.cell
 def _(df_topics):
     df_topics
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Ingest into db""")
-    return
 
 
 @app.cell
@@ -187,7 +183,6 @@ def _(get_sqlite_engine):
 @app.cell
 def _(topics):
     len(topics)
-    return
 
 
 @app.cell
@@ -195,19 +190,16 @@ def _(Session, embed_and_save_topic, ingest_engine, topics, tqdm):
     with Session(ingest_engine) as session:
         for topic in tqdm(topics):
             embed_and_save_topic(session, topic)
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics.type.loc[0]
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Plot""")
-    return
 
 
 @app.cell
@@ -238,7 +230,6 @@ def _(df_topics, np, reducer):
 @app.cell
 def _(df_topics):
     df_topics
-    return
 
 
 @app.cell
@@ -253,13 +244,11 @@ def _(alt, df_topics_red):
     alt.Chart(df_topics_red[["name", "type", "x", "y"]]).mark_point().encode(
         x="x:Q", y="y:Q", color="type", tooltip=["name"]
     )
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## duckdb search""")
-    return
 
 
 @app.cell
@@ -282,18 +271,16 @@ def _(df_topics, test_engine):
         lambda arr: ",".join([str(e) for e in arr])
     )
     df_topics_ingest.to_sql("topics_ingest", test_engine, if_exists="fail", index=False)
-    return
 
 
 @app.cell
 def _(mo, test_engine, topics_ingest):
     _df = mo.sql(
-        f"""
+        """
         SELECT * FROM topics_ingest
         """,
         engine=test_engine,
     )
-    return
 
 
 @app.cell
@@ -301,35 +288,32 @@ def _(duckdb):
     con = duckdb.connect()
     con.install_extension("spatial")
     con.load_extension("spatial")
-    return
 
 
 @app.cell
 def _(mo):
     _ = mo.sql(
-        f"""
+        """
         INSTALL vss; LOAD vss;
         INSTALL fts; LOAD fts;
         INSTALL sqlite; LOAD sqlite;
         """
     )
-    return
 
 
 @app.cell
 def _(mo):
     _df = mo.sql(
-        f"""
+        """
         ATTACH 'test_ingest.db' AS w (TYPE sqlite);
         """
     )
-    return
 
 
 @app.cell
 def _(mo, sqlite_db, topics_ingest):
     _df = mo.sql(
-        f"""
+        """
         CREATE TABLE topics_index AS
         SELECT
             type,
@@ -350,31 +334,28 @@ def _(mo, sqlite_db, topics_ingest):
 @app.cell
 def _(mo):
     _df = mo.sql(
-        f"""
+        """
         PRAGMA create_fts_index('topics_index', 'name', 'description');
         """
     )
-    return
 
 
 @app.cell
 def _(mo):
     _df = mo.sql(
-        f"""
+        """
         DROP TABLE topics_index
         """
     )
-    return
 
 
 @app.cell
 def _(mo, topics_index):
     _df = mo.sql(
-        f"""
+        """
         SELECT * FROM topics_index
         """
     )
-    return
 
 
 @app.cell
@@ -404,13 +385,11 @@ def _():
 @app.cell
 def _(input_embedding):
     len(",".join([str(e) for e in input_embedding]))
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""x3 12ko très ok""")
-    return
 
 
 @app.cell
@@ -420,7 +399,6 @@ def _(input_embedding, mo, topics_index):
         SELECT * FROM topics_index ORDER BY array_distance(embedding, {input_embedding}::FLOAT[1024]) LIMIT 5
         """
     )
-    return
 
 
 @app.cell
@@ -441,31 +419,26 @@ def _(input, mo, topics_index):
         LIMIT 5;
         """
     )
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## sqlite3 search""")
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics.shape
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics[df_topics.duplicated("name")]
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics["name"].nunique()
-    return
 
 
 @app.cell
@@ -473,7 +446,7 @@ def _():
     import sqlite3
 
     import sqlite_vec
-    from sqlmodel import create_engine, insert
+    from sqlmodel import create_engine
 
     return create_engine, sqlite3, sqlite_vec
 
@@ -496,12 +469,11 @@ def _(create_engine):
 @app.cell
 def _(engine, mo):
     _df = mo.sql(
-        f"""
+        """
         CREATE VIRTUAL TABLE IF NOT EXISTS topics_fts USING fts5 (name, description);
         """,
         engine=engine,
     )
-    return
 
 
 @app.cell
@@ -509,7 +481,6 @@ def _(df_topics, engine):
     df_topics[["name", "description"]].to_sql(
         "topics_fts", engine, if_exists="append", index=False
     )
-    return
 
 
 @app.cell
@@ -532,7 +503,6 @@ def _(engine, mo, search_topic):
         """,
         engine=engine,
     )
-    return
 
 
 @app.cell
@@ -547,7 +517,6 @@ def _(mo):
     SELECT d, a, c FROM t1 WHERE d = ?;
     """
     )
-    return
 
 
 @app.cell
@@ -555,19 +524,16 @@ def _(db):
     db.execute(
         "CREATE VIRTUAL TABLE IF NOT EXISTS topics_vss USING vec0(embedding float[1024])"
     )
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics.drop_duplicates()
-    return
 
 
 @app.cell
 def _(df_topics):
     df_topics.index
-    return
 
 
 @app.cell
@@ -578,7 +544,6 @@ def _():
 @app.cell
 def _(df_topics):
     df_topics.loc[1, "embedding"]
-    return
 
 
 @app.cell
@@ -588,7 +553,6 @@ def _(db, df_topics, struct):
             "INSERT INTO topics_vss(rowid, embedding) VALUES (?, ?)",
             (row.Index, struct.pack("%sf" % 1024, *row.embedding)),
         )
-    return
 
 
 app._unparsable_cell(
@@ -618,7 +582,7 @@ def _():
 @app.cell
 def _(db, df_topics, pack_embedding):
     close_rows = db.execute(
-        f"""SELECT
+        """SELECT
                 rowid,
                 distance
             FROM topics_vss
@@ -632,7 +596,6 @@ def _(db, df_topics, pack_embedding):
     print(close_rows)
 
     df_topics.loc[[row[0] for row in close_rows]]
-    return
 
 
 @app.cell

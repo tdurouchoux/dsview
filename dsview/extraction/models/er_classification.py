@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -15,14 +14,15 @@ class ERResult(BaseModel):
     # merge_topic. Without it, the prompt's reasoning instructions are inert.
     analysis: str
     merge_topic: bool
-    topic: Optional[DataScienceTopic]
+    topic: DataScienceTopic | None
 
+list_topic_type = [",".join(TopicType)]
 
 class ERClassifier(LLMModel):
     DEFAULT_MODEL_CONFIG = lazy_model_config(ModelType.ER_CLASSIFICATION)
     DEFAULT_SYSTEM_PROMPT_FILE = "system_entity_resolution.txt"
     DEFAULT_USER_PROMPT_FILE = "user_entity_resolution.txt"
-    DEFAULT_SYSTEM_PROMPT_FORMAT = [",".join(TopicType)]
+    DEFAULT_SYSTEM_PROMPT_FORMAT = list_topic_type
     DEFAULT_STRUCTURED_OUTPUT_CLASS = ERResult
 
     def _format_topics(

@@ -18,9 +18,9 @@ configuration is evaluated.
 import json
 import logging
 import tempfile
+from collections.abc import Callable
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Optional
 
 import mlflow
 import pandas as pd
@@ -87,7 +87,7 @@ SET_TYPE_OPTION = typer.Option(
 
 def load_eval_overrides(
     config_file: Path,
-) -> tuple[Optional[ModelConfig], Optional[str], Optional[str]]:
+) -> tuple[ModelConfig | None, str | None, str | None]:
     eval_config = load_evaluation_config(config_file)
 
     system_prompt = (
@@ -107,9 +107,9 @@ def load_eval_overrides(
 def run_evaluation(
     evaluate_fn: Callable,
     experiment: str,
-    config_file: Optional[Path],
+    config_file: Path | None,
     set_type: SetType,
-    run_name: Optional[str] = None,
+    run_name: str | None = None,
     **evaluate_kwargs,
 ):
     model_config = system_prompt = user_prompt = None
@@ -140,10 +140,10 @@ def run_evaluation(
 
 @evaluate_app.command(help="Evaluate topic extraction (fans out an LLM judge)")
 def topics(
-    config_file: Optional[Path] = CONFIG_FILE_ARGUMENT,
+    config_file: Path | None = CONFIG_FILE_ARGUMENT,
     set_type: SetType = SET_TYPE_OPTION,
     experiment: str = typer.Option("Topics extraction", help="MLflow experiment name"),
-    run_name: Optional[str] = typer.Option(None, help="MLflow run name"),
+    run_name: str | None = typer.Option(None, help="MLflow run name"),
 ):
     from dsview.evaluation import topics_extraction
 
@@ -154,10 +154,10 @@ def topics(
 
 @evaluate_app.command(help="Evaluate links extraction (fetches the labelled URLs)")
 def links(
-    config_file: Optional[Path] = CONFIG_FILE_ARGUMENT,
+    config_file: Path | None = CONFIG_FILE_ARGUMENT,
     set_type: SetType = SET_TYPE_OPTION,
     experiment: str = typer.Option("Links extraction", help="MLflow experiment name"),
-    run_name: Optional[str] = typer.Option(None, help="MLflow run name"),
+    run_name: str | None = typer.Option(None, help="MLflow run name"),
 ):
     from dsview.evaluation import links_extraction
 
@@ -168,12 +168,12 @@ def links(
 
 @evaluate_app.command(help="Evaluate content description generation")
 def description(
-    config_file: Optional[Path] = CONFIG_FILE_ARGUMENT,
+    config_file: Path | None = CONFIG_FILE_ARGUMENT,
     set_type: SetType = SET_TYPE_OPTION,
     experiment: str = typer.Option(
         "Content description", help="MLflow experiment name"
     ),
-    run_name: Optional[str] = typer.Option(None, help="MLflow run name"),
+    run_name: str | None = typer.Option(None, help="MLflow run name"),
 ):
     from dsview.evaluation import description_generation
 
@@ -184,10 +184,10 @@ def description(
 
 @evaluate_app.command(help="Evaluate entity resolution classification")
 def er(
-    config_file: Optional[Path] = CONFIG_FILE_ARGUMENT,
+    config_file: Path | None = CONFIG_FILE_ARGUMENT,
     set_type: SetType = SET_TYPE_OPTION,
     experiment: str = typer.Option("Entity resolution", help="MLflow experiment name"),
-    run_name: Optional[str] = typer.Option(None, help="MLflow run name"),
+    run_name: str | None = typer.Option(None, help="MLflow run name"),
     remove_descr: bool = typer.Option(
         False, help="Blank out topic descriptions before classification"
     ),

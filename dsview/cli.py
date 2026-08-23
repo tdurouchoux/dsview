@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import logfire
@@ -83,7 +83,7 @@ def backup():
     backup_path = Path("backup")
     backup_path.mkdir(exist_ok=True)
 
-    output_file = backup_path / f"dsview_{datetime.now():%Y%m%d_%H%M%S}.dump"
+    output_file = backup_path / f"dsview_{datetime.now(UTC):%Y%m%d_%H%M%S}.dump"
     connection_args, env = _pg_connection_args()
 
     run_cmd(
@@ -103,7 +103,7 @@ def ingest(
     link: str = typer.Argument(..., help="URL or link to the content to ingest"),
     already_read: bool = typer.Option(False, help="Mark content as already read"),
     upload_date: datetime = typer.Option(
-        datetime.now(), help="Date when content was uploaded"
+        datetime.now(UTC), help="Date when content was uploaded"
     ),
     read_priority: int = typer.Option(
         0, help="Reading priority (higher numbers = higher priority)"
@@ -116,9 +116,6 @@ def ingest(
     This will download, process, and extract information from the provided link.
     """
     from .ingest_source import IngestPipeline
-
-    # mlflow.set_tracking_uri("http://localhost:5001")
-    # mlflow.set_experiment("Dsview ingest")
 
     ingest_pipeline = IngestPipeline()
 
@@ -137,7 +134,7 @@ def ingest(
 @app.command(help="Retry processing of previously failed ingestions")
 @logfire.instrument("Retrying failed ingestions")
 def retry_failed(
-    ignore: list[str] = ["WebRequestFailure"],
+    ignore: list[str] | None = None,
 ):
     """
     Retry ingestion of content that previously failed to process.
@@ -146,6 +143,9 @@ def retry_failed(
     from .ingest_source import IngestPipeline
 
     logger.info("Retrying failed ingestions excluding : %s", ",".join(ignore))
+
+    if ignore is None:
+        ignore = ["WebRequestFailure"]
 
     with Session(db.engine) as session:
         ingest_pipeline = IngestPipeline(rebuild_mode=True)

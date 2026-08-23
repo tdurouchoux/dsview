@@ -2,7 +2,7 @@
 Graph analysis core for content-topic graphs.
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 import igraph as ig
 
@@ -57,7 +57,7 @@ def _select_node_kind(
 def _compute_metric(
     graph: ig.Graph,
     metric_name: str,
-    nodes: Optional[list[str]] = None,
+    nodes: list[str] | None = None,
     **kwargs,
 ) -> dict[int, float]:
     """Helper to compute a metric for all nodes or a subset."""
@@ -71,7 +71,7 @@ def _compute_metric(
 
 def degree(
     graph: ig.Graph,
-    nodes: Optional[list[str]] = None,
+    nodes: list[str] | None = None,
 ) -> dict[int, float]:
     """
     Compute degree for nodes.
@@ -92,7 +92,7 @@ def degree(
 
 def betweenness_centrality(
     graph: ig.Graph,
-    nodes: Optional[list[str]] = None,
+    nodes: list[str] | None = None,
 ) -> dict[int, float]:
     """
     Compute betweenness centrality for nodes.
@@ -109,7 +109,7 @@ def betweenness_centrality(
 
 def pagerank(
     graph: ig.Graph,
-    nodes: Optional[list[str]] = None,
+    nodes: list[str] | None = None,
     damping: float = 0.85,
 ) -> dict[int, float]:
     """
@@ -136,8 +136,8 @@ METRIC_REPOSITORY = {
 def get_ranked_nodes(
     graph: ig.Graph,
     metric: Literal["betweenness", "degree", "pagerank"],
-    node_kind: Optional[str] = None,
-    limit: Optional[int] = 20,
+    node_kind: str | None = None,
+    limit: int | None = 20,
     **kwargs,
 ) -> list[tuple[ig.Vertex, float]]:
     if metric not in METRIC_REPOSITORY:
@@ -150,7 +150,7 @@ def get_ranked_nodes(
 
     scores = METRIC_REPOSITORY[metric](graph, nodes, **kwargs)
 
-    sorted_scores = list(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
     if limit is not None:
         sorted_scores = sorted_scores[:limit]

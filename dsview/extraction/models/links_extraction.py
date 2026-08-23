@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic import BaseModel
 
@@ -14,7 +13,7 @@ class RelevantLink(BaseModel):
 
 
 class LinkList(BaseModel):
-    links: List[RelevantLink]
+    links: list[RelevantLink]
 
 
 class LinksExtractor(LLMModel):
@@ -25,7 +24,7 @@ class LinksExtractor(LLMModel):
 
     def _preprocess_content(self, content_loader: UrlLoader) -> dict:
         if not isinstance(content_loader, UrlLoader):
-            raise ValueError(
+            raise TypeError(
                 "LinksExtractor can only extract links from an URL source."
             )
 

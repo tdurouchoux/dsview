@@ -18,17 +18,14 @@ def _():
 def _():
     import mlflow
 
-    from dsview.evaluation.description_generation import (
-        evaluate,
-        get_description_generation_data,
-    )
     from dsview.config import (
-        ModelConfig,
         LLMProvider,
+        ModelConfig,
         load_extraction_config,
     )
-    from dsview.db import engine
-    from dsview.model_utils.providers.ollama import OllamaProvider
+    from dsview.evaluation.description_generation import (
+        evaluate,
+    )
 
     return LLMProvider, ModelConfig, evaluate, load_extraction_config, mlflow
 
@@ -43,13 +40,11 @@ def _():
 @app.cell
 def _(TagsType):
     ", ".join(TagsType)
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Compare models""")
-    return
 
 
 @app.cell
@@ -65,7 +60,6 @@ def _():
     import os
 
     os.environ["PROMPT_DIR"] = "./prompts/"
-    return
 
 
 @app.cell
@@ -92,13 +86,11 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         _ = evaluate(
             model_config=ollama_config,
         )
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results
-    return
 
 
 @app.cell
@@ -115,7 +107,6 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         _ = evaluate(
             model_config=gpt_4_1_mini_config,
         )
-    return
 
 
 @app.cell
@@ -132,7 +123,6 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         _ = evaluate(
             model_config=gpt_4_1_nano_config,
         )
-    return
 
 
 @app.cell
@@ -155,7 +145,6 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
 @app.cell
 def _(eval_results_mistral_small):
     eval_results_mistral_small
-    return
 
 
 @app.cell
@@ -178,31 +167,26 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
 @app.cell
 def _(eval_results_mistral_medium):
     eval_results_mistral_medium
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results["title"].apply(len).max()
-    return
 
 
 @app.cell
 def _(ebv):
     ebv
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small):
     eval_results_mistral_small["pred_title"].apply(len).max()
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results["pred_tags"].apply(len).plot.hist()
-    return
 
 
 @app.cell
@@ -213,7 +197,6 @@ def _(mo):
     - Mistral small ~ gpt 4o mini
     """
     )
-    return
 
 
 @app.cell
@@ -224,7 +207,6 @@ def _():
 @app.cell(column=1)
 def _(mo):
     mo.md(r"""## Prompt tuning mistral small""")
-    return
 
 
 @app.cell
@@ -239,7 +221,6 @@ def _(mo):
     - Augmenter la précision des tags
     """
     )
-    return
 
 
 @app.cell
@@ -302,49 +283,41 @@ def _(
 @app.cell
 def _(mo):
     mo.md(r"""## Tags prediction""")
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results["pred_tags"].apply(len).plot.hist()
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small_prompt):
     eval_results_mistral_small_prompt["pred_tags"].apply(len).plot.hist()
-    return
 
 
 @app.cell
 def _(mo):
     mo.md(r"""## Title predictions""")
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small):
     eval_results_mistral_small[["title", "pred_title"]]
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small):
     eval_results_mistral_small["pred_title"].apply(len).hist()
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small_prompt):
     eval_results_mistral_small_prompt[["title", "pred_title"]]
-    return
 
 
 @app.cell
 def _(eval_results_mistral_small_prompt):
     eval_results_mistral_small_prompt["pred_title"].apply(len).hist()
-    return
 
 
 @app.cell

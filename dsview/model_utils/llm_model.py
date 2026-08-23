@@ -1,7 +1,6 @@
 import os
 from functools import reduce
 from pathlib import Path
-from typing import Union
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -47,20 +46,20 @@ def get_prompt(prompt_filename: str) -> str:
 
 class LLMModel:
     DEFAULT_MODEL_CONFIG = lazy_model_config()
-    DEFAULT_SYSTEM_PROMPT_FILE: str = None
-    DEFAULT_USER_PROMPT_FILE: str = None
-    DEFAULT_SYSTEM_PROMPT_FORMAT: Union[list[str], dict[str, str]] = None
-    DEFAULT_USER_PROMPT_ADD_FORMAT: dict[str, str] = None
-    DEFAULT_STRUCTURED_OUTPUT_CLASS: type[BaseModel] = None
+    DEFAULT_SYSTEM_PROMPT_FILE: str | None = None
+    DEFAULT_USER_PROMPT_FILE: str | None = None
+    DEFAULT_SYSTEM_PROMPT_FORMAT: list[str] | dict[str, str] | None = None
+    DEFAULT_USER_PROMPT_ADD_FORMAT: dict[str, str] | None = None
+    DEFAULT_STRUCTURED_OUTPUT_CLASS: type[BaseModel] | None = None
 
     def __init__(
         self,
-        model_config: ModelConfig = None,
-        system_prompt: str = None,
-        user_prompt: str = None,
-        system_prompt_format: Union[list[str], dict[str, str]] = None,
-        user_prompt_format: dict[str, str] = None,
-        structured_output_class: type[BaseModel] = None,
+        model_config: ModelConfig | None = None,
+        system_prompt: str | None = None,
+        user_prompt: str | None = None,
+        system_prompt_format: list[str] | dict[str, str] | None = None,
+        user_prompt_format: dict[str, str] | None = None,
+        structured_output_class: type[BaseModel] | None = None,
     ):
         model_config = coalesce(model_config, self.DEFAULT_MODEL_CONFIG)
         self.model_provider = get_model_provider(model_config)
@@ -117,12 +116,12 @@ class LLMModel:
 
         return messages
 
-    def predict(self, input: dict[str, str]) -> Union[str, BaseModel]:
+    def predict(self, input: dict[str, str]) -> str | BaseModel:
         messages = self._prepare_messages(input)
 
         return self.model_provider.send_messages(messages, self.structured_output_class)
 
-    async def async_predict(self, input: dict[str, str]) -> Union[str, BaseModel]:
+    async def async_predict(self, input: dict[str, str]) -> str | BaseModel:
         messages = self._prepare_messages(input)
 
         result = await self.model_provider.async_send_messages(
@@ -133,7 +132,7 @@ class LLMModel:
 
     def predict_batch(
         self, inputs: list[dict[str, str]]
-    ) -> list[Union[str, BaseModel]]:
+    ) -> list[str | BaseModel]:
         batch_messages = [self._prepare_messages(input) for input in inputs]
 
         return self.model_provider.batch_send_messages(

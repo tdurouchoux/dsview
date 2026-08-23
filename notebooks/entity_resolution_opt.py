@@ -6,13 +6,13 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    from dotenv import load_dotenv
     import marimo as mo
     import mlflow
+    from dotenv import load_dotenv
 
-    from dsview.evaluation.entity_resolution import evaluate
-    from dsview.db import engine
     from dsview.config import LLMProvider, ModelConfig, load_extraction_config
+    from dsview.db import engine
+    from dsview.evaluation.entity_resolution import evaluate
 
     return (
         LLMProvider,
@@ -29,7 +29,6 @@ def _():
 @app.cell
 def _(load_dotenv):
     load_dotenv()
-    return
 
 
 @app.cell
@@ -43,35 +42,31 @@ def _(load_extraction_config, mlflow):
 @app.cell
 def _(engine, mo):
     _df = mo.sql(
-        f"""
+        """
         SELECT * FROM labels.erlabels
         """,
         engine=engine,
     )
-    return
 
 
 @app.cell
 def _(engine, mo):
     _df = mo.sql(
-        f"""
+        """
         SELECT * FROM extraction.ercomparison
         """,
         engine=engine,
     )
-    return
 
 
 @app.cell
 def _(extraction_config):
     extraction_config.topic_categories.values()
-    return
 
 
 @app.cell
 def _(eval_result):
     eval_result
-    return
 
 
 @app.cell
@@ -86,13 +81,11 @@ def _(evaluate, experiment, mlflow):
 @app.cell
 def _(eval_results):
     eval_results
-    return
 
 
 @app.cell
 def _(eval_results):
     eval_results[eval_results["merge"] != eval_results["merge_pred"]]
-    return
 
 
 @app.cell
@@ -283,7 +276,7 @@ def _(
 @app.cell
 def _(evaluate, experiment, mistral_small_config, mlflow):
     with mlflow.start_run(
-        run_name=f"Mistral small default", experiment_id=experiment.experiment_id
+        run_name="Mistral small default", experiment_id=experiment.experiment_id
     ):
         eval_results_mistral_small_default = evaluate(
             # system_prompt=system_prompt,
@@ -298,7 +291,6 @@ def _(eval_results, eval_results_mistral_small_default):
     eval_results[
         (eval_results_mistral_small_default["merge_pred"] != eval_results["merge_pred"])
     ]
-    return
 
 
 @app.cell
@@ -313,7 +305,6 @@ def _(LLMProvider, ModelConfig, evaluate, experiment, mlflow):
         evaluate(
             model_config=anthropic_config,
         )
-    return
 
 
 app._unparsable_cell(
@@ -337,7 +328,6 @@ def _(evaluate, experiment, mlflow):
         run_name="Default config", experiment_id=experiment.experiment_id
     ):
         evaluate()
-    return
 
 
 if __name__ == "__main__":

@@ -3,7 +3,8 @@ import logging
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from pydantic import BaseModel
@@ -88,7 +89,7 @@ class ModelProvider(ABC):
     def _assert_model_exists(self, model_name: str):
         try:
             self._retrieve_model(model_name)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 - each provider SDK raises its own exception type here
             raise ProviderConfigurationError(
                 self.model_config.provider, model_name, error
             )
@@ -135,8 +136,8 @@ class ModelProvider(ABC):
     def _complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         pass
 
     @retry(
@@ -147,16 +148,16 @@ class ModelProvider(ABC):
     def send_messages(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         return self._complete(messages, structured_output_class=structured_output_class)
 
     @abstractmethod
     async def _async_complete(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         pass
 
     @retry(
@@ -167,8 +168,8 @@ class ModelProvider(ABC):
     async def async_send_messages(
         self,
         messages: list[dict[str, str]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> Union[str, BaseModel]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> str | BaseModel:
         return await self._async_complete(
             messages, structured_output_class=structured_output_class
         )
@@ -176,8 +177,8 @@ class ModelProvider(ABC):
     def batch_send_messages(
         self,
         batch_messages: list[list[dict[str, str]]],
-        structured_output_class: type[BaseModel] = None,
-    ) -> list[Union[str, BaseModel]]:
+        structured_output_class: type[BaseModel] | None = None,
+    ) -> list[str | BaseModel]:
         """Send many independent requests, returning results in input order.
 
         Providers with a native batch API should override this; the default
@@ -230,7 +231,7 @@ class ModelProvider(ABC):
         self,
         results: list,
         batch_messages: list[list[dict[str, str]]],
-        structured_output_class: type[BaseModel] = None,
+        structured_output_class: type[BaseModel] | None = None,
     ) -> list:
         """Resolve any still-missing (None) batch results via sync calls.
 

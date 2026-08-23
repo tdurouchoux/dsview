@@ -1,6 +1,6 @@
 import pandas as pd
-from sqlmodel import Session
 import streamlit as st
+from sqlmodel import Session
 
 from dsview.db.ingest import save_labels
 from dsview.extraction.content_loader import WebContentLoader

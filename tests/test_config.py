@@ -128,9 +128,11 @@ def test_model_config_2():
 
 
 def test_model_config_3():
-    with generate_config("model.yaml", MODEL_CONFIG_TEST_2):
-        with pytest.raises(ModelConfigurationError):
-            load_model_config()
+    with (
+        generate_config("model.yaml", MODEL_CONFIG_TEST_2),
+        pytest.raises(ModelConfigurationError),
+    ):
+        load_model_config()
 
 
 def test_extraction_config():
@@ -151,7 +153,7 @@ def test_extraction_config():
 def test_obsidian_config():
     with generate_config(
         "storage.yaml",
-        f"""obsidian:
+        """obsidian:
   vault_path: dsview_vault
   content_directory: contents
   topic_directory: topics

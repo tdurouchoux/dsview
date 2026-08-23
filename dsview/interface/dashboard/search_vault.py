@@ -12,7 +12,7 @@ app = marimo.App(
 def _():
     import marimo as mo
 
-    from dsview.db.query import TopicsIndex, ExtractionIndex
+    from dsview.db.query import ExtractionIndex, TopicsIndex
     from dsview.interface.dashboard.marimo_sidebar import get_sidebar
     from dsview.obsidian.obsidian_utils import get_content_url_link
 
@@ -22,13 +22,11 @@ def _():
 @app.cell
 def _(get_sidebar):
     get_sidebar()
-    return
 
 
 @app.cell
 def _(mo):
     mo.center(mo.md(r"""# Search vault"""))
-    return
 
 
 @app.cell
@@ -81,7 +79,6 @@ def _(display_topics, get_content_url_link, mo):
         )
     )
     topic_link
-    return
 
 
 @app.cell
@@ -130,7 +127,6 @@ def _(display_extraction, get_content_url_link, mo):
         )
     )
     content_link
-    return
 
 
 if __name__ == "__main__":

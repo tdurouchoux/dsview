@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from dsview.config import LLMProvider, ModelConfig
 from dsview.model_utils import get_model_provider
 from dsview.model_utils.model_provider import MissingAPIKey
-from dsview.model_utils.providers.anthropic import AnthropicProvider
 from dsview.model_utils.providers.mistral import MistralProvider
 from dsview.model_utils.providers.ollama import OllamaProvider
 from dsview.model_utils.providers.openai import OpenAIProvider

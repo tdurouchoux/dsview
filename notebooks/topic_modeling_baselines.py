@@ -18,7 +18,6 @@ def _():
     # asyncio to allow that reentrant run. Notebook-only workaround; production code
     # under dsview/ is intentionally left untouched.
     nest_asyncio.apply()
-    return
 
 
 @app.cell
@@ -76,7 +75,6 @@ def _(mo):
     uv run --with yake --with keybert marimo edit notebooks/topic_modeling_baselines.py
     ```
     """)
-    return
 
 
 @app.cell
@@ -152,7 +150,6 @@ def _(mo):
     mo.md(r"""
     ## Method 1 — YAKE
     """)
-    return
 
 
 @app.cell
@@ -216,7 +213,6 @@ def _(mo):
     mo.md(r"""
     ## Method 2 — KeyBERT
     """)
-    return
 
 
 @app.cell
@@ -288,7 +284,6 @@ def _(
 @app.cell
 def _(keybert_results):
     keybert_results
-    return
 
 
 @app.cell
@@ -305,7 +300,6 @@ def _(mo):
     GLiNER's context window is ~384 tokens but the median eval document is ~3.9k
     tokens, so content is chunked and entities are aggregated across chunks.
     """)
-    return
 
 
 @app.cell
@@ -412,7 +406,6 @@ def _(
 @app.cell
 def _(gliner_data):
     gliner_data
-    return
 
 
 @app.cell
@@ -420,7 +413,6 @@ def _(mo):
     mo.md(r"""
     ## Comparison
     """)
-    return
 
 
 @app.cell
@@ -439,7 +431,6 @@ def _(gliner_results, keybert_results, pd, yake_results):
         }
     )
     comparison
-    return
 
 
 if __name__ == "__main__":

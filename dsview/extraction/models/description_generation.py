@@ -1,5 +1,4 @@
 import enum
-from typing import List
 
 from pydantic import BaseModel
 
@@ -22,7 +21,7 @@ class ContentDescription(BaseModel):
     analysis: str
     title: str
     content_type: ContentType
-    tags: List[DataScienceTag]
+    tags: list[DataScienceTag]
 
 
 class DescriptionGenerator(LLMModel):

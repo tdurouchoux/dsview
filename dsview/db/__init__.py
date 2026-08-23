@@ -1,14 +1,15 @@
 from functools import cache
 from typing import TYPE_CHECKING
 
-from sqlmodel import Session, SQLModel, create_engine, text
+from sqlmodel import Session, create_engine, text
 from tenacity import (
     retry,
     stop_after_attempt,
 )
 
 from dsview.config import load_postgres_config
-from . import schemas
+
+from . import schemas as schemas
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
@@ -42,9 +43,6 @@ def __getattr__(name: str):
     if name == "engine":
         return get_engine()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-# SQLModel.metadata.create_all(engine)
 
 
 @retry(reraise=True, stop=stop_after_attempt(5))

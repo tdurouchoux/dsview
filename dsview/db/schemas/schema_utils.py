@@ -1,15 +1,13 @@
-from typing import Type
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
 
 def drop_tables(
-    table_models: list[Type[SQLModel]],
+    table_models: list[type[SQLModel]],
     engine,
     reset: bool = False,
 ):
-    table_list = [getattr(model, "__table__") for model in table_models]
+    table_list = [model.__table__ for model in table_models]
     SQLModel.metadata.drop_all(engine, tables=table_list)
 
     if reset:
