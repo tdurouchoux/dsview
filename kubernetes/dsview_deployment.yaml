@@ -435,6 +435,8 @@ spec:
                 secretKeyRef:
                   name: dsview-secret
                   key: LOGFIRE_TOKEN
+            - name: LOGFIRE_ENVIRONMENT
+              value: production
 
 ---
 # Dashboard Deployment
@@ -665,3 +667,5 @@ spec:
                 secretKeyRef:
                   name: dsview-secret
                   key: LOGFIRE_TOKEN
+            - name: LOGFIRE_ENVIRONMENT
+              value: production
