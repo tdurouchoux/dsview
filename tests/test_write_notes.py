@@ -17,6 +17,7 @@ from dsview.obsidian.obsidian_utils import (
     get_topic_path,
 )
 from dsview.obsidian.write_notes import (
+    update_content_note_metadata,
     update_topic_note,
     write_and_update_topic_list_notes,
     write_topic_note,
@@ -150,3 +151,50 @@ def test_unmerged_topic_is_only_written(session, vault, topic):
     assert get_topic_path("BigQuery", "Platform").exists()
     assert get_content_path("Title A", "Blog post").read_text() == note_before
     assert content.id is not None
+
+
+# --- update_content_note_metadata ----------------------------------------------
+
+
+def test_update_content_note_metadata_rewrites_frontmatter_in_place(
+    session, vault, topic
+):
+    content = link_content(session, topic, "Title A", ["BigQuery"])
+    content.already_read = True
+    content.read_priority = 0
+    content.relevance = 4
+    session.commit()
+
+    extraction_result = ExtractionResult(
+        content_id=content.id,
+        title="Title A",
+        content_type="Blog post",
+        summary="summary",
+        embedding=None,
+    )
+
+    update_content_note_metadata(content, extraction_result)
+
+    note = frontmatter.load(get_content_path("Title A", "Blog post"))
+    assert note["already_read"] is True
+    assert note["relevance"] == 4
+    # the topic embed written by link_content is untouched
+    assert get_topic_link("BigQuery", "Platform") in note.content
+
+
+def test_update_content_note_metadata_skips_missing_note(session, vault, topic):
+    content = link_content(session, topic, "Title A", ["BigQuery"])
+    get_content_path("Title A", "Blog post").unlink()
+
+    extraction_result = ExtractionResult(
+        content_id=content.id,
+        title="Title A",
+        content_type="Blog post",
+        summary="summary",
+        embedding=None,
+    )
+
+    # must not raise, mirroring update_topic_note's "log and continue" behavior
+    update_content_note_metadata(content, extraction_result)
+
+    assert not get_content_path("Title A", "Blog post").exists()

@@ -31,6 +31,7 @@ from dsview.obsidian.sync_vault import (
 from dsview.obsidian.sync_vault import (
     config as vault_config,
 )
+from dsview.obsidian.write_notes import update_content_note_metadata
 
 # TODO merge setup and sync_vault
 
@@ -208,7 +209,7 @@ async def relevance(link: HttpUrl, relevance: int, session: SessionDep):
     check_db_connection(session)
 
     try:
-        update_content(
+        content = update_content(
             session,
             content_link=link,
             already_read=True,
@@ -220,6 +221,12 @@ async def relevance(link: HttpUrl, relevance: int, session: SessionDep):
             status_code=404,
             detail="Provided link not found, cannot change relevance.",
         )
+
+    session.commit()
+
+    extraction_results, _, _ = get_content_extraction(content.id, session)
+    if extraction_results:
+        update_content_note_metadata(content, extraction_results[0])
 
     logger.info("Updated relevance from link %s to %s", link, relevance)
 
