@@ -35,7 +35,6 @@ def _(mo):
     mo.center(mo.md(r"""# Upload dashboard"""))
 
 
-
 @app.cell
 def _(content, engine, inputcontent, mo):
     min_date = mo.sql(
@@ -125,7 +124,9 @@ def _(alt, content_upload):
 
 @app.cell
 def _(HttpUrl, content_upload, mo):
-    content_upload["host"] = content_upload["link"].apply(lambda link: HttpUrl(link).host)
+    content_upload["host"] = content_upload["link"].apply(
+        lambda link: HttpUrl(link).host
+    )
 
     mo.ui.table(
         content_upload.value_counts("host").to_frame().head(10),

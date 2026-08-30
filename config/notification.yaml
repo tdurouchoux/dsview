@@ -1,0 +1,4 @@
+smtp_host: smtp.gmail.com
+smtp_port: 587
+sender_name: DSView Weekly Digest
+first_issue_week_start: "2026-08-24"

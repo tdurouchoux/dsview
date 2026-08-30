@@ -1,4 +1,3 @@
-
 import instructor
 import numpy as np
 import ollama

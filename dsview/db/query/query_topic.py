@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+from datetime import date
 from typing import TYPE_CHECKING
 
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from ..schemas import ExtractionTopic
+from ..schemas import ContentTopicRelation, ExtractionTopic, InputContent
 from .query_utils import DuckDBIndex
 
 if TYPE_CHECKING:
@@ -80,3 +82,27 @@ def get_topic_by_name(name: str, session: Session) -> DataScienceTopic:
 
 def get_topic_list(session: Session) -> list[ExtractionTopic]:
     return session.exec(select(ExtractionTopic)).all()
+
+
+def get_topic_min_upload_dates(
+    topic_ids: Sequence[int], session: Session
+) -> dict[int, date]:
+    """Earliest upload date among the contents connected to each of `topic_ids`.
+
+    A topic's "creation date" is defined as this minimum - it's brand new once
+    that date falls within the current digest week.
+    """
+    if not topic_ids:
+        return {}
+
+    statement = (
+        select(
+            ContentTopicRelation.topic_id,
+            func.min(InputContent.upload_date),
+        )
+        .join(InputContent, InputContent.id == ContentTopicRelation.content_id)
+        .where(ContentTopicRelation.topic_id.in_(topic_ids))
+        .group_by(ContentTopicRelation.topic_id)
+    )
+
+    return dict(session.exec(statement).all())

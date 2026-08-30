@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        role: [api, mcp, dashboard, labels]
+        role: [api, mcp, dashboard, labels, digest]
 
     permissions:
       contents: read

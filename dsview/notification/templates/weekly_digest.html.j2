@@ -1,0 +1,290 @@
+{#-
+  DSView weekly digest — Jinja2 email template.
+
+  Render with:  Environment(loader=PackageLoader("dsview", "newsletter/templates"),
+                            autoescape=select_autoescape(["html", "j2"]))
+  Context contract: see render.py (DigestContext) next to this file.
+
+  Notes:
+   * `logo_url` MUST be an absolute https URL — email clients cannot load local files.
+   * Everything is table-based with inline styles (Gmail/Outlook safe). Keep the
+     rendered output under ~100KB or Gmail clips the message: cap `must_read`,
+     `revisit` and the inline lists rather than letting them grow unbounded.
+-#}
+{%- set C = {
+  'bg':        '#efecec',
+  'paper':     '#faf8f8',
+  'card':      '#ffffff',
+  'ink':       '#2b2b2b',
+  'ink_soft':  '#4e4e4e',
+  'gray':      '#b8b8b8',
+  'rule':      '#e5e5e5',
+  'blue':      '#284b63',
+  'green':     '#519085',
+  'red':       '#d65c5c',
+  'mint':      '#84a59d',
+  'wash':      '#f5f2f2'
+} -%}
+{%- set TOPIC_COLORS = {
+  'Concept':  '#cb75d7',
+  'Dataset':  '#8921a6',
+  'Library':  '#a8802f',
+  'Model':    '#5cc2d6',
+  'Platform': '#5c60d6',
+  'Tool':     '#519085'
+} -%}
+{%- set SANS = "'Source Sans 3', Helvetica, Arial, sans-serif" -%}
+
+{#- ---------- macros ---------- -#}
+
+{%- macro delta(value) -%}
+  {%- if value %}<span style="font-family:{{ SANS }}; font-size:11px; font-weight:normal; color:{{ C.green if value > 0 else C.red }};">{{ '+' if value > 0 }}{{ value }}</span>{% endif -%}
+{%- endmacro -%}
+
+{%- macro metric(value, label, color, change=None, last=False) -%}
+<td width="25%" align="center" style="width:25%; padding:10px 2px;{% if not last %} border-right:1px solid {{ C.rule }};{% endif %}">
+  <div style="font-family:{{ SANS }}; font-size:22px; line-height:26px; mso-line-height-rule:exactly; font-weight:bold; color:{{ color }};">{{ value }} {{ delta(change) }}</div>
+  <div style="font-family:{{ SANS }}; font-size:10px; line-height:13px; mso-line-height-rule:exactly; letter-spacing:0.4px; text-transform:uppercase; color:{{ C.ink_soft }};">{{ label }}</div>
+</td>
+{%- endmacro -%}
+
+{%- macro section_label(text, count=None) -%}
+<div style="font-family:{{ SANS }}; font-size:11px; line-height:16px; mso-line-height-rule:exactly; font-weight:bold; letter-spacing:1.2px; text-transform:uppercase; color:{{ C.ink }}; padding-bottom:5px;">{{ text }}{% if count is not none %} &nbsp;<span style="font-family:{{ SANS }}; font-weight:normal; letter-spacing:0; text-transform:none; color:{{ C.gray }};">{{ count }}</span>{% endif %}</div>
+{%- endmacro -%}
+
+{%- macro section_head(text, meta=None, sub=None) -%}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+  <tr>
+    <td width="100%" style="font-family:{{ SANS }}; font-size:13px; line-height:18px; mso-line-height-rule:exactly; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase; color:{{ C.ink }};">{{ text }}</td>
+    {%- if meta %}<td align="right" style="white-space:nowrap; padding-left:12px; font-family:{{ SANS }}; font-size:12px; line-height:18px; mso-line-height-rule:exactly; color:{{ C.gray }};">{{ meta }}</td>{% endif %}
+  </tr>
+  {%- if sub %}
+  <tr><td colspan="2" style="padding-top:8px; font-family:{{ SANS }}; font-size:15px; line-height:22px; mso-line-height-rule:exactly; color:{{ C.ink_soft }};">{{ sub }}</td></tr>
+  {%- endif %}
+</table>
+{%- endmacro -%}
+
+{#- A content card. `item` fields: content_type, meta, title, source_url,
+    upload_date, note_url, gist, bullets (list of str), why (optional HTML-free str). -#}
+{%- macro content_card(item, top_padding=14, show_bullets=True) -%}
+<tr>
+  <td class="px" style="padding:{{ top_padding }}px 32px 0 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:{{ C.card }}; border:1px solid {{ C.rule }};">
+      <tr>
+        <td style="padding:18px 18px 20px 18px;">
+          <div style="font-family:{{ SANS }}; font-size:11px; line-height:15px; mso-line-height-rule:exactly; letter-spacing:0.8px; text-transform:uppercase; color:{{ C.red }}; padding-bottom:8px;">
+            {{ item.content_type }}{% if item.meta %} &nbsp;·&nbsp; <span style="color:{{ C.gray }};">{{ item.meta }}</span>{% endif %}{% if item.upload_date %} &nbsp;·&nbsp; <span style="color:{{ C.gray }};">{{ item.upload_date.strftime('%b %d, %Y') }}</span>{% endif %}
+          </div>
+          <div class="itemtitle" style="font-family:{{ SANS }}; font-size:20px; line-height:26px; mso-line-height-rule:exactly; font-weight:bold; letter-spacing:-0.3px; padding-bottom:10px;">
+            <a href="{{ item.source_url }}" style="color:{{ C.ink }}; text-decoration:none;">{{ item.title }}</a>
+          </div>
+          {%- if item.gist %}
+          <div style="font-family:{{ SANS }}; font-size:15px; line-height:24px; mso-line-height-rule:exactly; color:{{ C.ink_soft }}; padding-bottom:12px;">
+            {{ item.gist }}
+          </div>
+          {%- endif %}
+          {%- if item.bullets and show_bullets %}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            {%- for bullet in item.bullets %}
+            <tr><td style="{% if not loop.last %}padding-bottom:6px; {% endif %}font-family:{{ SANS }}; font-size:15px; line-height:22px; mso-line-height-rule:exactly; color:{{ C.ink_soft }};">— {{ bullet }}</td></tr>
+            {%- endfor %}
+          </table>
+          {%- endif %}
+          {%- if item.why %}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:14px;">
+            <tr>
+              <td style="font-family:{{ SANS }}; font-size:14px; line-height:20px; mso-line-height-rule:exactly; color:{{ C.ink_soft }}; background-color:{{ C.wash }};">
+                <div style="padding:9px 11px;"><strong style="color:{{ C.ink }};">Why now:</strong> {{ item.why }}</div>
+              </td>
+            </tr>
+          </table>
+          {%- endif %}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="padding-top:16px;">
+            <tr>
+              <td class="btn" style="background-color:{{ C.blue }}; border-radius:6px;">
+                <a href="{{ item.source_url }}" style="display:inline-block; padding:13px 20px; font-family:{{ SANS }}; font-size:15px; line-height:18px; mso-line-height-rule:exactly; font-weight:bold; color:{{ C.paper }}; text-decoration:none; border-radius:6px;">Read the source&nbsp;↗</a>
+              </td>
+              {%- if item.note_url %}
+              <td nowrap="nowrap" style="padding-left:14px; white-space:nowrap; font-family:{{ SANS }}; font-size:14px; line-height:18px; mso-line-height-rule:exactly;">
+                <a href="{{ item.note_url }}" style="color:{{ C.ink_soft }}; text-decoration:underline;">vault note</a>
+              </td>
+              {%- endif %}
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+{%- endmacro -%}
+
+{%- macro divider(top=32) -%}
+<tr><td class="px" style="padding:{{ top }}px 32px 0 32px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr><td style="border-bottom:1px solid {{ C.ink }}; font-size:1px; line-height:1px; mso-line-height-rule:exactly;">&zwnj;</td></tr></table></td></tr>
+{%- endmacro -%}
+
+{#- ---------- document ---------- -#}
+<!DOCTYPE html>
+<html lang="{{ lang | default('en') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{ subject | default('DSView Weekly — Issue ' ~ issue.number, true) }}</title>
+<!--[if mso]>
+<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+<![endif]-->
+<style>
+  @media only screen and (max-width:600px) {
+    .px { padding-left:18px !important; padding-right:18px !important; }
+    .h1 { font-size:19px !important; line-height:25px !important; }
+    .itemtitle { font-size:19px !important; line-height:25px !important; }
+    .btn a { display:block !important; }
+  }
+  a { color:{{ C.blue }}; }
+  a:hover { color:#1d3648; }
+</style>
+</head>
+<body style="margin:0; padding:0; background-color:{{ C.bg }}; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
+
+<span style="display:none; font-size:1px; color:{{ C.bg }}; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">{{ preheader }}</span>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:{{ C.bg }};">
+<tr>
+<td align="center" style="padding:16px 8px 40px 8px;">
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px; max-width:600px; background-color:{{ C.paper }};">
+
+  <!-- Header -->
+  <tr>
+    <td class="px" style="padding:22px 32px 20px 32px; background-color:{{ C.blue }}; border-bottom:3px solid {{ C.blue }};">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td width="38" valign="middle" style="width:38px;">
+            <img src="{{ logo_url }}" width="34" height="34" alt="DSView" style="display:block; width:34px; height:34px; border:0; outline:none; text-decoration:none;">
+          </td>
+          <td valign="middle" style="padding-left:12px; font-family:{{ SANS }}; font-size:19px; line-height:24px; mso-line-height-rule:exactly; font-weight:bold; letter-spacing:-0.2px; color:#FFFFFF;">
+            DSView - Weekly Digest
+          </td>
+          <td valign="middle" align="right" style="font-family:{{ SANS }}; font-size:12px; line-height:16px; mso-line-height-rule:exactly; color:{{ C.gray }};">
+            No.&nbsp;{{ issue.number }} &nbsp;·&nbsp; {{ issue.period }}
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Recap -->
+  <tr>
+    <td class="px" style="padding:22px 32px 0 32px;">
+      <div class="h1" style="font-family:{{ SANS }}; font-size:20px; line-height:26px; mso-line-height-rule:exactly; font-weight:bold; letter-spacing:-0.3px; color:{{ C.ink }};">Last week in the vault</div>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="px" style="padding:12px 32px 0 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid {{ C.rule }}; background-color:{{ C.card }};">
+        <tr>
+          {{ metric(stats.contents, 'contents', C.red, stats.contents_delta) }}
+          {{ metric(stats.new_topics, 'new topics', C.blue, stats.new_topics_delta) }}
+          {{ metric(stats.sources, 'sources', C.green, stats.sources_delta) }}
+          {{ metric(stats.failed, 'failed', C.ink_soft, last=True) }}
+        </tr>
+      </table>
+      {%- if recap_line %}
+      <div style="font-family:{{ SANS }}; font-size:12px; line-height:18px; mso-line-height-rule:exactly; color:{{ C.ink_soft }}; padding-top:8px;">{{ recap_line }}</div>
+      {%- endif %}
+    </td>
+  </tr>
+
+  {%- if new_topics %}
+  <tr>
+    <td class="px" style="padding:16px 32px 0 32px;">
+      {{ section_label('New topics', stats.new_topics) }}
+      <div style="font-family:{{ SANS }}; font-size:15px; line-height:24px; mso-line-height-rule:exactly; color:{{ C.ink_soft }};">
+        {%- for topic in new_topics %}
+        <a href="{{ topic.url }}" style="color:{{ TOPIC_COLORS.get(topic.type, C.blue) }}; text-decoration:none;">{{ topic.name }}</a>
+        {%- if not loop.last %} <span style="color:{{ C.rule }};">|</span>{% endif %}
+        {%- endfor %}
+      </div>
+    </td>
+  </tr>
+  {%- endif %}
+
+  {%- if new_contents %}
+  <tr>
+    <td class="px" style="padding:16px 32px 0 32px;">
+      {{ section_label('New contents', stats.contents) }}
+      <div style="font-family:{{ SANS }}; font-size:15px; line-height:24px; mso-line-height-rule:exactly; color:{{ C.ink_soft }};">
+        {%- for content in new_contents %}
+        <a href="{{ content.note_url }}" style="color:{{ C.blue }}; text-decoration:underline;">{{ content.title }}</a>
+        {%- if not loop.last %} <span style="color:{{ C.gray }};">|</span>{% endif %}
+        {%- endfor %}
+        {%- if new_contents_remaining %}
+        <span style="color:{{ C.gray }};">|</span> <a href="{{ vault_contents_url }}" style="color:{{ C.blue }}; text-decoration:underline;">+{{ new_contents_remaining }} more</a>
+        {%- endif %}
+      </div>
+    </td>
+  </tr>
+  {%- endif %}
+
+  {%- if must_read %}
+  {{ divider(32) }}
+  <tr>
+    <td class="px" style="padding:14px 32px 0 32px;">
+      {{ section_head('Must read', must_read | length ~ ' items') }}
+    </td>
+  </tr>
+  {%- for item in must_read %}
+  {{ content_card(item, 22 if loop.first else 14) }}
+  {%- endfor %}
+  {%- endif %}
+
+  {%- if revisit %}
+  {{ divider(34) }}
+  <tr>
+    <td class="px" style="padding:14px 32px 0 32px;">
+      {{ section_head('Worth revisiting', revisit | length ~ ' contents', revisit_subtitle | default("Older contents the week's ingests pointed back at.", true)) }}
+    </td>
+  </tr>
+  {%- for item in revisit %}
+  {{ content_card(item, 18 if loop.first else 14, show_bullets=False) }}
+  {%- endfor %}
+  {%- endif %}
+
+  <!-- Vault CTA -->
+  <tr>
+    <td class="px" align="center" style="padding:30px 32px 34px 32px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td class="btn" align="center" style="background-color:{{ C.ink }}; border-radius:6px;">
+            <a href="{{ vault_url }}" style="display:block; padding:15px 20px; font-family:{{ SANS }}; font-size:16px; line-height:20px; mso-line-height-rule:exactly; font-weight:bold; color:{{ C.paper }}; text-decoration:none; border-radius:6px; text-align:center;">Open the vault</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td class="px" style="padding:22px 32px 26px 32px; background-color:{{ C.ink }};">
+      <div style="font-family:{{ SANS }}; font-size:13px; line-height:20px; mso-line-height-rule:exactly; color:{{ C.gray }};">
+        {{ footer_note }}
+      </div>
+      <div style="font-family:{{ SANS }}; font-size:13px; line-height:20px; mso-line-height-rule:exactly; color:{{ C.gray }}; padding-top:8px;">
+        {%- for link in footer_links %}
+        <a href="{{ link.url }}" style="color:{{ C.mint }}; text-decoration:underline;">{{ link.label }}</a>
+        {%- if not loop.last %} &nbsp;·&nbsp; {% endif %}
+        {%- endfor %}
+      </div>
+    </td>
+  </tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>

@@ -51,12 +51,18 @@ Header should like : `Authorization: Basic <base64_encoded_auth>`
 
 ```
 kubectl apply -f dsview_deployment.yaml
+kubectl apply -f dsview_digest_cronjob.yaml
 ```
+
+> The digest CronJob reads `DIGEST_SMTP_USER`, `DIGEST_SMTP_PASSWORD` and
+> `DIGEST_EMAIL_TO` from `dsview-secret` - add them to `.env` (see
+> `.env.example`) before Step 1.
 
 ## Deployment removal :
 
 ```
 kubectl delete -f dsview_deployment.yaml
+kubectl delete -f dsview_digest_cronjob.yaml
 ```
 
 > option `--ignore-not-found=true`

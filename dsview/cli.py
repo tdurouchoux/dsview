@@ -458,6 +458,40 @@ def export_graph(
     logger.info(f"Graph exported to {output_file}")
 
 
+@app.command(
+    help="Generate the weekly digest email, sending it unless --no-send is set"
+)
+@logfire.instrument("Weekly digest")
+def digest(
+    send: bool = typer.Option(
+        True, help="Send the generated digest by email (--no-send to only render it)"
+    ),
+    output: Path = typer.Option(
+        None, help="Write the rendered digest HTML to this file"
+    ),
+):
+    """
+    Build the digest (week selection, content fetching, summarization, rendering
+    all happen in dsview.notification), then send it unless told not to.
+    """
+    from dsview.notification.digest_pipeline import build_digest
+    from dsview.notification.email_sender import send_email
+
+    with Session(db.engine) as session:
+        subject, html_body = build_digest(session)
+
+    if output:
+        output.write_text(html_body)
+        logger.info("Digest written to %s", output)
+
+    if not send:
+        logger.info("Weekly digest generated (not sent, --no-send): %s", subject)
+        return
+
+    send_email(subject, html_body)
+    logger.info("Weekly digest sent: %s", subject)
+
+
 def main():
     app()
 
