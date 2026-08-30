@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from dsview.config import ModelType, lazy_model_config
@@ -16,7 +15,9 @@ class ERResult(BaseModel):
     merge_topic: bool
     topic: DataScienceTopic | None
 
+
 list_topic_type = [",".join(TopicType)]
+
 
 class ERClassifier(LLMModel):
     DEFAULT_MODEL_CONFIG = lazy_model_config(ModelType.ER_CLASSIFICATION)

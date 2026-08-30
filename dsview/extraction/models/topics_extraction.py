@@ -27,7 +27,9 @@ class TopicList(BaseModel):
     analysis: str
     topics: list[DataScienceTopic]
 
+
 tags_format_dict = {"tags": ", ".join(TagsType)}
+
 
 class TopicsExtractor(LLMModel):
     DEFAULT_MODEL_CONFIG = lazy_model_config(ModelType.TOPICS_EXTRACTION)

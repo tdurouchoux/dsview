@@ -33,6 +33,7 @@ dependencies = [
     "logfire[fastapi,requests,sqlalchemy]>=4.40.0",
     "openinference-instrumentation-mistralai>=2.0",
     "youtube-transcript-api>=1.2.4",
+    "jinja2>=3.1.6",
 ]
 
 [tool.uv]
@@ -91,7 +92,7 @@ mcp = [
 
 
 [tool.ruff]
-required-version = "==0.16.4"
+required-version = ">=0.16.4"
 extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
