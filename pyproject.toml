@@ -92,7 +92,7 @@ mcp = [
 
 
 [tool.ruff]
-required-version = "==0.16.4"
+required-version = ">=0.16.4"
 extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]

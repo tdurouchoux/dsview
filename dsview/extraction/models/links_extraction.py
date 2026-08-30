@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from dsview.config import ModelType, lazy_model_config
@@ -24,9 +23,7 @@ class LinksExtractor(LLMModel):
 
     def _preprocess_content(self, content_loader: UrlLoader) -> dict:
         if not isinstance(content_loader, UrlLoader):
-            raise TypeError(
-                "LinksExtractor can only extract links from an URL source."
-            )
+            raise TypeError("LinksExtractor can only extract links from an URL source.")
 
         input = {
             "url": content_loader.link,

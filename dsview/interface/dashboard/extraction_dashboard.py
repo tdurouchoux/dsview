@@ -573,7 +573,6 @@ def _(content_layout, content_links_layout, er_layout, mo, topic_layout):
     )
 
 
-
 @app.cell
 def _():
     ## Graph analysis ?

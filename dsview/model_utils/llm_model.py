@@ -130,9 +130,7 @@ class LLMModel:
 
         return result
 
-    def predict_batch(
-        self, inputs: list[dict[str, str]]
-    ) -> list[str | BaseModel]:
+    def predict_batch(self, inputs: list[dict[str, str]]) -> list[str | BaseModel]:
         batch_messages = [self._prepare_messages(input) for input in inputs]
 
         return self.model_provider.batch_send_messages(
