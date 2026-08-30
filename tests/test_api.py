@@ -186,6 +186,78 @@ def test_ingest_status_success_even_with_stale_failed_ingestion(client, monkeypa
     assert response.json() == {"status": "success"}
 
 
+def test_relevance_commits_and_updates_the_note(client, monkeypatch):
+    fake_content = type("FakeContent", (), {"id": 1})()
+    fake_extraction = object()
+
+    monkeypatch.setattr(api, "update_content", lambda session, **kwargs: fake_content)
+    monkeypatch.setattr(
+        api,
+        "get_content_extraction",
+        lambda content_id, session: [[fake_extraction], [], []],
+    )
+
+    commits = []
+
+    class FakeSession:
+        def commit(self):
+            commits.append(True)
+
+    fake_session = FakeSession()
+
+    def fake_get_session():
+        yield fake_session
+
+    api.app.dependency_overrides[api.get_session] = fake_get_session
+
+    note_updates = []
+    monkeypatch.setattr(
+        api,
+        "update_content_note_metadata",
+        lambda content, extraction: note_updates.append((content, extraction)),
+    )
+
+    response = client.patch(
+        "/relevance", params={"link": "https://example.com/post", "relevance": 3}
+    )
+
+    assert response.status_code == 200
+    assert commits == [True]
+    assert note_updates == [(fake_content, fake_extraction)]
+
+
+def test_relevance_skips_note_update_when_extraction_missing(client, monkeypatch):
+    fake_content = type("FakeContent", (), {"id": 1})()
+
+    monkeypatch.setattr(api, "update_content", lambda session, **kwargs: fake_content)
+    monkeypatch.setattr(
+        api, "get_content_extraction", lambda content_id, session: [[], [], []]
+    )
+
+    class FakeSession:
+        def commit(self):
+            pass
+
+    def fake_get_session():
+        yield FakeSession()
+
+    api.app.dependency_overrides[api.get_session] = fake_get_session
+
+    note_updates = []
+    monkeypatch.setattr(
+        api,
+        "update_content_note_metadata",
+        lambda content, extraction: note_updates.append((content, extraction)),
+    )
+
+    response = client.patch(
+        "/relevance", params={"link": "https://example.com/post", "relevance": 3}
+    )
+
+    assert response.status_code == 200
+    assert note_updates == []
+
+
 def test_ingest_status_failed_when_failed_ingestion_exists(client, monkeypatch):
     fake_content = type("FakeContent", (), {"id": 1})()
     fake_failure = type("FakeFailure", (), {"error_message": "404"})()

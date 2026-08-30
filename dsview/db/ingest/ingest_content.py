@@ -46,7 +46,7 @@ def update_content(
     already_read: bool | None = None,
     read_priority: int | None = None,
     relevance: int | None = None,
-):
+) -> InputContent:
     if all((already_read is None, read_priority is None, relevance is None)):
         raise ValueError("No value to update")
 
@@ -56,7 +56,7 @@ def update_content(
         "relevance": relevance,
     }
 
-    update_instance(
+    return update_instance(
         session,
         InputContent,
         row_id=content_id,

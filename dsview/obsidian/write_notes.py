@@ -108,6 +108,32 @@ def write_and_update_topic_list_notes(
             update_topic_note(topic, merge.old_name, merge.old_type)
 
 
+def update_content_note_metadata(
+    content: InputContent, extraction_result: ExtractionResult
+) -> None:
+    """Refresh a content note's frontmatter after a DB-only field update.
+
+    Used by the /relevance endpoint: already_read/read_priority/relevance are
+    updated on the InputContent row without re-running extraction, so the note
+    body is left untouched and only the frontmatter is rewritten from `content`.
+    """
+    content_path = get_content_path(
+        extraction_result.title, extraction_result.content_type
+    )
+
+    if not content_path.exists():
+        logger.error(
+            "Could not find content note : %s. Continuing anyway",
+            extraction_result.title,
+        )
+        return
+
+    note = frontmatter.load(content_path)
+    note.metadata.update(content.get_str_dict())
+
+    write_note(note, content_path)
+
+
 # ? What about jinja template for this
 def write_content_note(content: InputContent, extraction_result: ExtractionResult):
     # Need more than extracted content > query
