@@ -12,10 +12,12 @@ from dsview.config import (
     ModelConfig,
     ModelConfigurationError,
     ModelType,
+    NotificationConfig,
     ObsidianConfig,
     load_config,
     load_extraction_config,
     load_model_config,
+    load_notification_config,
     load_obsidian_config,
     load_postgres_config,
 )
@@ -157,6 +159,7 @@ def test_obsidian_config():
   vault_path: dsview_vault
   content_directory: contents
   topic_directory: topics
+  vault_base_url: https://example.github.io/dsview_vault_page
   github_vault:
     repository: repo_url
     username: me
@@ -168,6 +171,7 @@ def test_obsidian_config():
             vault_path=Path("dsview_vault"),
             content_directory="contents",
             topic_directory="topics",
+            vault_base_url="https://example.github.io/dsview_vault_page",
             github_vault=GithubVault(
                 repository="repo_url",
                 username="me",
@@ -187,6 +191,7 @@ def test_postgres_config():
         "storage.yaml",
         """obsidian:
   vault_path: dsview_vault
+  vault_base_url: https://example.github.io/dsview_vault_page
 postgres:
   host: localhost
   port: 5432
@@ -202,3 +207,42 @@ postgres:
         assert postgres_config.database == "test_db"
         assert postgres_config.user == "test_user"
         assert postgres_config.password == "test_password"
+
+
+def test_notification_config_digest_limits_default_when_omitted():
+    with generate_config(
+        "notification.yaml",
+        """smtp_host: smtp.gmail.com
+smtp_port: 587
+sender_name: DSView Weekly Digest
+first_issue_week_start: "2026-08-24"
+""",
+    ):
+        notification_config = load_notification_config()
+
+        assert isinstance(notification_config, NotificationConfig)
+        assert notification_config.must_read_limit == 5
+        assert notification_config.must_read_pool_multiplier == 5
+        assert notification_config.resurfaced_limit == 5
+        assert notification_config.new_topics_limit == 100
+
+
+def test_notification_config_digest_limits_can_be_overridden():
+    with generate_config(
+        "notification.yaml",
+        """smtp_host: smtp.gmail.com
+smtp_port: 587
+sender_name: DSView Weekly Digest
+first_issue_week_start: "2026-08-24"
+must_read_limit: 3
+must_read_pool_multiplier: 2
+resurfaced_limit: 8
+new_topics_limit: 15
+""",
+    ):
+        notification_config = load_notification_config()
+
+        assert notification_config.must_read_limit == 3
+        assert notification_config.must_read_pool_multiplier == 2
+        assert notification_config.resurfaced_limit == 8
+        assert notification_config.new_topics_limit == 15

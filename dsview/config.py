@@ -39,6 +39,7 @@ class ModelType(Enum):
     TOPICS_EXTRACTION = 5
     SEMANTIC_SCORE = 6
     INDEX = 7
+    DIGEST_SUMMARY = 8
 
 
 @dataclass
@@ -48,9 +49,7 @@ class ModelConfig:
     embedding_model: str | None = None
     provider: LLMProvider = LLMProvider.OPENAI
     token_limit: int = MISSING
-    model_specific_config: dict[str, int | str] | None = field(
-        default_factory=dict
-    )
+    model_specific_config: dict[str, int | str] | None = field(default_factory=dict)
 
 
 @dataclass
@@ -193,6 +192,10 @@ class ObsidianConfig:
     vault_path: Path = MISSING
     content_directory: str = "contents"
     topic_directory: str = "topics"
+    # Published Quartz vault (e.g. GitHub Pages), distinct from `vault_path`.
+    # Shared by anything that links out to the vault - the digest email, and
+    # (upcoming) the dashboard.
+    vault_base_url: str = MISSING
     github_vault: GithubVault = field(default_factory=GithubVault)
 
 
@@ -232,6 +235,31 @@ def load_postgres_config() -> PostgresConfig:
     return load_storage_config().postgres
 
 
+@dataclass
+class NotificationConfig:
+    smtp_host: str = MISSING
+    smtp_port: int = MISSING
+    sender_name: str = MISSING
+    # Monday (week start) of Issue #1, ISO format (e.g. "2026-08-24") - anchors the
+    # sequential issue numbering. OmegaConf structured configs don't support `date`
+    # natively, so this stays a str and callers parse it with `date.fromisoformat`.
+    first_issue_week_start: str = MISSING
+    smtp_user: str | None = "${oc.env:DIGEST_SMTP_USER,null}"
+    smtp_password: str | None = "${oc.env:DIGEST_SMTP_PASSWORD,null}"
+    email_to: str | None = "${oc.env:DIGEST_EMAIL_TO,null}"
+    must_read_limit: int = 5
+    must_read_pool_multiplier: int = 5
+    resurfaced_limit: int = 5
+    new_topics_limit: int = 100
+
+
+load_notification_config: Callable[[], NotificationConfig] = partial(
+    load_config, NotificationConfig, "notification.yaml"
+)
+
+notification_config: NotificationConfig = lazy(load_notification_config)
+
+
 def setup_logger(enable_logfire: bool = False, service_name: str | None = None):
     with open(Path(os.getenv("CONF_DIR")) / "logging.yaml") as config_file:
         logging_config = yaml.safe_load(config_file)
@@ -248,7 +276,9 @@ def setup_logger(enable_logfire: bool = False, service_name: str | None = None):
 
         from dsview.model_utils.observability import MistralUsageSpanProcessor
 
-        send_to_logfire = False if "PYTEST_VERSION" in os.environ else "if-token-present"
+        send_to_logfire = (
+            False if "PYTEST_VERSION" in os.environ else "if-token-present"
+        )
 
         logfire.configure(
             console=False,

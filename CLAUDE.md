@@ -214,3 +214,9 @@ to extend later — not padded with flexibility for that later.
 - Prompts are plain-text files with `str.format` placeholders — changing a prompt file changes
   model behavior; treat prompt edits like code changes (evaluate before merging).
 - Version is bumped in `pyproject.toml`; Docker images are published by tagging `v*.*.*`.
+- A function taking a `Session` puts it last among the *required* parameters (e.g.
+  `def foo(content: InputContent, session: Session) -> ...`), not first. Parameters with
+  defaults still trail it, since Python forbids a required positional parameter after a
+  defaulted one — e.g. `def foo(topic_ids, session, limit=3)`. When every other parameter
+  already has a default, `session` has no required parameter to move after and stays first
+  (e.g. `get_filtered_content(session, already_read=None, ...)`).

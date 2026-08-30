@@ -1,0 +1,101 @@
+---
+# CronJob for the weekly digest email (`dsview digest`).
+#
+# Schedule is Sunday 06:00, matching the digest template's own default footer
+# ("generated from the knowledge base, Mondat 13:30"). This uses whatever
+# timezone the cluster's kube-controller-manager defaults to (usually UTC) -
+# add `spec.timeZone: "Europe/Paris"` (k8s >= 1.27) if it should fire at 06:00
+# in a specific zone instead.
+#
+# Requires `dsview-secret` to also carry DIGEST_SMTP_USER, DIGEST_SMTP_PASSWORD
+# and DIGEST_EMAIL_TO (see .env.example) alongside the existing keys.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dsview-digest
+  labels:
+    app: dsview
+    component: digest
+spec:
+  schedule: "30 13 * * 1"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: dsview
+            component: digest
+        spec:
+          serviceAccountName: dsview-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: dsview-digest
+              image: ghcr.io/tdurouchoux/dsview-digest:latest
+              imagePullPolicy: Always
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "1000m"
+              env:
+                # From ConfigMap
+                - name: POSTGRES_HOST
+                  valueFrom:
+                    configMapKeyRef:
+                      name: dsview-config
+                      key: POSTGRES_HOST
+                - name: POSTGRES_PORT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: dsview-config
+                      key: POSTGRES_PORT
+                - name: POSTGRES_DB
+                  valueFrom:
+                    configMapKeyRef:
+                      name: dsview-config
+                      key: POSTGRES_DB
+                - name: POSTGRES_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      name: dsview-config
+                      key: POSTGRES_READONLY_USER
+                # From Secrets
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: POSTGRES_READONLY_PASSWORD
+                - name: MISTRAL_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: MISTRAL_API_KEY
+                - name: DIGEST_SMTP_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: DIGEST_SMTP_USER
+                - name: DIGEST_SMTP_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: DIGEST_SMTP_PASSWORD
+                - name: DIGEST_EMAIL_TO
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: DIGEST_EMAIL_TO
+                - name: LOGFIRE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: dsview-secret
+                      key: LOGFIRE_TOKEN
+                - name: LOGFIRE_ENVIRONMENT
+                  value: production
