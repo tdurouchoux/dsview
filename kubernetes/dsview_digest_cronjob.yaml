@@ -1,11 +1,11 @@
 ---
 # CronJob for the weekly digest email (`dsview digest`).
 #
-# Schedule is Sunday 06:00, matching the digest template's own default footer
-# ("generated from the knowledge base, Mondat 13:30"). This uses whatever
-# timezone the cluster's kube-controller-manager defaults to (usually UTC) -
-# add `spec.timeZone: "Europe/Paris"` (k8s >= 1.27) if it should fire at 06:00
-# in a specific zone instead.
+# `spec.schedule` is the only place that controls when this runs - the digest
+# itself always covers the last fully-completed Monday-Sunday week, regardless
+# of which day this fires on. This uses whatever timezone the cluster's
+# kube-controller-manager defaults to (usually UTC) - add
+# `spec.timeZone: "Europe/Paris"` (k8s >= 1.27) for a specific zone instead.
 #
 # Requires `dsview-secret` to also carry DIGEST_SMTP_USER, DIGEST_SMTP_PASSWORD
 # and DIGEST_EMAIL_TO (see .env.example) alongside the existing keys.

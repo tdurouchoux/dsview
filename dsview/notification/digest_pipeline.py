@@ -38,8 +38,6 @@ from dsview.notification.digest_summary import DigestSummaryGenerator
 
 logger = logging.getLogger(__name__)
 
-DIGEST_LOOKBACK_DAYS = 7
-
 
 def _digest_item(
     content: InputContent,
@@ -246,8 +244,9 @@ def _build_stats(
     new_topic_count: int,
     session: Session,
 ) -> Stats:
+    window_length = week_end - week_start
     previous_week_end = week_start - timedelta(days=1)
-    previous_week_start = previous_week_end - timedelta(days=DIGEST_LOOKBACK_DAYS)
+    previous_week_start = previous_week_end - window_length
     previous_input_content = get_content_by_date_range(
         previous_week_start, previous_week_end, session
     )
@@ -264,9 +263,11 @@ def _build_stats(
 
 
 def build_digest(session: Session) -> tuple[str, str]:
-    """Fetch the past `DIGEST_LOOKBACK_DAYS` days' content and return `(subject, html)`."""
-    week_end = datetime.now(UTC).date()
-    week_start = week_end - timedelta(days=DIGEST_LOOKBACK_DAYS)
+    """Fetch last week's Monday-Sunday content and return `(subject, html)`."""
+    today = datetime.now(UTC).date()
+    this_monday = today - timedelta(days=today.weekday())
+    week_start = this_monday - timedelta(days=7)  # last week's Monday
+    week_end = this_monday - timedelta(days=1)  # last week's Sunday
 
     summary_generator = DigestSummaryGenerator()
 

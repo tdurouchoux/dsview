@@ -269,7 +269,7 @@
   <tr>
     <td class="px" style="padding:22px 32px 26px 32px; background-color:{{ C.ink }};">
       <div style="font-family:{{ SANS }}; font-size:13px; line-height:20px; mso-line-height-rule:exactly; color:{{ C.gray }};">
-        {{ footer_note | default('DSView weekly digest — generated from the knowledge base, Sunday 06:00.', true) }}
+        {{ footer_note }}
       </div>
       <div style="font-family:{{ SANS }}; font-size:13px; line-height:20px; mso-line-height-rule:exactly; color:{{ C.gray }}; padding-top:8px;">
         {%- for link in footer_links %}

@@ -4,12 +4,18 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import logfire
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from dsview.config import notification_config
 
 logger = logging.getLogger(__name__)
 
 
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+)
 @logfire.instrument("Send email", extract_args=["subject"])
 def send_email(subject: str, html_body: str) -> None:
     config = notification_config

@@ -162,15 +162,13 @@ def test_render_digest_omits_new_topics_section_when_empty():
     assert "New topics" not in html
 
 
-def test_render_digest_shows_default_footer_note():
+def test_render_digest_shows_generation_timestamp_footer_note():
     stats = Stats(contents=0, new_topics=0, sources=0, failed=0)
 
     html = render_digest([], [], [], date(2026, 8, 24), date(2026, 8, 30), stats=stats)
 
-    assert (
-        "DSView weekly digest — generated from the knowledge base, Sunday 06:00."
-        in html
-    )
+    assert "DSView weekly digest — generated from the knowledge base," in html
+    assert "UTC." in html
     assert "<title>DSView Weekly — Issue 1</title>" in html
     assert ">None<" not in html
     assert "None" not in html

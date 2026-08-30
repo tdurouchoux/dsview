@@ -20,7 +20,7 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, fields
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -169,6 +169,10 @@ def render_digest(
         new_topics=new_topics,
         must_read=must_read_topics,
         revisit=resurfaced_topics,
+        footer_note=(
+            "DSView weekly digest — generated from the knowledge base, "
+            f"{datetime.now(UTC):%b %d, %Y %H:%M} UTC."
+        ),
     )
 
     template = _environment().get_template(TEMPLATE_NAME)
