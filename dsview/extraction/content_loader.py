@@ -27,6 +27,14 @@ from youtube_transcript_api import (
 from dsview.config import load_model_config
 
 REQUEST_TIMEOUT = 60
+# Some sites (e.g. openai.com) return 403 to the default `python-requests/x.x`
+# User-Agent, treating it as bot traffic. Impersonate a regular browser instead.
+REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    )
+}
 
 _MARKDOWN_PARSER = MarkdownIt()
 
@@ -74,7 +82,7 @@ class WebContentLoader(ContentLoader):
 
     def _request_url(self, url: HttpUrl | None = None) -> requests.Response:
         url = url if url is not None else self.link
-        response = requests.get(url, timeout=REQUEST_TIMEOUT)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT, headers=REQUEST_HEADERS)
 
         if response.status_code != 200:
             raise WebRequestFailure(url, response.status_code)
