@@ -20,7 +20,8 @@ that keeps the basics warm and surfaces which areas have gone cold.
 ## Goals and non-goals
 
 **Goal.** Answer, per topic, a deliberately coarse question: *do I still have the basics on this
-methodology / model family?* Recognition-level, not depth.
+methodology / model family?* Working knowledge — how it works, when to use it, what goes wrong —
+not depth, and never mere name recognition.
 
 **Goal.** Become a habit. An unused app is worth nothing here, so friction and engagement design
 are functional requirements, not polish.
@@ -155,7 +156,8 @@ title, type, tags, summary`. `DsviewTopic` carries `id, type, name, description`
 | Is this curriculum topic covered at all? | `search_topic(topic_name)` |
 | Ground a question in something actually read | `get_connected_contents(topic_id)` → `summary` |
 | What was read recently | `query_content(date_ordering="desc", limit=...)`, filter on `upload_date` |
-| Confusable neighbours of a read topic | `get_connected_topics(content_id)`, `explore_graph(...)` |
+| Reads whose takeaway is worth testing | `query_content(already_read=True, relevance=4\|5, date_ordering="desc")`, keep `type == "Blog post"` / `"Scientific article"` |
+| Which curriculum topic a read belongs to | `get_connected_topics(content_id)` |
 
 **Courses as curriculum sources** is the most valuable of these and was missing from earlier drafts:
 a course or documentation entry in the knowledge base is a curated table of contents. It gives the
@@ -166,17 +168,18 @@ use of dsview than treating it as a coverage database.
 
 | Not exposed | How `dsrecall` manages |
 |---|---|
-| Topic embeddings (excluded from the MCP payload) | Unnecessary: `search_topic` performs dsview's hybrid FTS + vector search server-side and returns ranked topics, which is the capability the vectors would have provided. `dsrecall` embeds its *own* curriculum topics for curriculum-internal work. |
-| Entity-resolution history (`ercomparison`) | Confusable pairs are generated inside the writer/critic loop over curriculum topics, and taken from graph adjacency (`get_connected_topics`, `explore_graph`) for grounded items. See the note below. |
+| Topic embeddings (excluded from the MCP payload) | Unnecessary: `search_topic` performs dsview's hybrid FTS + vector search server-side and returns ranked topics, which is the capability the vectors would have provided. `dsrecall` embeds its *own* curriculum topics, which is what it actually needs them for: deduping agent proposals, and finding the adjacent method a `neighbour_true` distractor is built from. |
+| Entity-resolution history (`ercomparison`) | Not needed: distractors are statements, not topic names, so a catalogue of confusable topic pairs has nothing to attach to. See the note below. |
 | Date-range content queries | Page `query_content(date_ordering="desc")` and filter on `upload_date` client-side. |
 | Resolving a topic by id | Not needed: `dsrecall` stores no dsview ids (see *Data model*). Topic identity travels as a name from `search_topic`, provenance as a URL. |
 | Hourly staleness of search and ranking indexes | Irrelevant: only the offline batch talks to dsview. The serving path never does. |
 
-On entity resolution: dsview's ER log does contain pairs judged similar-but-distinct, which are in
-principle ready-made discrimination items. It is not used, for two reasons — the pairs skew toward
-tool and library name collisions rather than the fundamentals this curriculum targets, and asking a
-current model for commonly-confused pairs within an area is not the weak link it would have been two
-years ago. Revisit only if discrimination items measure worst in evaluation.
+On entity resolution: dsview's ER log contains topic pairs judged similar-but-distinct, which an
+earlier draft wanted as ready-made "which of these is X" items. That item shape is now out of scope
+entirely (see *Question generation*), so the log has nothing to contribute. The residual confusion
+value survives in a better form: a property that is genuinely true of a *neighbouring* method makes
+an excellent wrong option for a question about this one, which tests the same confusion through
+substance instead of through naming.
 
 ### Deliberately no stored coupling
 
@@ -196,10 +199,12 @@ relation to maintain.
   (`web` | `dsview`). Provenance is what makes an agent-proposed curriculum trustable; without it,
   accepting a topic is an act of faith. `origin="dsview"` marks a topic proposed from a course or
   documentation entry in the knowledge base.
-- **`quizquestion`** — `id`, `curriculum_topic_id`, `archetype`, `question`, `explanation`,
-  `source_url`, `source_title` (both nullable, set for grounded items), `generation_date`,
-  `retired`.
-- **`quizchoice`** — `id`, `question_id`, `text`, `correct`.
+- **`quizquestion`** — `id`, `curriculum_topic_id`, `archetype` (`mechanism` | `application` |
+  `pitfall` | `tradeoff` | `takeaway`), `question`, `explanation`, `source_url`, `source_title`
+  (both nullable, set for grounded items), `generation_date`, `retired`.
+- **`quizchoice`** — `id`, `question_id`, `text`, `correct`, `strategy` (`perturbed` |
+  `neighbour_true` | `misconception`, null on the key). Recording how each distractor was built is
+  what lets evaluation compare strategies rather than guess.
 - **`quizanswer`** — `id`, `question_id`, `choice_id`, `answer_date`, `flagged`.
 - **`questionlabel`** — human verdicts, multi-label; the judge's reference data. Carries its own
   `split` column (`eval` | `test`), assigned once at insert and never recomputed.
@@ -227,33 +232,84 @@ assignment at insert is the simpler fix when there is no reason not to.
 
 ## Question generation
 
-Each item is one stem, one **key** (the correct option) and three **distractors** (the wrong
-options). Distractor quality *is* item quality: if the wrong options are obviously wrong, the key is
-identifiable without knowing anything about the topic, and the item measures nothing. So the table
-below names where each archetype's wrong options come from — they are **selected from a pool of real
-topics**, not invented free-hand by the model, which is the known failure mode.
+### Options are statements, never topic names
 
-| Archetype | Stem grounded in | Wrong options drawn from |
+The point of an item is *what is behind a topic* — how a method works, when it applies, how it
+fails. That rules out one tempting shortcut: if the four options are topic names, the stem can only
+ask "which of these is X", and the item tests vocabulary rather than understanding. An earlier draft
+built exactly that, because drawing options from a pool of real topics is such a convenient way to
+get plausible wrong answers.
+
+So every option is a **proposition about the topic**: a mechanism, a consequence, a condition, a
+failure mode. One is the **key** (true, and true *here*); the other three are **distractors** —
+statements that are wrong, but wrong in a way worth catching.
+
+### Where distractors come from
+
+Distractor quality *is* item quality: if the wrong options are obviously wrong, the key is
+identifiable without knowing anything. Free-writing them is the known weak point, so each one is
+built by an explicit strategy, recorded on the row (`quizchoice.strategy`) so evaluation can tell
+which strategies produce good items:
+
+- **`perturbed`** — take a true statement from the reference material and change exactly one thing:
+  the direction of an effect, the condition it holds under, the quantity that moves. Tempting
+  because it is almost right.
+- **`neighbour_true`** — a property that genuinely holds for an adjacent method, but not for this
+  one. This is where the confusion between close concepts gets tested, without ever asking the
+  reader to match a name to a definition.
+- **`misconception`** — a documented common mistake, which the reference agent looks for explicitly
+  ("common pitfalls", "frequently misunderstood"). The strongest distractor of the three, because it
+  is what you would actually answer if rusty.
+
+### Archetypes
+
+| Archetype | Asks | Example shape |
 |---|---|---|
-| `recognition` | curriculum topic + fetched reference | sibling curriculum topics in the same area, nearest by embedding |
-| `discrimination` | a pair of genuinely confusable curriculum topics | the pair's counterpart |
-| `application` | curriculum topic + a typical use | siblings in the same area |
-| `consolidation` | the summary of a content actually read | other topics linked to that same content (`get_connected_topics`) |
+| `mechanism` | how it works internally, what a component actually does | "What does the causal mask in a decoder block actually prevent?" |
+| `application` | when it fits, which approach suits a described situation | "500 labelled rows, 200 features, heavy class imbalance — which approach, and why?" |
+| `pitfall` | how it breaks, what invalidates a result | "What is wrong with tuning the decision threshold on the same folds used for model selection?" |
+| `tradeoff` | why choose this over a near alternative, in a stated context | "Why prefer this over the obvious alternative when interpretability is a hard requirement?" |
+| `takeaway` | the methodological conclusion a specific read argued | see below |
 
-The model writes the stem and the explanation; the candidate pool comes from data.
+The model writes the stem, the key, the distractors and the explanation; the **strategies** above
+constrain the distractors, and the reference material grounds the key.
 
-### Grounding depth
+One mechanical consequence of statement-options: they are long, and in badly written multiple choice
+the longest option is the answer. Options must be normalised for length and grammatical shape, and
+`cue_leaking` is the judge's job to catch (see *Evaluation*).
 
-dsview persists summaries, not raw content, so `consolidation` items are capped at what a summary
-supports — acceptable at recognition level. Other archetypes are unaffected: the reference agent
-fetches their material.
+### `takeaway` — consolidating a specific read
+
+The point is not to re-summarise something read; a summary played back is worth nothing. It is worth
+asking about a read only when that read **drew a methodological conclusion** — a blog post arguing
+that some approach beats another under given conditions, a paper's actual finding. The question then
+tests whether the *conclusion* stuck.
+
+This makes `takeaway` a **filtered** archetype, not one that can be generated on demand:
+
+1. List candidates: `query_content(already_read=True, relevance=4|5, date_ordering="desc")`, keeping
+   `type` in `Blog post` / `Scientific article` — high self-rated relevance is the cheapest available
+   proxy for "had a point worth keeping".
+2. Read each `summary` and keep only those carrying an extractable methodological claim. Many will
+   not; that is expected, and the ones that do not are simply skipped rather than turned into
+   summary-recall questions.
+3. Distractors are alternative conclusions: the opposite finding, a stronger version than was
+   actually claimed, or a claim that is true in general but not what this piece argued.
+
+Because dsview persists summaries rather than raw content, a claim has to survive summarisation to
+be usable. That bounds the yield of this archetype — it is a filter on which reads qualify, not a
+cap on question depth for the other four.
+
+Note what is *not* used here: topics linked to the same content. The graph is sparse enough that
+co-occurrence in one read implies little, so it is a poor source of anything.
 
 ## Daily selection policy
 
 Five items, mix configurable:
 
 - **2 cold fundamentals** — `kind="fundamental"`, longest since asked or previously wrong.
-- **1 consolidation** — a topic covered by something read in the last few weeks.
+- **1 `takeaway`** — the conclusion of something read recently, when a qualifying read exists;
+  otherwise fall back to a curriculum item, since this archetype is filtered and can come up empty.
 - **1 uncovered** — an accepted curriculum topic dsview has nothing on.
 - **1 new** — never asked.
 
@@ -344,4 +400,5 @@ over time as a first-class metric. This is the kind of evaluation that rots sile
   reads and never followed is a strong recommendation. It is not exposed over MCP and belongs in
   dsview's own weekly digest rather than here.
 - **Spaced repetition proper** (FSRS per topic) — needs answer history first.
-- **Free-text answers with an LLM judge** — only if the goal shifts from recognition to depth.
+- **Free-text answers with an LLM judge** — only if the goal shifts from working knowledge to
+  depth.
