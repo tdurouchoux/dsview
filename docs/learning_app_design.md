@@ -4,9 +4,9 @@
 
 **Scope.** This document specifies a new system that lives in **its own repository** (working name
 `dsrecall`, placeholder). It is kept in the dsview repo because that is the repo that exists today,
-and because most of it is an integration contract *against* dsview. Every path written
-`dsview/...`, and every table and tool named below, refers to the **`tdurouchoux/dsview`**
-repository and its deployment — not to the new repo. Paths were verified against dsview `2.7.0`.
+and because one section of it is an integration contract against dsview. Every path, table and tool
+written `dsview/...` refers to the **`tdurouchoux/dsview`** repository and its deployment, verified
+against dsview `2.7.0`.
 
 ## Problem
 
@@ -25,6 +25,11 @@ methodology / model family?* Recognition-level, not depth.
 **Goal.** Become a habit. An unused app is worth nothing here, so friction and engagement design
 are functional requirements, not polish.
 
+**Goal — exercise the current LLM tooling landscape.** Building this on 2026 tooling is part of the
+point, not incidental. dsview's LLM layer is a 2024 design that has since been overtaken by
+framework-level equivalents; reusing it here would save a week and forfeit the exercise. So
+**nothing is imported from dsview** — see *Stack* and *Integration*.
+
 **Non-goal — measuring mastery.** No calibrated skill level, no certification. This is what makes
 multiple choice the right instrument rather than a compromise.
 
@@ -38,30 +43,40 @@ cross-validation pitfalls, probability calibration, bias–variance, window func
 power — are not blogged about weekly, so they are thin or absent in the graph precisely *because*
 they are settled. They are also exactly what a quiz should keep warm.
 
-An earlier version of this proposal built the item pool directly on `extraction.extractiontopic`
-and weighted selection by `dsview/graph/graph_analysis.py::pagerank`. That is backwards twice over:
-it can only ask about topics that happen to appear in past reading, and it then *prioritises the
-most-read ones* — ranking by what is already freshest. Recorded because the failure is tempting:
-the graph is right there, well-structured, already deduplicated by entity resolution.
+An earlier version of this proposal built the item pool directly on dsview's extracted topics and
+weighted selection by pagerank over the reading graph. That is backwards twice over: it can only ask
+about topics that happen to appear in past reading, and it then *prioritises the most-read ones* —
+ranking by what is already freshest. Recorded because the failure is tempting: the graph is right
+there, well-structured, already deduplicated by entity resolution.
 
-So the system carries **two distinct topic spaces**:
+So `dsrecall` owns a **curriculum** — a topic space of its own, sourced independently of what was
+read, each topic marked `fundamental` or `frontier`. dsview is then consulted for three things and
+nothing else:
 
-| | `curriculum` topics (new repo) | `extraction.extractiontopic` (dsview) |
-|---|---|---|
-| Answers | what a data scientist should have | what I was exposed to |
-| Sourced from | syllabi, textbook tables of contents, standard references, web research | ingested content |
-| Owns | quiz scope | personalisation and grounding |
+- **curriculum sources** — courses and documentation already curated in the knowledge base are
+  syllabi, i.e. exactly the structured material the curriculum agent is looking for (see
+  *Integration*);
+- **grounding** — when a curriculum topic *was* covered by something read, questions can be written
+  against that reading;
+- **coverage** — whether a curriculum topic appears in the knowledge base at all.
 
-and a **mapping** between them, informative in both directions:
+Curriculum scope is decided before the graph is consulted. A topic absent from dsview is still in
+the curriculum; it is simply a topic whose questions are written from fetched references rather than
+from personal reading.
 
-- curriculum topic with no kb coverage → a blind spot the reading list never touched. A prime quiz
-  target, and why coverage-gap analysis comes back almost free.
-- kb topic with no curriculum entry → frontier or tool-specific material. Fine to have read, not
-  necessarily worth committing to memory.
-- both → consolidation: read recently, so check whether it stuck.
+## Stack
 
-The kb's role is therefore **personalisation, grounding and gap detection — not scope.** Curriculum
-coverage is decided before the graph is consulted.
+- **`pydantic-ai`** — agent definitions, LLM provider access, and the MCP client. Replaces
+  everything dsview's `model_utils` does, at framework level, and speaks MCP natively.
+- **MLflow 3 (GenAI)** — evaluation, LLM judges, human-feedback alignment, and **prompt management
+  via the prompt registry**. Prompts are registered artefacts with versions, not files in a repo
+  directory.
+- **Postgres** — own database, no relation to dsview's.
+- A small HTTP API and a phone-first client (below).
+
+Provider choice is left open on purpose; comparing a few is part of the exercise. Exact MLflow
+GenAI API surface should be pinned down against the installed version in phase 1 rather than
+assumed from this document.
 
 ## Architecture
 
@@ -74,24 +89,12 @@ Two tempos, and the split follows them:
 
 Nothing in the serving path calls a model. Every LLM cost is amortised over weeks of sessions.
 
-### Three components — decided
+### Components
 
-1. **dsview — unchanged.** Stays the landscape map. Consumed, never extended for this purpose
-   (two small optional additions are listed under *Gaps*, and neither is required to start).
-2. **Learning backend — new repo.** Curriculum, agents, question bank, answer log, HTTP API. Own
-   Postgres database. Imports `dsview` as a library for the LLM plumbing; consults the knowledge
-   base over MCP and read-only SQL.
-3. **Client — new repo (or a subdirectory of 2).** Phone-first web app: presentation and
-   gamification only, no durable state beyond a session token.
-
-Consuming the kb from outside, rather than growing inside dsview, is what structurally enforces the
-previous section: the graph is one source an agent may consult, and cannot quietly become the
-curriculum. It also keeps a web-research agent and a canonical DS syllabus out of a repo whose
-mission is the reading landscape.
-
-Accepted costs, stated plainly: a git-dependency version coupling on dsview; no shared Postgres
-transaction between the two stores; and the new repo needs its own `CONF_DIR` mirroring dsview's
-config shape (see *As a library*).
+1. **dsview — unchanged.** Consumed over its MCP server, never extended for this purpose.
+2. **`dsrecall` backend — new repo.** Curriculum, agents, question bank, answer log, HTTP API.
+3. **Client — new repo, or a subdirectory of the backend.** Presentation and gamification only, no
+   durable state beyond a session token.
 
 ### Contract with the client
 
@@ -110,26 +113,15 @@ and scores from it. A second client, or a rewrite, inherits the full history.
 
 ---
 
-## Integration with dsview
+## Integration with dsview — MCP only
 
-Three channels, each for what it is actually good at.
+One channel: the MCP server at **`https://dsview-mcp.lab.sspcloud.fr`**
+(`kubernetes/dsview_deployment.yaml`, `dsview-mcp-service` → port 8000; streamable HTTP,
+`stateless_http=True`, `json_response=True`). No direct database access, no shared database, no
+imported code, and nothing written back. `dsrecall` **adapts to whatever the server exposes** —
+where a tool is missing, it works differently rather than reaching around the boundary.
 
-| Need | Channel |
-|---|---|
-| Open-ended exploration by an agent | MCP server |
-| Bulk reads, embeddings, date ranges, ER history | read-only Postgres (`dsview_ro`) |
-| `LLMModel`, config, prompts, eval split helpers | `dsview` as a uv git dependency |
-
-### 1. MCP server — the agent's view
-
-Deployed at **`https://dsview-mcp.lab.sspcloud.fr`** (`kubernetes/dsview_deployment.yaml`,
-`dsview-mcp-service` → port 8000), streamable HTTP, `stateless_http=True`, `json_response=True`
-(`dsview/mcp/server.py`). Note that unlike the ingest, dashboard and labels ingresses, the MCP
-ingress carries **no `nginx.ingress.kubernetes.io/auth-type: basic` annotation** — there is nothing
-for the backend to authenticate with, and equally nothing protecting the endpoint. Worth settling
-before a second consumer depends on it.
-
-Tools available (exact signatures):
+Tools available (`dsview/mcp/server.py`):
 
 ```python
 get_content(content_id: int) -> DsviewContent
@@ -153,197 +145,120 @@ get_nodes_ranking(metric: Literal["betweenness","degree","pagerank"] = "betweenn
 Resources: `config://content_types`, `config://topic_types`.
 
 `DsviewContent` carries `id, link, upload_date, already_read, read_priority, relevance, source,
-title, type, tags, summary` — enough to ground a consolidation item without touching SQL.
-`DsviewTopic` carries `id, type, name, description`.
+title, type, tags, summary`. `DsviewTopic` carries `id, type, name, description`.
 
-Two behaviours to design around:
+### What each tool is for here
 
-- **Indexes and the graph are cached for an hour** (`INDEX_TTL = 3_600`, `lru_cache` over
-  `get_extraction_index` / `get_topics_index` / `get_graph`), so `search_*` and
-  `get_nodes_ranking` lag recent ingests. Irrelevant for a weekly batch; would matter if the
-  serving path ever called MCP, which it must not.
-- **`query_content` has no date-range filter.** For "ingested in the last N weeks", either page
-  with `date_ordering="desc"` and filter client-side, or use SQL (dsview's own
-  `get_content_by_date_range` is not exposed as a tool).
-
-### 2. Read-only Postgres — the batch view
-
-User **`dsview_ro`**, created by `kubernetes/create_readonly_user.sql`: `SELECT` on all tables in
-`content`, `extraction` and `labels`, including future tables. Connection parameters follow
-dsview's own (`dsview/config.py::PostgresConfig`): `POSTGRES_HOST`, `POSTGRES_USER`,
-`POSTGRES_PASSWORD`, port `5432`, database `defaultdb` (`config/storage.yaml`).
-
-Three things the MCP surface cannot give and SQL must:
-
-- **Topic embeddings.** `search_topic` builds its payload with
-  `model_dump(exclude=["embedding"])`, so `extraction.extractiontopic.embedding` is reachable only
-  in SQL. Both the curriculum↔kb mapping and embedding-neighbour distractors depend on it.
-- **Entity-resolution history.** `extraction.ercomparison` is not exposed over MCP at all. Note its
-  shape: it stores `name_1/type_1/description_1`, `name_2/...`, `merge_topic`, `merge_name` — **names,
-  not topic ids**, with no foreign key to `extractiontopic`. Joining back to topics goes through the
-  name, which the unique `ix_extraction_topic_name_lower` index makes sound.
-- **Bulk and date-ranged reads** of `content.inputcontent` and `extraction.extractionresult`
-  without paging a tool call at a time.
-
-Tables consumed, for reference:
-
-| Table | Used for |
+| Need | Call |
 |---|---|
-| `content.inputcontent` | `upload_date`, `already_read`, `relevance` — consolidation targeting |
-| `extraction.extractionresult` | `title`, `content_type`, `summary` — grounding consolidation items |
-| `extraction.extractiontopic` | `name`, `type`, `description`, `embedding` — mapping and distractors |
-| `extraction.contenttopicrelation` | topic ↔ content edges |
-| `extraction.extractiontag` | the 27-tag taxonomy, for area alignment |
-| `extraction.ercomparison` | confusable pairs → discrimination items |
-| `extraction.extractionlink` | deferred; see *Deferred* |
+| Find syllabi to seed the curriculum | `search_content(..., types=["Course"])`, also `["Documentation"]` |
+| Is this curriculum topic covered at all? | `search_topic(topic_name)` |
+| Ground a question in something actually read | `get_connected_contents(topic_id)` → `summary` |
+| What was read recently | `query_content(date_ordering="desc", limit=...)`, filter on `upload_date` |
+| Confusable neighbours of a read topic | `get_connected_topics(content_id)`, `explore_graph(...)` |
 
-**The learning store is a separate database.** References to dsview rows are stored as **plain
-integers, never foreign keys**, so the two can live in separate Postgres instances without a
-migration. The backend opens its own read-write engine for its own database and a separate
-read-only engine for dsview's — it does **not** import `dsview.db.engine`, which resolves a single
-`POSTGRES_*` triple.
+**Courses as curriculum sources** is the most valuable of these and was missing from earlier drafts:
+a course or documentation entry in the knowledge base is a curated table of contents. It gives the
+curriculum agent structured, already-vetted material to propose topics from, which is a much better
+use of dsview than treating it as a coverage database.
 
-Nothing in the new repo ever writes to `content`, `extraction` or `labels`. `dsview_ro` enforces
-that; the design should not rely on the grant alone.
+### Working without what is not exposed
 
-### 3. dsview as a library
+| Not exposed | How `dsrecall` manages |
+|---|---|
+| Topic embeddings (excluded from the MCP payload) | Unnecessary: `search_topic` performs dsview's hybrid FTS + vector search server-side and returns ranked topics, which is the capability the vectors would have provided. `dsrecall` embeds its *own* curriculum topics for curriculum-internal work. |
+| Entity-resolution history (`ercomparison`) | Confusable pairs are generated inside the writer/critic loop over curriculum topics, and taken from graph adjacency (`get_connected_topics`, `explore_graph`) for grounded items. See the note below. |
+| Date-range content queries | Page `query_content(date_ordering="desc")` and filter on `upload_date` client-side. |
+| Resolving a topic by id | Not needed: `dsrecall` stores no dsview ids (see *Data model*). Topic identity travels as a name from `search_topic`, provenance as a URL. |
+| Hourly staleness of search and ranking indexes | Irrelevant: only the offline batch talks to dsview. The serving path never does. |
 
-dsview is not published to PyPI, so a uv git dependency pinned to a tag (`v*.*.*`, currently
-`2.7.0`):
+On entity resolution: dsview's ER log does contain pairs judged similar-but-distinct, which are in
+principle ready-made discrimination items. It is not used, for two reasons — the pairs skew toward
+tool and library name collisions rather than the fundamentals this curriculum targets, and asking a
+current model for commonly-confused pairs within an area is not the weak link it would have been two
+years ago. Revisit only if discrimination items measure worst in evaluation.
 
-```toml
-dependencies = ["dsview @ git+https://github.com/tdurouchoux/dsview@v2.7.0"]
-```
+### Deliberately no stored coupling
 
-Worth importing:
-
-- `dsview.model_utils` — `LLMModel`, `get_model_provider`: the prompt-file + structured-output
-  pattern, multi-provider support and tenacity retries.
-- `dsview.config` — `ModelType`, `ModelConfig`, `lazy`, `lazy_model_config`, `load_model_config`,
-  `setup_logger`.
-- `dsview.db.query.query_labels::assign_rows` — the hash-based deterministic split. Reuse the
-  function, fix this repo's own random state and ratios at creation, and never change them
-  afterwards (same discipline as dsview's rule, on a separate dataset).
-- `dsview.notification.email_sender::send_email` — the daily nudge, until a PWA push earns its keep.
-
-Three import hazards, all real:
-
-- **`dsview.config` reads `CONF_DIR` and `PROMPT_DIR`** on first attribute access, and
-  `load_model_config` expects a `model.yaml` of dsview's shape. The new repo therefore needs its
-  **own** config directory with its own `model.yaml` (and `logging.yaml`), not dsview's. This is the
-  main ongoing cost of the library dependency: a schema change in dsview's config is a breaking
-  change here.
-- **Do not import `dsview.extraction.models.*`.** `topics_extraction.py` and
-  `description_generation.py` build `TopicType` / `TagsType` / `ContentType` enums from config **at
-  import time** (pydantic needs them at class definition), so importing them requires a valid
-  `CONF_DIR` immediately. Importing `dsview.model_utils` alone stays lazy.
-- **Do not import `dsview.db.engine`** — see above; build engines locally.
-
-Provider keys follow whatever this repo's `model.yaml` declares (`MISTRAL_API_KEY` if it mirrors
-dsview's default). `.env` at the repo root is auto-loaded by `python-dotenv`, as in dsview.
-
-### Gaps in dsview, and whether they matter
-
-Neither of these blocks a start; both are cheap if wanted later.
-
-- **No tool resolves a topic by id.** `explore_graph`'s own docstring refers to a `get_topic` tool
-  that does not exist, and `get_nodes_ranking` / `explore_graph` return ids with only a label. The
-  mapping table stores `dsview_topic_id`, so hydrating one is SQL today. A `get_topic(topic_id)`
-  tool in `dsview/mcp/server.py` would be a handful of lines and would make the agent path
-  self-sufficient.
-- **`ercomparison` is invisible to agents.** Only matters if discrimination-item selection moves
-  from the batch job into an agent. Leave it in SQL until then.
-
-Both are *requests on dsview*, to be raised there as their own change, not reasons to fork or
-vendor anything.
-
-### Conventions to inherit
-
-The new repo should start with its own `CLAUDE.md` seeded from dsview's: lazy config, `session`
-last among required parameters, `uvx ruff format . && uvx ruff check .`, hermetic tests by default
-with `@pytest.mark.llm` / `@pytest.mark.network` for the rest, ADRs in `docs/adr/` in MADR format,
-MLflow run names that say what changed, and no prompt change merged without an eval.
+`dsrecall` stores **no dsview identifiers at all** — not topic ids, not content ids. Where a
+question was grounded in something read, provenance is kept as the **source URL and title**, which
+stay meaningful if dsview is offline, re-ingested with new ids, or eventually replaced. There is no
+mapping table between the two topic spaces: coverage is a question asked at generation time, not a
+relation to maintain.
 
 ---
 
-## Data model (learning backend)
+## Data model
 
 - **`curriculumtopic`** — `id`, `name`, `area`, `kind` (`fundamental` | `frontier`), `description`,
   `embedding`, `status` (`proposed` | `accepted` | `rejected`), `review_date`.
-- **`curriculumsource`** — `id`, `curriculum_topic_id`, `url`, `note`. Provenance is what makes an
-  agent-proposed curriculum trustable; without it, accepting a topic is an act of faith.
-- **`kbtopiclink`** — `curriculum_topic_id`, `dsview_topic_id` (loose int), `similarity`, `method`.
-- **`quizquestion`** — `id`, `curriculum_topic_id`, `dsview_content_id` (nullable loose int, set for
-  grounded consolidation items), `archetype`, `question`, `explanation`, `generation_date`,
+- **`curriculumsource`** — `id`, `curriculum_topic_id`, `url`, `title`, `note`, `origin`
+  (`web` | `dsview`). Provenance is what makes an agent-proposed curriculum trustable; without it,
+  accepting a topic is an act of faith. `origin="dsview"` marks a topic proposed from a course or
+  documentation entry in the knowledge base.
+- **`quizquestion`** — `id`, `curriculum_topic_id`, `archetype`, `question`, `explanation`,
+  `source_url`, `source_title` (both nullable, set for grounded items), `generation_date`,
   `retired`.
-- **`quizchoice`** — `id`, `question_id`, `text`, `correct`, `distractor_topic_id`.
+- **`quizchoice`** — `id`, `question_id`, `text`, `correct`.
 - **`quizanswer`** — `id`, `question_id`, `choice_id`, `answer_date`, `flagged`.
-- **`questionlabel`** — human verdicts, multi-label; the judge's training data.
+- **`questionlabel`** — human verdicts, multi-label; the judge's reference data. Carries its own
+  `split` column (`eval` | `test`), assigned once at insert and never recomputed.
 
 **No topic-state table, no stored streaks.** Freshness, accuracy and streak are derived by SQL over
 `quizanswer`. Stored state is a second source of truth that can drift, for an aggregation that is
 free at this scale. Materialise only if the selection query actually becomes slow.
 
+On the split: dsview learned this the hard way (`docs/adr/0001-...`) — a split recomputed from row
+position silently reshuffles as rows are added, invalidating every past comparison. Storing the
+assignment at insert is the simpler fix when there is no reason not to.
+
 ## Agents (offline)
 
-- **Curriculum agent.** Web-searches syllabi, textbook tables of contents and standard references;
-  proposes canonical topics with provenance; dedupes against the existing curriculum by embedding.
-  Lands as `status="proposed"` behind a human accept/reject gate — an auto-accepted curriculum is an
-  unbounded quality risk at the root of everything downstream.
+- **Curriculum agent.** Proposes canonical topics from two source families: web research (syllabi,
+  textbook tables of contents, standard references) and dsview's own courses and documentation via
+  `search_content(types=["Course"])`. Dedupes against the existing curriculum by embedding. Lands as
+  `status="proposed"` behind a human accept/reject gate — an auto-accepted curriculum is an unbounded
+  quality risk at the root of everything downstream.
 - **Reference agent.** For an accepted topic, fetches grounding material so questions are written
   from a source rather than from parametric memory. The main defence against confidently mis-keyed
   items.
 - **Writer + critic loop.** Writer drafts; the judge critiques; writer revises; accept or discard,
-  bounded iterations. The judge does double duty — inline critic *and* offline eval metric.
-
-Deliberately **not** an agent: the curriculum↔kb mapping. Embedding neighbours over
-`extraction.extractiontopic.embedding` plus an `ERClassifier`-style pairwise confirmation already
-solve it, and that task is tuned and evaluated (dsview `docs/adr/0001-entity-resolution-classifier-model-and-prompt.md`).
-
-**Framework: `pydantic-ai`.** Logfire is by the same team and already instrumented across dsview,
-so multi-agent traces come free; it is pydantic-native, matching the existing structured-output
-style; and it speaks MCP, which is how the kb is consulted. Nothing LangGraph-scale is warranted
-for a single-user system. A hand-rolled loop over `LLMModel` plus tool calls is the fallback.
-
-Cost: agentic generation is far more expensive per item than one structured call. It is also
-offline, batched, and amortised over weeks of serving — the point of separating the tempos.
+  bounded iterations. The judge does double duty — inline critic *and* offline evaluation metric.
 
 ## Question generation
 
-| Archetype | Grounded in | Distractors from |
+Each item is one stem, one **key** (the correct option) and three **distractors** (the wrong
+options). Distractor quality *is* item quality: if the wrong options are obviously wrong, the key is
+identifiable without knowing anything about the topic, and the item measures nothing. So the table
+below names where each archetype's wrong options come from — they are **selected from a pool of real
+topics**, not invented free-hand by the model, which is the known failure mode.
+
+| Archetype | Stem grounded in | Wrong options drawn from |
 |---|---|---|
-| `recognition` | curriculum topic + fetched reference | sibling curriculum topics in the same area |
-| `discrimination` | a confusable topic pair | the pair's counterpart |
-| `application` | topic + typical use | siblings in the same area |
-| `consolidation` | a summary of content actually read | other topics linked to that content |
+| `recognition` | curriculum topic + fetched reference | sibling curriculum topics in the same area, nearest by embedding |
+| `discrimination` | a pair of genuinely confusable curriculum topics | the pair's counterpart |
+| `application` | curriculum topic + a typical use | siblings in the same area |
+| `consolidation` | the summary of a content actually read | other topics linked to that same content (`get_connected_topics`) |
 
-### Distractors are selected, not invented
-
-The known failure mode of LLM-written multiple choice is implausible options: the key is
-identifiable without knowing anything. Candidates come from structure instead — embedding
-neighbours within the curriculum; for consolidation items, the kb's own topic neighbourhood; and
-**`extraction.ercomparison` rows with `merge_topic = false`**, which are confusable-but-distinct by
-construction. The model writes the stem and the explanation; the candidate set comes from data.
+The model writes the stem and the explanation; the candidate pool comes from data.
 
 ### Grounding depth
 
-dsview persists summaries, not raw content (full text exists only in `labels.labelledcontent`, and
-only for labelled rows). For consolidation items that caps depth at what a summary supports —
-acceptable at recognition level. Curriculum items are unaffected: the reference agent fetches their
-material.
+dsview persists summaries, not raw content, so `consolidation` items are capped at what a summary
+supports — acceptable at recognition level. Other archetypes are unaffected: the reference agent
+fetches their material.
 
 ## Daily selection policy
 
-Five items, mix configurable in YAML:
+Five items, mix configurable:
 
 - **2 cold fundamentals** — `kind="fundamental"`, longest since asked or previously wrong.
-- **1 consolidation** — curriculum topic mapped to content ingested in the last few weeks.
-- **1 blind spot** — accepted curriculum topic with no `kbtopiclink` row.
+- **1 consolidation** — a topic covered by something read in the last few weeks.
+- **1 uncovered** — an accepted curriculum topic dsview has nothing on.
 - **1 new** — never asked.
 
-A readable policy, not a learned scheduler: when a session feels wrong, the reason should be one
-SQL query away. Note where pagerank survives — *ordering within consolidation items only*, among
-topics actually read. It never defines scope. FSRS-style intervals are a later refinement.
+A readable policy, not a learned scheduler: when a session feels wrong, the reason should be one SQL
+query away. FSRS-style intervals are a later refinement, once there is answer history.
 
 ## Gamification
 
@@ -354,9 +269,9 @@ Stated as the most important aspect, so treated as load-bearing:
 - **Streak with a grace/freeze mechanic.** Streak loss is the dominant churn cause, and an
   unforgiving streak punishes exactly the busy weeks when the habit is most fragile.
 - **Explanation on every answer**, generated offline, so a wrong answer teaches rather than scores.
-- **Progress against the curriculum**, per area — a real skill tree, blind spots visible as
+- **Progress against the curriculum**, per area — a real skill tree, uncovered topics visible as
   unfilled branches. Stronger than an XP number because the structure means something.
-- **A consistent daily trigger**, via `dsview.notification.email_sender`.
+- **A consistent daily trigger** — email until a PWA push earns its keep.
 - **Weekly recap** — streak, accuracy by area, coldest topics.
 
 Explicitly rejected: leaderboards and social comparison (single user), currencies with nothing to
@@ -365,7 +280,11 @@ buy.
 Honest risk: solo gamification decays once novelty passes. What survives is the streak, the visible
 coverage map, and near-zero friction. Cosmetic layers are not worth early investment.
 
-## Evaluation — a judge trained on labelled questions
+## Evaluation — an MLflow judge aligned on labelled questions
+
+Question quality is the main risk and is not measurable by plumbing tests. The judge is built with
+MLflow's GenAI tooling rather than hand-rolled, which is also the point: this is the part of the
+stack most worth learning.
 
 ### Failure taxonomy (multi-label)
 
@@ -373,54 +292,56 @@ A question can fail several ways at once, so verdicts are checkboxes, not one en
 `ambiguous`, `cue_leaking` (key guessable from phrasing, length, grammatical agreement, "all of the
 above"), `weak_distractors`, `off_level`, `false_premise`.
 
-### Labelled data, including cold start
+### Reference data, including cold start
 
-- **Hand labelling** in a small Streamlit form — for MCQ this is read-and-tick, so a seed of
-  100–200 is an afternoon.
+- **Hand labelling** — for MCQ this is read-and-tick, so a seed of 100–200 is an afternoon. Worth
+  trying MLflow's own review/labelling surface before building a form.
 - **Synthetic negatives** — corrupt known-good items deterministically: swap the key, replace
   distractors with far-away topics, append "all of the above". Manufactures labelled failures for
   `mis_keyed`, `weak_distractors` and `cue_leaking` at no labelling cost, which is what makes a
   judge trainable before the human set is large.
-- **Production signals** — `flagged` items are labelled negatives for free; items answered
-  correctly every time are uninformative; an item whose distractor beats its key is probably
-  mis-keyed.
+- **Production signals** — `flagged` items are labelled negatives for free; items answered correctly
+  every time are uninformative; an item whose distractor beats its key is probably mis-keyed.
 
-### The judge itself
+### The judge
 
-An `LLMModel` subclass with one structured output field per failure mode. "Trained" means
-**prompt-optimised against the labelled set**, following existing practice — DSPy optimisation of
-extraction prompts already lives in dsview's `notebooks/` (`dspy_entity_resolution_opt.py`,
-`dspy_content_description_opt.py`). Fine-tuning a small model is the fallback if an optimised
-prompt plateaus, and needs an order of magnitude more labels.
+One scorer per failure mode, evaluated over a stored dataset with `mlflow.genai.evaluate`, and
+**aligned against the human labels** using MLflow's judge-alignment support rather than a
+hand-tuned prompt. Judge prompts live in the **MLflow prompt registry**, versioned, so a scoring run
+records which prompt version produced it. Everything logs to MLflow runs as usual, so judge versions
+are comparable over time.
+
+This replaces the DSPy-in-a-notebook approach dsview uses. Fine-tuning a small model stays the
+fallback if alignment plateaus, and would need an order of magnitude more labels.
 
 ### Meta-evaluation, and the circularity trap
 
-A judge is worthless unmeasured: an `evaluation/quiz_judge.py` scores **agreement with human
-labels** per failure mode (F1, and Cohen's κ for the subjective ones) on the `eval` split, reusing
-`assign_rows`, logged to MLflow. Only past acceptable agreement does the judge become a generation
-gate.
+A judge is worthless unmeasured: score **agreement with human labels** per failure mode (F1, and
+Cohen's κ for the subjective ones) on the held-out `test` split. Only past acceptable agreement does
+the judge become a generation gate.
 
 **The trap:** once the judge filters generation *and* measures it, the metric grades its own
 filtering and will look excellent regardless of reality. Mitigations — keep a human-labelled
 held-out set as the real measure, re-label a fresh sample periodically, and track judge agreement
-over time as a first-class metric. This is the kind of eval that rots silently.
+over time as a first-class metric. This is the kind of evaluation that rots silently.
 
 ## Phasing
 
-1. New repo skeleton: `CLAUDE.md`, config dir, pinned dsview dependency, learning schema, and a
-   smoke test that reaches both the MCP endpoint and `dsview_ro`.
-2. Curriculum agent + human review gate; a first accepted curriculum for two or three areas only.
-3. Mapping to the kb; question generation for those areas; hand-inspect the bank.
+1. New repo skeleton: `pydantic-ai` agent that reaches the dsview MCP server, MLflow tracking
+   reachable, learning schema created. Pin down the actual MLflow GenAI API surface here.
+2. Curriculum agent + human review gate; a first accepted curriculum for two or three areas,
+   seeded partly from dsview courses.
+3. Question generation for those areas; hand-inspect the bank.
 4. Serving routes + the smallest client that runs a daily session.
-5. Labelling form, judge, meta-eval; then wire the judge into the writer/critic loop.
+5. Labelling, judge, alignment, meta-evaluation; then wire the judge into the writer/critic loop.
 6. Per-area coverage view and weekly recap. Widen the curriculum.
 
 ## Deferred
 
-- **Reading recommendations.** Partly free now: a curriculum blind spot *is* a reading suggestion.
-  The complementary signal worth recording — **`extraction.extractionlink`** holds links extracted
-  from content that was read but never ingested; a link referenced across several reads and never
-  followed is a strong recommendation from one SQL query, no LLM. Belongs in dsview's weekly digest
-  before it justifies any UI here.
+- **Reading recommendations.** Partly free already: an uncovered curriculum topic *is* a reading
+  suggestion. The complementary signal worth recording — dsview's `extraction.extractionlink` holds
+  links extracted from content that was read but never ingested; a link referenced across several
+  reads and never followed is a strong recommendation. It is not exposed over MCP and belongs in
+  dsview's own weekly digest rather than here.
 - **Spaced repetition proper** (FSRS per topic) — needs answer history first.
 - **Free-text answers with an LLM judge** — only if the goal shifts from recognition to depth.
