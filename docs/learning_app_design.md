@@ -2,11 +2,16 @@
 
 *Status: proposed · date: 2026-09-19 · author: tdurouchoux*
 
-**Scope.** This document specifies a new system that lives in **its own repository** (working name
-`dsrecall`, placeholder). It is kept in the dsview repo because that is the repo that exists today,
-and because one section of it is an integration contract against dsview. Every path, table and tool
-written `dsview/...` refers to the **`tdurouchoux/dsview`** repository and its deployment, verified
-against dsview `2.7.0`.
+> **Counterpart repository:** [`tdurouchoux/dsview`](https://github.com/tdurouchoux/dsview) — the
+> data-science knowledge base this app consumes over MCP (see *Integration with dsview*, below).
+> Every path, table and tool named `dsview/...` in this document refers to that repository, pinned
+> to tag [`v2.7.0`](https://github.com/tdurouchoux/dsview/tree/v2.7.0) — the revision this proposal
+> was verified against.
+
+**Scope.** This document specifies `dsrecall` itself: a new system in **its own repository**,
+separate from dsview, consuming it exclusively through the MCP server dsview already exposes. One
+section below is an integration contract against that server; the rest is `dsrecall`'s own design
+and does not depend on dsview at all.
 
 ## Problem
 
