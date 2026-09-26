@@ -90,6 +90,10 @@ Two tempos, and the split follows them:
 
 Nothing in the serving path calls a model. Every LLM cost is amortised over weeks of sessions.
 
+The two tempos are not sealed off from each other: the offline job **reads** `quizanswer` as an
+input to what it generates next (see *Generation targeting*). That is still a batch read on a
+weekly cadence, not a live loop — the serving path stays exactly as boring as above.
+
 ### Components
 
 1. **dsview — unchanged.** Consumed over its MCP server, never extended for this purpose.
@@ -201,7 +205,8 @@ relation to maintain.
   documentation entry in the knowledge base.
 - **`quizquestion`** — `id`, `curriculum_topic_id`, `archetype` (`mechanism` | `application` |
   `pitfall` | `tradeoff` | `takeaway`), `question`, `explanation`, `source_url`, `source_title`
-  (both nullable, set for grounded items), `generation_date`, `retired`.
+  (both nullable, set for grounded items), `image_path` (nullable), `image_spec` (nullable, see
+  *Visual items*), `generation_date`, `retired`.
 - **`quizchoice`** — `id`, `question_id`, `text`, `correct`, `strategy` (`perturbed` |
   `neighbour_true` | `misconception`, null on the key). Recording how each distractor was built is
   what lets evaluation compare strategies rather than guess.
@@ -209,9 +214,17 @@ relation to maintain.
 - **`questionlabel`** — human verdicts, multi-label; the judge's reference data. Carries its own
   `split` column (`eval` | `test`), assigned once at insert and never recomputed.
 
+`image_spec` is the reproducible instruction that produced `image_path` (a small structured
+description or the code that rendered it, not the image itself), kept so a flagged or superseded
+image can be regenerated or fixed without re-deriving what it was meant to show.
+
 **No topic-state table, no stored streaks.** Freshness, accuracy and streak are derived by SQL over
 `quizanswer`. Stored state is a second source of truth that can drift, for an aggregation that is
 free at this scale. Materialise only if the selection query actually becomes slow.
+
+Same rule extends to the generation-targeting signal introduced below: per-topic accuracy and
+coverage are a query over `quizanswer` joined to `quizquestion`, run once per generation batch —
+not a maintained table.
 
 On the split: dsview learned this the hard way (`docs/adr/0001-...`) — a split recomputed from row
 position silently reshuffles as rows are added, invalidating every past comparison. Storing the
@@ -278,6 +291,33 @@ One mechanical consequence of statement-options: they are long, and in badly wri
 the longest option is the answer. Options must be normalised for length and grammatical shape, and
 `cue_leaking` is the judge's job to catch (see *Evaluation*).
 
+### Visual items
+
+Some things are genuinely easier to check from a picture than a sentence: a decision boundary, a
+confusion matrix, an attention pattern, an architecture block diagram, an ROC curve, the shape of a
+learning curve that signals overfitting. Forcing these into text-only stems either drops the
+question or makes the stem do the diagram's job in prose, which is worse. So a question **may**
+carry one image, attached to the stem and shown before the options.
+
+**Rendered, not sourced.** The tempting alternative — pull a figure out of the reference material
+the reference agent already fetched — is not used: source figures carry licensing questions for
+anything eventually shared, extracting the *right* panel from a fetched page or PDF is unreliable,
+and a copied figure can leak the answer if it was drawn to illustrate the paper's own conclusion. A
+writer that emits a **plotting spec** the pipeline renders itself (matplotlib for curves and
+matrices, graphviz/Mermaid for architecture and flow diagrams) instead avoids all three: fully
+controlled, reproducible from `image_spec`, and only ever showing what the question intends.
+
+**Judged like every other item.** A bad diagram is exactly as damaging as a bad distractor — mislabelled
+axes, a curve that doesn't actually show what the stem claims, a diagram cluttered enough to hide
+the answer. The failure taxonomy gains one entry for this (`image_misleading`), and the writer/critic
+loop renders the image before the critic pass so a bad one is caught offline, never in a session.
+
+**Not every archetype wants one.** `mechanism` and `pitfall` are where a diagram earns its place most
+often (architecture pieces, learning-curve pathologies); `application` and `tradeoff` rarely need
+one; `takeaway` only if the source itself was built around a figure. Left to the writer to decide
+per item rather than forced by archetype — a rule like "mechanism questions get a diagram" would
+produce filler diagrams on items that don't need one.
+
 ### `takeaway` — consolidating a specific read
 
 The point is not to re-summarise something read; a summary played back is worth nothing. It is worth
@@ -303,6 +343,43 @@ cap on question depth for the other four.
 Note what is *not* used here: topics linked to the same content. The graph is sparse enough that
 co-occurrence in one read implies little, so it is a poor source of anything.
 
+## Generation targeting — the bank grows toward what needs it
+
+Selection (below) only chooses among items that already exist. Left alone, that under-serves the
+actual goal: a bank generated once and then just replayed would let coverage stay wherever the
+curriculum agent happened to leave it, no matter how the reader is actually doing. So the **weekly
+generation batch itself is targeted by answer history**, not evenly spread across the curriculum.
+
+Per curriculum topic, computed fresh each batch from `quizanswer` joined to `quizquestion` (no
+stored state — see *Data model*):
+
+- **`error_rate`** — wrong-answer share over a trailing window (e.g. last 20 answers or 90 days,
+  whichever is fewer data points).
+- **`coverage`** — how many non-retired items already exist for the topic.
+- **`staleness`** — time since the topic was last asked at all.
+
+New-item budget for the batch is allocated across topics by a score along the lines of
+
+```
+priority(topic) = w_error * error_rate + w_gap * (1 / (1 + coverage)) + w_stale * staleness
+```
+
+with a **floor** (every accepted topic gets at least one new item every few batches, however well
+it's answered — the goal is habit and breadth, not narrowing to a remedial drill) and a **cap** (no
+single topic can absorb more than a small share of one batch's budget, so one weak topic can't starve
+the rest of the curriculum). Exact weights and window are a config file, not a decision to make
+without data — start uniform, look at the resulting mix after a few batches, adjust.
+
+This is deliberately an **explore/exploit** balance, not pure remediation: a good score on a topic
+should shift its weight down, never to zero, and a topic that has *never* been asked should compete
+on the same footing as one answered badly, since an unasked topic is a coverage gap the curriculum
+agent may not have caught. Coverage of the field is a first-class term in the formula, not an
+afterthought bolted onto a weak-spot drill.
+
+`takeaway` is exempt from this targeting — its eligibility is gated by what was actually read (see
+above), not by curriculum-topic priority, so it draws from whatever qualifies each batch regardless
+of that topic's `error_rate`.
+
 ## Daily selection policy
 
 Five items, mix configurable:
@@ -315,6 +392,11 @@ Five items, mix configurable:
 
 A readable policy, not a learned scheduler: when a session feels wrong, the reason should be one SQL
 query away. FSRS-style intervals are a later refinement, once there is answer history.
+
+This is the same `error_rate` / `staleness` signal as generation targeting, read at a different
+tempo: selection re-orders the *existing* bank every day, targeting reshapes what gets *added* to it
+every week. A topic can be selected often long before it earns a bigger generation share, and vice
+versa — the two are not required to agree at any given moment.
 
 ## Gamification
 
@@ -333,6 +415,23 @@ Stated as the most important aspect, so treated as load-bearing:
 Explicitly rejected: leaderboards and social comparison (single user), currencies with nothing to
 buy.
 
+### Progress statistics
+
+Beyond the recap email, `GET /learning/progress` should back real charts in the client, not just
+numbers in prose — this is the visible half of the coverage map promised above. Deferred to its own
+design pass (see the `dataviz` conventions when it's tackled), but the candidates worth building
+toward, all computable from `quizanswer` alone:
+
+- accuracy by curriculum area, as a heatmap or bar row — the "which topic groups are cold" view;
+- coverage vs. accuracy scatter, one point per topic — separates "never asked" from "asked and
+  wrong", which want different reactions from the reader;
+- a streak calendar (the familiar contribution-grid shape);
+- accuracy trend over time per area, to show whether a weak spot is actually improving.
+
+The generation-targeting inputs above (`error_rate`, `coverage`, `staleness`) are exactly the
+aggregates these charts need, so the query layer built for targeting is the one the progress route
+reuses — no separate reporting path to maintain.
+
 Honest risk: solo gamification decays once novelty passes. What survives is the streak, the visible
 coverage map, and near-zero friction. Cosmetic layers are not worth early investment.
 
@@ -346,7 +445,9 @@ stack most worth learning.
 
 A question can fail several ways at once, so verdicts are checkboxes, not one enum: `mis_keyed`,
 `ambiguous`, `cue_leaking` (key guessable from phrasing, length, grammatical agreement, "all of the
-above"), `weak_distractors`, `off_level`, `false_premise`.
+above"), `weak_distractors`, `off_level`, `false_premise`, `image_misleading` (mislabelled, doesn't
+show what the stem claims, or gives away the key — items with no image are simply never flagged with
+it).
 
 ### Reference data, including cold start
 
@@ -387,10 +488,15 @@ over time as a first-class metric. This is the kind of evaluation that rots sile
    reachable, learning schema created. Pin down the actual MLflow GenAI API surface here.
 2. Curriculum agent + human review gate; a first accepted curriculum for two or three areas,
    seeded partly from dsview courses.
-3. Question generation for those areas; hand-inspect the bank.
+3. Question generation for those areas; hand-inspect the bank. Text-only first — visual items are
+   an added rendering step on the same writer, not a prerequisite for it, so they can follow once
+   the text pipeline is trustworthy.
 4. Serving routes + the smallest client that runs a daily session.
 5. Labelling, judge, alignment, meta-evaluation; then wire the judge into the writer/critic loop.
+   Add `image_misleading` once items actually carry images.
 6. Per-area coverage view and weekly recap. Widen the curriculum.
+7. Close the loop: generation targeting from `quizanswer`, and the progress statistics that share
+   its query layer. Needs enough answer history from phase 4 onward to be worth computing.
 
 ## Deferred
 
